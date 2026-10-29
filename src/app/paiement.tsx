@@ -43,7 +43,7 @@ export default function PaymentScreen() {
       }
     } catch (e) {
       router.back();
-      notify(t('payment.title'), errorMessage(e));
+      notify(t('payment.title'), errorMessage(e), 'error');
     }
   };
 

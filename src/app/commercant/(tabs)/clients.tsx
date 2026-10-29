@@ -41,7 +41,7 @@ export default function ClientsScreen() {
 
   const broadcast = () =>
     confirmAction(t('merchant.broadcastLoyal'), t('merchant.broadcastConfirm'), () =>
-      actions.broadcast.mutate({ segment: 'loyal' }, { onSuccess: (r) => showBroadcastResult(t('merchant.broadcastLoyal'), r), onError: (e) => notify(t('merchant.broadcastLoyal'), errorMessage(e)) }),
+      actions.broadcast.mutate({ segment: 'loyal' }, { onSuccess: (r) => showBroadcastResult(t('merchant.broadcastLoyal'), r), onError: (e) => notify(t('merchant.broadcastLoyal'), errorMessage(e), 'error') }),
     );
 
   return (
@@ -84,7 +84,7 @@ export default function ClientsScreen() {
                     size="sm"
                     onPress={() =>
                       confirmAction(t('merchant.followUpConfirm', { name: c.display_name }), '', () =>
-                        actions.followUp.mutate(c.id, { onSuccess: (r) => showBroadcastResult(t('merchant.followUp'), r), onError: (e) => notify(t('merchant.followUp'), errorMessage(e)) }),
+                        actions.followUp.mutate(c.id, { onSuccess: (r) => showBroadcastResult(t('merchant.followUp'), r), onError: (e) => notify(t('merchant.followUp'), errorMessage(e), 'error') }),
                       )
                     }
                   />

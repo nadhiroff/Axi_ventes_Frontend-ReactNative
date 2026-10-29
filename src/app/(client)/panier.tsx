@@ -29,7 +29,7 @@ export default function CartScreen() {
   const { colors } = useTheme();
   const { tablet } = useLayout();
   const signedIn = useAuthStore((s) => s.status === 'signedIn');
-  const { items, receptionMode, receptionDetail, setQuantity, setReception, setReceptionDetail, clear, paymentKey, setPaymentKey } = useCartStore();
+  const { items, receptionMode, receptionDetail, setQuantity, setReception, setReceptionDetail, clear, paymentKey, setPaymentKey, paymentMode, setPaymentMode } = useCartStore();
   const settings = useSettings().data;
   const [paying, setPaying] = useState(false);
 
@@ -41,12 +41,17 @@ export default function CartScreen() {
   }, [settings, receptionMode, receptionDetail, setReceptionDetail]);
 
   const body = useMemo(
-    () => ({ lines: items.map((i) => ({ product_id: i.product_id, quantity: i.quantity })), reception: { mode: receptionMode, detail: receptionDetail } }),
-    [items, receptionMode, receptionDetail],
+    () => ({ lines: items.map((i) => ({ product_id: i.product_id, quantity: i.quantity })), reception: { mode: receptionMode, detail: receptionDetail }, payment_mode: paymentMode }),
+    [items, receptionMode, receptionDetail, paymentMode],
   );
   const quote = useQuote(body, items.length > 0);
   const q = quote.data;
   const groups = groupByStall(items);
+
+  // Un commerçant du panier n'accepte pas le paiement sur place : retour au paiement en ligne
+  useEffect(() => {
+    if (q && !q.pay_on_site_available && paymentMode === 'on_site') setPaymentMode('online');
+  }, [q, paymentMode, setPaymentMode]);
 
   if (!signedIn) {
     return (
@@ -67,14 +72,15 @@ export default function CartScreen() {
 
   const unavailable = new Set(q?.unavailable_product_ids ?? []);
   const needsDetail = receptionDetail.trim() === '';
+  const onSite = paymentMode === 'on_site' && !!q?.pay_on_site_available;
 
   const pay = () => {
     if (needsDetail) {
-      notify(t('cart.detailRequired'));
+      notify(t('cart.title'), t('cart.detailRequired'), 'error');
       return;
     }
     if (!q) return;
-    confirmAction(t('cart.payConfirmTitle', { amount: formatFcfa(q.total) }), t('cart.payConfirmText'), async () => {
+    confirmAction(t('cart.payConfirmTitle', { amount: formatFcfa(q.total) }), onSite ? t('cart.onSiteConfirm', { cash: formatFcfa(q.cash_total) }) : t('cart.payConfirmText'), async () => {
       setPaying(true);
       // Même clé tant que le panier ne change pas : un nouvel essai ne crée jamais un second débit
       const key = paymentKey ?? newIdempotencyKey();
@@ -85,7 +91,7 @@ export default function CartScreen() {
       } catch (e) {
         if (e instanceof ApiError && e.code === 'IDEMPOTENCY_KEY_REUSED') setPaymentKey(null);
         if (e instanceof ApiError && e.code === 'PRODUCT_UNAVAILABLE') quote.refetch();
-        notify(t('cart.title'), errorMessage(e));
+        notify(t('cart.title'), errorMessage(e), 'error');
       } finally {
         setPaying(false);
       }
@@ -103,11 +109,13 @@ export default function CartScreen() {
       <Row label={t('cart.items')} value={formatFcfa(q?.items_total ?? 0)} />
       {q && q.grouping_fee > 0 ? <Row label={t('cart.grouping', { n: q.stall_count })} value={formatFcfa(q.grouping_fee)} /> : null}
       {q ? <Row label={q.reception_fee_label} value={formatFcfa(q.reception_fee)} /> : null}
+      {q && q.service_fee > 0 ? <Row label={t('cart.serviceFee')} value={formatFcfa(q.service_fee)} /> : null}
       <View style={styles.divider} />
-      <Row label={t('cart.total')} value={formatFcfa(q?.total ?? 0)} strong />
+      <Row label={onSite ? t('cart.payNow') : t('cart.total')} value={formatFcfa(q?.total ?? 0)} strong />
+      {onSite && q ? <Row label={t('cart.payCash')} value={formatFcfa(q.cash_total)} /> : null}
       <View style={styles.escrow}>
         <Icon name="shield" size={16} color={colors.trustText} />
-        <Text style={styles.escrowText}>{t('cart.payHint')}</Text>
+        <Text style={styles.escrowText}>{onSite ? t('cart.onSiteHint') : t('cart.payHint')}</Text>
       </View>
     </Card>
   );
@@ -158,6 +166,12 @@ export default function CartScreen() {
                 ))}
               </Card>
             ))}
+            <Text style={styles.section}>{t('cart.paymentTitle')}</Text>
+            <View style={styles.modes}>
+              <OptionTile label={t('cart.payOnline')} hint={t('cart.payOnlineHint')} selected={paymentMode === 'online' || !q?.pay_on_site_available} onPress={() => setPaymentMode('online')} />
+              {q?.pay_on_site_available ? <OptionTile label={t('cart.payOnSite')} hint={t('cart.payOnSiteHint')} selected={paymentMode === 'on_site'} onPress={() => setPaymentMode('on_site')} /> : null}
+            </View>
+            {!q?.pay_on_site_available && q ? <Text style={styles.label}>{t('cart.onSiteUnavailable')}</Text> : null}
             <Text style={styles.section}>{t('cart.reception')}</Text>
             <View style={styles.modes}>
               {modes.map((m) => (

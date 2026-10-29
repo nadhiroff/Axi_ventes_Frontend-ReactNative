@@ -22,7 +22,7 @@ export function ProductRow({ product }: { product: Product }) {
   const mutations = useProductMutations();
   const [viewer, setViewer] = useState(false);
   const toggle = (patch: { in_stock?: boolean; is_today?: boolean }) =>
-    mutations.update.mutate({ id: product.id, patch }, { onError: (e) => notify(product.name, errorMessage(e)) });
+    mutations.update.mutate({ id: product.id, patch }, { onError: (e) => notify(product.name, errorMessage(e), 'error') });
   const draft = product.status === 'draft';
 
   return (
@@ -34,7 +34,12 @@ export function ProductRow({ product }: { product: Product }) {
         <Pressable style={{ flex: 1, gap: 2 }} onPress={() => router.push(`/commercant/produit/${product.id}`)} accessibilityRole="button">
           <Text style={styles.name} numberOfLines={2}>{product.name}</Text>
           <Text style={styles.price}>{formatPrice(product.price, t('product.negotiable'))}</Text>
-          {draft ? <Tag label={t('merchant.drafts')} tone="brand" /> : product.images.length ? <Text style={styles.muted}>{t('product.photos', { n: product.images.length })}</Text> : null}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            {draft ? <Tag label={t('merchant.drafts')} tone="brand" /> : null}
+            {product.status === 'paused' ? <Tag label={t('merchant.paused')} tone="outline" /> : null}
+            {product.sold_out ? <Tag label={t('merchant.soldOut')} tone="danger" /> : product.stock_quantity !== null ? <Tag label={t('merchant.stockLeft', { n: product.stock_quantity })} tone="neutral" /> : null}
+            {!draft && product.images.length ? <Text style={styles.muted}>{t('product.photos', { n: product.images.length })}</Text> : null}
+          </View>
         </Pressable>
         <Pressable onPress={() => router.push(`/commercant/produit/${product.id}`)} accessibilityRole="button" accessibilityLabel={t('common.edit')} hitSlop={8} style={styles.edit}>
           <Icon name="edit-2" size={18} />

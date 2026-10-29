@@ -32,7 +32,7 @@ export default function NewClientScreen() {
         onSuccess: () => router.back(),
         onError: (e) => {
           setErrors(e instanceof ApiError ? e.fields : {});
-          notify(t('merchant.addClient'), errorMessage(e));
+          notify(t('merchant.addClient'), errorMessage(e), 'error');
         },
       },
     );

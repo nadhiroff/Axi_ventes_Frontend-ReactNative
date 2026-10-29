@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { Linking, Text, TextInput, View } from 'react-native';
 
 import { errorMessage } from '../../../api/client';
-import { api } from '../../../api/endpoints';
 import { Button } from '../../../components/ui/Button';
 import { Card } from '../../../components/ui/Card';
 import { SwitchRow } from '../../../components/ui/Field';
@@ -29,30 +28,16 @@ export default function MoneyScreen() {
   const actions = useMerchantActions();
   const dateFormat = useSettings().data?.date_format;
   const [creditAmount, setCreditAmount] = useState('');
-  const [paying, setPaying] = useState(false);
   const m = money.data;
 
   if (money.isPending) return <LoadingView />;
   if (!m) return <ErrorView error={money.error} onRetry={() => money.refetch()} />;
 
-  const paySubscription = () =>
-    confirmAction(t('merchant.payConfirm', { amount: formatFcfa(m.subscription.amount) }), t('payment.closeText'), async () => {
-      setPaying(true);
-      try {
-        const p = await api.paySubscription();
-        router.push({ pathname: '/paiement', params: { subRef: p.reference, url: p.payment_url ?? '', returnPrefix: p.return_url_prefix } });
-      } catch (e) {
-        notify(t('merchant.subscription'), errorMessage(e));
-      } finally {
-        setPaying(false);
-      }
-    });
-
   const toggleSharing = (enabled: boolean) =>
     confirmAction(
       enabled ? t('merchant.dataSharingConfirmOn') : t('merchant.dataSharingConfirmOff'),
       enabled ? m.data_sharing.text : t('merchant.dataSharingOffText', { partner: m.data_sharing.partner_name }),
-      () => actions.dataSharing.mutate(enabled, { onError: (e) => notify(t('merchant.dataSharing', { partner: m.data_sharing.partner_name }), errorMessage(e)) }),
+      () => actions.dataSharing.mutate(enabled, { onError: (e) => notify(t('merchant.dataSharing', { partner: m.data_sharing.partner_name }), errorMessage(e), 'error') }),
       { destructive: !enabled },
     );
 
@@ -79,6 +64,13 @@ export default function MoneyScreen() {
           </View>
         </View>
         <Text style={styles.small}>{t('merchant.commission', { pct: m.commission_rate_pct })}</Text>
+        {/* Comment le commerçant reçoit son argent */}
+        <Card style={{ gap: spacing.sm }}>
+          <Text style={styles.title}>{t('money.howTitle')}</Text>
+          {(['money.how1', 'money.how2', 'money.how3', 'money.how4'] as const).map((k, i) => (
+            <Text key={k} style={styles.text}>{`${i + 1}. ${t(k, { pct: m.commission_rate_pct })}`}</Text>
+          ))}
+        </Card>
 
         <Card style={{ gap: spacing.sm }}>
           <View style={styles.row}>
@@ -88,7 +80,8 @@ export default function MoneyScreen() {
           <Text style={styles.text}>{m.subscription.plan_label}</Text>
           {m.subscription.ends_on ? <Text style={styles.small}>{t('merchant.subscriptionUntil', { date: formatDate(m.subscription.ends_on, lang) })}</Text> : null}
           {m.subscription.note ? <Text style={styles.small}>{m.subscription.note}</Text> : null}
-          {m.subscription.can_pay ? <Button label={t('merchant.paySubscription', { amount: formatFcfa(m.subscription.amount) })} icon="smartphone" onPress={paySubscription} loading={paying} /> : null}
+          {m.subscription.limits.text ? <Text style={styles.small}>{m.subscription.limits.text}</Text> : null}
+          <Button label={m.subscription.status === 'active' ? t('subscription.manage') : t('subscription.cta', { amount: formatFcfa(m.subscription.prices.month) })} icon="star" variant={m.subscription.status === 'active' ? 'ghost' : 'primary'} onPress={() => router.push('/commercant/abonnement')} />
         </Card>
 
         {m.supplier_offer ? (
@@ -116,7 +109,7 @@ export default function MoneyScreen() {
                   confirmAction(t('merchant.creditConfirm'), m.credit.text, () =>
                     actions.requestCredit.mutate(creditAmount ? Number(creditAmount) : undefined, {
                       onSuccess: (r) => notify(t('merchant.credit'), r.message),
-                      onError: (e) => notify(t('merchant.credit'), errorMessage(e)),
+                      onError: (e) => notify(t('merchant.credit'), errorMessage(e), 'error'),
                     }),
                   )
                 }

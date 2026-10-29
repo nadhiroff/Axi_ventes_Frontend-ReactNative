@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import type { ReceptionMode } from '../api/types';
+import type { PaymentMode, ReceptionMode } from '../api/types';
 
 export type CartItem = {
   product_id: string;
@@ -25,6 +25,9 @@ type CartState = {
    * effacée dès que le panier ou la réception changent.
    */
   paymentKey: string | null;
+  /** online : tout en Mobile Money ; on_site : frais en ligne, marchandise en espèces au commerçant */
+  paymentMode: PaymentMode;
+  setPaymentMode: (mode: PaymentMode) => void;
   setPaymentKey: (key: string | null) => void;
   add: (item: Omit<CartItem, 'quantity'>, quantity?: number) => void;
   setQuantity: (productId: string, quantity: number) => void;
@@ -41,6 +44,8 @@ export const useCartStore = create<CartState>()(
       receptionDetail: '',
       paymentKey: null,
       setPaymentKey: (paymentKey) => set({ paymentKey }),
+      paymentMode: 'online',
+      setPaymentMode: (paymentMode) => set({ paymentMode, paymentKey: null }),
       add: (item, quantity = 1) =>
         set((s) => {
           const existing = s.items.find((i) => i.product_id === item.product_id);

@@ -19,14 +19,39 @@ export type User = {
   email: string;
   email_verified: boolean;
   phone: string | null; // simple contact (Mobile Money, WhatsApp), jamais pour se connecter
+  avatar: ApiImage | null;
+  avatar_visibility: AvatarVisibility;
   role: Role;
   lang: Lang;
   organization: null;
   merchant: { has_stall: boolean; stall_id: string | null; merchant_type: MerchantType | null; verified: boolean } | null;
+  /** Demande « Devenir commerçant » d'un client (null s'il n'en a jamais envoyé) */
+  merchant_application: { id: string; status: ApplicationStatus; reject_reason: string | null; created_at: string } | null;
+  /** Félicitations à afficher une seule fois après la validation par un agent */
+  merchant_welcome: boolean;
 };
 
+export type AvatarVisibility = 'everyone' | 'contacts' | 'nobody';
+export type ApplicationStatus = 'pending' | 'approved' | 'rejected';
+export type MerchantApplication = { id: string; status: ApplicationStatus; status_label: string; reject_reason: string | null; stall_name: string; created_at: string; reviewed_at: string | null };
+export type IdType = 'cni' | 'cip' | 'passport' | 'other';
+export type ApplicationInput = {
+  phone: string;
+  id_type: IdType;
+  id_number: string;
+  stall_name: string;
+  merchant_type: MerchantType;
+  site_id: string;
+  site_other: string;
+  aisle_id: string;
+  aisle_other: string;
+  row: string;
+  stand: string;
+};
+export type Badges = { unread_messages: number; unread_notifications: number; role: Role; merchant_welcome: boolean };
+
 export type Session = { token: string; user: User };
-export type RegisterInput = { first_name: string; last_name: string; email: string; password: string; phone?: string; profile: Role; lang: Lang };
+export type RegisterInput = { first_name: string; last_name: string; email: string; password: string; password_confirmation: string; phone?: string; lang: Lang };
 export type CodePurpose = 'verify_email' | 'reset_password';
 
 export type NotificationType = 'order' | 'payment' | 'reminder' | 'promotion' | 'arrival' | 'account';
@@ -89,8 +114,12 @@ export type Product = {
   images: ApiImage[]; // galerie
   price: Price | null; // null = « Prix à débattre »
   in_stock: boolean;
+  /** null = stock non suivi ; 0 = épuisé (invisible des clients) */
+  stock_quantity: number | null;
+  sold_out: boolean;
   is_today: boolean;
-  status: 'active' | 'draft';
+  /** paused : masqué au-delà de la limite sans abonnement */
+  status: 'active' | 'draft' | 'paused';
   has_voice_note: boolean;
   updated_at: string;
   voice_note_url?: string | null;
@@ -121,7 +150,8 @@ export type StallPayload = { stall: StallDetail; products: Product[]; products_u
 export type ReceptionMode = 'delivery' | 'bus' | 'axi_point';
 export type Operator = 'mtn' | 'moov' | 'celtiis';
 export type OrderLineInput = { product_id: string; quantity: number };
-export type QuoteRequest = { lines: OrderLineInput[]; reception: { mode: ReceptionMode; detail: string } };
+export type PaymentMode = 'online' | 'on_site';
+export type QuoteRequest = { lines: OrderLineInput[]; reception: { mode: ReceptionMode; detail: string }; payment_mode?: PaymentMode };
 export type CreateOrderRequest = QuoteRequest & { payment: { operator: Operator | null; phone: string } };
 
 export type Quote = {
@@ -130,13 +160,21 @@ export type Quote = {
   grouping_fee: number;
   reception_fee: number;
   reception_fee_label: string;
+  payment_mode: PaymentMode;
+  /** Tous les commerçants du panier acceptent le paiement sur place */
+  pay_on_site_available: boolean;
+  /** Sur place : frais de service Axi payés en ligne */
+  service_fee: number;
+  /** Sur place : marchandise payée en espèces au commerçant */
+  cash_total: number;
+  /** Montant payé maintenant en Mobile Money */
   total: number;
   axi_points: { id: string; name: string; address: string }[];
   unavailable_product_ids: string[];
 };
 
 export type OrderStatus = 'awaiting_payment' | 'paid' | 'preparing' | 'on_the_way' | 'delivered' | 'disputed' | 'refunded' | 'cancelled';
-export type EscrowState = 'pending' | 'held' | 'delivered' | 'released' | 'refunded' | 'disputed';
+export type EscrowState = 'pending' | 'held' | 'delivered' | 'released' | 'refunded' | 'disputed' | 'cash';
 
 export type PaymentInfo = {
   reference: string;
@@ -157,6 +195,9 @@ export type Order = {
   items_total: number;
   grouping_fee: number;
   reception_fee: number;
+  payment_mode: PaymentMode;
+  service_fee: number;
+  cash_total: number;
   reception: { mode: ReceptionMode; label: string; detail: string };
   payment_instructions: string | null;
   payment: PaymentInfo | null;
@@ -181,7 +222,7 @@ export type Order = {
   delivered_at: string | null;
 };
 
-export type SalesStatus = 'all' | 'pending' | 'held' | 'released' | 'refunded' | 'disputed' | 'cancelled';
+export type SalesStatus = 'all' | 'pending' | 'held' | 'released' | 'refunded' | 'disputed' | 'cash' | 'cancelled';
 export type SalesRow = {
   order_id: string;
   date: string;
@@ -200,14 +241,23 @@ export type SalesFilters = { from?: string; to?: string; status?: SalesStatus; q
 // ---------------------------------------------------------------------------
 // Commerçant
 // ---------------------------------------------------------------------------
-export type MerchantStallDetail = StallDetail & { status: 'active' | 'suspended' | 'closed'; has_physical_place: boolean; verification_requested: boolean };
+export type MerchantStallDetail = StallDetail & {
+  status: 'active' | 'suspended' | 'closed';
+  has_physical_place: boolean;
+  verification_requested: boolean;
+  site_other: string | null;
+  aisle_other: string | null;
+  subscription: SubscriptionInfo;
+};
 export type MerchantStall = { stall: MerchantStallDetail; products: Product[] };
-export type StallOptions = { sites: { id: string; name: string }[]; aisles: { id: string; name: string; icon: AisleIcon }[] };
+export type StallOptions = { sites: { id: string; name: string }[]; aisles: { id: string; name: string; icon: AisleIcon }[]; other_site_id: string; other_aisle_id: string };
 export type StallInput = Partial<{
   name: string;
   tagline: string;
   site_id: string;
+  site_other: string;
   aisle_id: string;
+  aisle_other: string;
   row: string;
   stand: string;
   has_physical_place: boolean;
@@ -220,7 +270,7 @@ export type StallInput = Partial<{
   is_open: boolean;
 }>;
 
-export type ProductPatch = Partial<{ name: string; price: number | null; price_max: number | null; in_stock: boolean; is_today: boolean; status: 'active' }>;
+export type ProductPatch = Partial<{ name: string; price: number | null; price_max: number | null; in_stock: boolean; stock_quantity: number | null; is_today: boolean; status: 'active' }>;
 
 export type MerchantOrder = { id: string; customer_name: string; customer_phone: string | null; summary: string; status: 'to_prepare' | 'ready' | 'picked_up'; status_label: string };
 export type MerchantToday = {
@@ -248,16 +298,23 @@ export type ClientInput = { display_name: string; phone?: string; email?: string
 export type BroadcastResult = { recipients: number; notified: number; emailed: number; message: string; whatsapp_url: string | null; share_text: string };
 export type VoiceMessage = { id: string; client_name: string; client_phone: string | null; audio_url: string; listened: boolean; created_at: string };
 
+export type SubscriptionPeriod = 'month' | 'year';
 export type SubscriptionInfo = {
   status: 'active' | 'expired';
   status_label: string;
   plan: MerchantType;
   plan_label: string;
+  period: SubscriptionPeriod | null;
   amount: number;
+  prices: { month: number; year: number; year_discount_pct: number; year_saving: number };
   ends_on: string | null;
+  days_left: number;
   next_due: string;
   note: string | null;
   can_pay: boolean;
+  /** Limites sans abonnement (product_limit null quand abonné) */
+  limits: { product_limit: number | null; active_products: number; paused_products: number; broadcasts: boolean; text: string | null };
+  benefits: string[];
 };
 export type MerchantMoney = {
   pending_amount: number;
@@ -271,6 +328,7 @@ export type MerchantMoney = {
   payouts: { id: string; amount: number; status: string; status_label: string; created_at: string }[];
 };
 export type SubscriptionPayment = {
+  period: SubscriptionPeriod;
   reference: string;
   provider: string;
   status: PaymentInfo['status'];
@@ -280,3 +338,21 @@ export type SubscriptionPayment = {
   message: string;
   subscription?: SubscriptionInfo;
 };
+
+// ---------------------------------------------------------------------------
+// Messagerie client ↔ commerçant
+// ---------------------------------------------------------------------------
+export type ConversationSummary = {
+  id: string;
+  my_role: 'client' | 'merchant';
+  stall: { id: string; name: string; avatar: ApiImage | null };
+  other: { name: string; avatar: ApiImage | null };
+  /** Messages gardés (le client suit l'étal) ; sinon effacés 24 h après leur envoi */
+  kept: boolean;
+  retention_note: string;
+  unread_count: number;
+  last_message: { kind: MessageKind; preview: string; mine: boolean; created_at: string } | null;
+};
+export type MessageKind = 'text' | 'photo' | 'voice';
+export type ChatMessage = { id: string; mine: boolean; kind: MessageKind; body: string | null; image: ApiImage | null; audio_url: string | null; created_at: string; expires_at: string | null };
+export type ConversationPayload = { conversation: ConversationSummary; messages: ChatMessage[] };

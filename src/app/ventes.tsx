@@ -56,7 +56,7 @@ export default function SalesScreen() {
       const { url } = await api.salesExport(filters);
       await Linking.openURL(url);
     } catch (e) {
-      notify(t('sales.export'), errorMessage(e));
+      notify(t('sales.export'), errorMessage(e), 'error');
     } finally {
       setExporting(false);
     }

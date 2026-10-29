@@ -12,7 +12,7 @@ import { ErrorView, LoadingView } from '../../components/ui/StateViews';
 import { useMerchantStall, useStallMutations } from '../../hooks/api/merchant';
 import { takeProductPhoto } from '../../hooks/useProductPhoto';
 import { useT } from '../../i18n';
-import { notify } from '../../lib/confirm';
+import { notify, toast } from '../../lib/confirm';
 import { fontSize, spacing, useTheme } from '../../theme';
 
 /** Modifier mon étal : photo, nom, emplacement, contacts, options. */
@@ -28,7 +28,7 @@ export default function EditStallScreen() {
 
   const changePhoto = async (source: 'camera' | 'library') => {
     const photo = await takeProductPhoto(source);
-    if (photo) mutations.photo.mutate(photo, { onError: (e) => notify(t('merchant.stallPhoto'), errorMessage(e)) });
+    if (photo) mutations.photo.mutate(photo, { onSuccess: () => toast(t('common.saved')), onError: (e) => notify(t('merchant.stallPhoto'), errorMessage(e), 'error') });
   };
 
   return (
@@ -50,6 +50,7 @@ export default function EditStallScreen() {
           submitLabel={t('common.save')}
           onSubmit={async (input) => {
             await mutations.update.mutateAsync(input);
+            toast(t('merchant.stallSaved'));
             router.back();
           }}
         />

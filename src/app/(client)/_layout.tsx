@@ -6,13 +6,15 @@ import { LoadingView } from '../../components/ui/StateViews';
 import { useT } from '../../i18n';
 import { useAuthStore } from '../../store/authStore';
 import { cartCount, useCartStore } from '../../store/cartStore';
+import { useBadges } from '../../hooks/api/chat';
 import { useLayout, useTheme } from '../../theme';
 
-/** Onglets client : Accueil, Allées, Panier, Compte. */
+/** Onglets client : Accueil, Allées, Messages, Panier, Compte. */
 export default function ClientTabsLayout() {
   const status = useAuthStore((s) => s.status);
   const mode = useAuthStore((s) => s.mode);
   const count = useCartStore((s) => cartCount(s.items));
+  const unread = useBadges().data?.unread_messages ?? 0;
   const { colors } = useTheme();
   const { tablet } = useLayout();
   const t = useT();
@@ -37,6 +39,10 @@ export default function ClientTabsLayout() {
     >
       <Tabs.Screen name="index" options={{ title: t('nav.home'), tabBarIcon: tabIcon('home') }} />
       <Tabs.Screen name="allees" options={{ title: t('nav.aisles'), tabBarIcon: tabIcon('grid') }} />
+      <Tabs.Screen
+        name="messages"
+        options={{ title: t('chat.tab'), tabBarIcon: tabIcon('message-circle'), tabBarBadge: unread > 0 ? unread : undefined, tabBarBadgeStyle: { backgroundColor: colors.brand } }}
+      />
       <Tabs.Screen
         name="panier"
         options={{ title: t('nav.cart'), tabBarIcon: tabIcon('shopping-bag'), tabBarBadge: count > 0 ? count : undefined, tabBarBadgeStyle: { backgroundColor: colors.brand } }}

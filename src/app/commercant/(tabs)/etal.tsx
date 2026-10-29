@@ -57,7 +57,7 @@ export default function MyStallScreen() {
                   label={t('merchant.requestVisit')}
                   variant="outline"
                   loading={mutations.requestVerification.isPending}
-                  onPress={() => mutations.requestVerification.mutate(undefined, { onSuccess: (r) => notify(r.message), onError: (e) => notify(t('merchant.requestVisit'), errorMessage(e)) })}
+                  onPress={() => mutations.requestVerification.mutate(undefined, { onSuccess: (r) => notify(r.message), onError: (e) => notify(t('merchant.requestVisit'), errorMessage(e), 'error') })}
                 />
               ) : null}
             </View>

@@ -25,4 +25,7 @@ export const queryKeys = {
   merchantClient: (id: string) => ['merchant', 'client', id] as const,
   merchantMoney: ['merchant', 'money'] as const,
   voiceMessages: ['merchant', 'voice-messages'] as const,
+  badges: ['me', 'badges'] as const,
+  conversations: ['conversations'] as const,
+  conversation: (id: string) => ['conversations', id] as const,
 };

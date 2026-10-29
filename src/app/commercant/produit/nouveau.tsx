@@ -12,7 +12,7 @@ import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { VoiceRecordModal } from '../../../components/ui/VoiceRecordModal';
 import { useProductMutations } from '../../../hooks/api/merchant';
 import { useT } from '../../../i18n';
-import { notify } from '../../../lib/confirm';
+import { notify, toast } from '../../../lib/confirm';
 import { fontSize, spacing, useTheme } from '../../../theme';
 
 /** Nouveau produit : en PHOTO (formulaire complet) ou en VOCAL (brouillon à compléter ensuite). */
@@ -28,21 +28,27 @@ export default function NewProductScreen() {
   const [priceMax, setPriceMax] = useState('');
   const [negotiable, setNegotiable] = useState(false);
   const [today, setToday] = useState(true);
+  const [trackStock, setTrackStock] = useState(false);
+  const [stock, setStock] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [recording, setRecording] = useState(false);
 
   const create = () => {
-    if (!name.trim()) {
-      setErrors({ name: t('auth.required') });
-      return;
-    }
+    const local: Record<string, string> = {};
+    if (!name.trim()) local.name = t('auth.required');
+    if (trackStock && !stock.replace(/\D/g, '')) local.stock_quantity = t('merchant.stockRequired');
+    setErrors(local);
+    if (Object.keys(local).length) return;
     mutations.create.mutate(
-      { fields: { name: name.trim(), price: negotiable ? '' : price.replace(/\D/g, ''), price_max: negotiable ? '' : priceMax.replace(/\D/g, ''), is_today: today ? '1' : '0' }, photos },
+      { fields: { name: name.trim(), price: negotiable ? '' : price.replace(/\D/g, ''), price_max: negotiable ? '' : priceMax.replace(/\D/g, ''), is_today: today ? '1' : '0', stock_quantity: trackStock ? stock.replace(/\D/g, '') : '' }, photos },
       {
-        onSuccess: () => router.back(),
+        onSuccess: () => {
+          toast(t('merchant.productPublished'));
+          router.back();
+        },
         onError: (e) => {
           setErrors(e instanceof ApiError ? e.fields : {});
-          notify(t('merchant.productTitle'), errorMessage(e));
+          notify(t('merchant.productTitle'), errorMessage(e), 'error');
         },
       },
     );
@@ -74,6 +80,8 @@ export default function NewProductScreen() {
                   </View>
                 </View>
               ) : null}
+              <SwitchRow label={t('merchant.trackStock')} hint={t('merchant.trackStockHint')} value={trackStock} onChange={setTrackStock} />
+              {trackStock ? <Field label={t('merchant.stockQuantity')} value={stock} onChangeText={setStock} keyboardType="number-pad" error={errors.stock_quantity} /> : null}
               <SwitchRow label={t('merchant.todayToggle')} value={today} onChange={setToday} />
             </>
           ) : null}
@@ -93,7 +101,7 @@ export default function NewProductScreen() {
                 setRecording(false);
                 router.replace(`/commercant/produit/${product.id}`);
               },
-              onError: (e) => notify(t('merchant.addVoice'), errorMessage(e)),
+              onError: (e) => notify(t('merchant.addVoice'), errorMessage(e), 'error'),
             },
           )
         }
