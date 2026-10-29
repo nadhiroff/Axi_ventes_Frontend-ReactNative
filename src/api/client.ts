@@ -1,12 +1,16 @@
 import { API_URL } from '../config/env';
+import { useLangStore } from '../i18n';
+import { recordDataUsage } from '../lib/dataUsage';
 import { readEtagEntry, writeEtagEntry } from './etagCache';
-import type { ApiResponse } from './types/common';
+import type { ApiResponse } from './types';
 
 export class ApiError extends Error {
   constructor(
     public code: string,
     message: string,
     public status: number,
+    public fields: Record<string, string> = {},
+    public extra: Record<string, unknown> = {},
   ) {
     super(message);
   }
@@ -28,8 +32,8 @@ export function setUnauthorizedHandler(handler: () => void) {
   onUnauthorized = handler;
 }
 
-function baseHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { Accept: 'application/json' };
+function baseHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  const headers: Record<string, string> = { Accept: 'application/json', 'Accept-Language': useLangStore.getState().lang, ...extra };
   if (authToken) headers.Authorization = `Bearer ${authToken}`;
   return headers;
 }
@@ -38,47 +42,46 @@ function baseHeaders(): Record<string, string> {
 export async function apiGet<T>(path: string): Promise<T> {
   const url = API_URL + path;
   const cached = await readEtagEntry(url);
-
-  const headers = baseHeaders();
-  if (cached) headers['If-None-Match'] = cached.etag;
-
+  const headers = baseHeaders(cached ? { 'If-None-Match': cached.etag } : {});
   const res = await fetch(url, { headers });
-
   if (res.status === 304 && cached) {
+    recordDataUsage(200);
     return unwrap<T>(cached.body as ApiResponse<T>, 200);
   }
-
   const body = await parse<T>(res);
   const etag = res.headers.get('ETag');
   if (res.ok && etag) await writeEtagEntry(url, { etag, body });
   return unwrap<T>(body, res.status);
 }
 
-export async function apiSend<T>(method: 'POST' | 'PATCH' | 'PUT' | 'DELETE', path: string, payload?: unknown): Promise<T> {
-  const res = await fetch(API_URL + path, {
-    method,
-    headers: { ...baseHeaders(), 'Content-Type': 'application/json' },
-    body: payload === undefined ? undefined : JSON.stringify(payload),
-  });
+/** POST / PATCH / PUT / DELETE en JSON ; headers : par exemple Idempotency-Key pour le paiement */
+export async function apiSend<T>(method: 'POST' | 'PATCH' | 'PUT' | 'DELETE', path: string, payload?: unknown, headers: Record<string, string> = {}): Promise<T> {
+  const body = payload === undefined ? undefined : JSON.stringify(payload);
+  recordDataUsage(body?.length ?? 0);
+  const res = await fetch(API_URL + path, { method, headers: baseHeaders({ 'Content-Type': 'application/json', ...headers }), body });
   return unwrap<T>(await parse<T>(res), res.status);
 }
 
 /** Fichier local (photo, enregistrement vocal) à envoyer en multipart. */
 export type LocalFile = { uri: string; name: string; type: string };
 
-export async function apiUpload<T>(path: string, fields: Record<string, string>, files: Record<string, LocalFile>): Promise<T> {
+export async function apiUpload<T>(path: string, fields: Record<string, string>, files: Record<string, LocalFile | LocalFile[]>): Promise<T> {
   const form = new FormData();
   for (const [key, value] of Object.entries(fields)) form.append(key, value);
-  // React Native accepte un objet { uri, name, type } à la place d'un Blob.
-  for (const [key, file] of Object.entries(files)) form.append(key, file as unknown as Blob);
-
+  // React Native accepte un objet { uri, name, type } à la place d'un Blob ; plusieurs photos : photos[0], photos[1]…
+  for (const [key, file] of Object.entries(files)) {
+    if (Array.isArray(file)) file.forEach((f, i) => form.append(`${key}[${i}]`, f as unknown as Blob));
+    else form.append(key, file as unknown as Blob);
+  }
   const res = await fetch(API_URL + path, { method: 'POST', headers: baseHeaders(), body: form });
   return unwrap<T>(await parse<T>(res), res.status);
 }
 
 async function parse<T>(res: Response): Promise<ApiResponse<T>> {
   try {
-    return (await res.json()) as ApiResponse<T>;
+    const text = await res.text();
+    recordDataUsage(text.length);
+    return JSON.parse(text) as ApiResponse<T>;
   } catch {
     return { ok: false, error: { code: 'BAD_RESPONSE', message: 'Le serveur a répondu de façon inattendue.' } };
   }
@@ -86,11 +89,14 @@ async function parse<T>(res: Response): Promise<ApiResponse<T>> {
 
 function unwrap<T>(body: ApiResponse<T>, status: number): T {
   if (status === 401 && authToken) onUnauthorized?.();
-  if (!body.ok) throw new ApiError(body.error.code, body.error.message, status);
+  if (!body.ok) {
+    const { code, message, fields, ...extra } = body.error;
+    throw new ApiError(code, message, status, fields ?? {}, extra);
+  }
   return body.data;
 }
 
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError) return error.message;
-  return 'Pas de connexion. Réessayez dans un instant.';
+  return useLangStore.getState().lang === 'en' ? 'No connection. Try again in a moment.' : 'Pas de connexion. Réessayez dans un instant.';
 }

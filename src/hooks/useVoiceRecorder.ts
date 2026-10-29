@@ -11,6 +11,7 @@ import { useCallback } from 'react';
 import { Alert } from 'react-native';
 
 import type { LocalFile } from '../api/client';
+import { useLangStore } from '../i18n';
 
 // Voix seulement : AAC mono 16 kHz à 24 kbit/s, soit environ 3 Ko par seconde.
 // Un message de 30 secondes pèse moins de 100 Ko.
@@ -39,7 +40,8 @@ export function useVoiceRecorder() {
   const start = useCallback(async () => {
     const permission = await requestRecordingPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Micro désactivé', 'Autorisez le micro dans les réglages du téléphone pour envoyer un message vocal.');
+      const en = useLangStore.getState().lang === 'en';
+      Alert.alert(en ? 'Microphone disabled' : 'Micro désactivé', en ? 'Allow the microphone in the phone settings to record a voice message.' : 'Autorisez le micro dans les réglages du téléphone pour enregistrer un message vocal.');
       return false;
     }
     await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });

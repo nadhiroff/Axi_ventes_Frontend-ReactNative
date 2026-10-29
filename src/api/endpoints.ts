@@ -1,37 +1,41 @@
-import { USE_MOCKS } from '../config/env';
 import { apiGet, apiSend, apiUpload, type LocalFile } from './client';
-import { mockApi } from './mocks/server';
 import type {
   AislePayload,
-  BroadcastChannel,
+  AppNotification,
   BroadcastResult,
+  ClientInput,
   ClientSegment,
+  CodePurpose,
+  Consent,
   CreateOrderRequest,
   HomePayload,
+  LoginEvent,
   MerchantClient,
+  MerchantClientDetail,
   MerchantClients,
   MerchantMoney,
   MerchantStall,
   MerchantToday,
-  NewCampaign,
-  NewClientInput,
   Order,
-  OtpSent,
-  OtpVerify,
-  ProCampaigns,
-  ProCensus,
-  ProFinancing,
-  ProfilePatch,
-  ProOverview,
-  Campaign,
-  Session,
-  User,
   Product,
+  ProductDetail,
   ProductPatch,
+  ProductWithStall,
   Quote,
   QuoteRequest,
+  RegisterInput,
+  SalesFilters,
+  SalesPayload,
   SearchPayload,
+  Session,
+  SessionInfo,
+  StallInput,
+  StallOptions,
   StallPayload,
+  SubscriptionPayment,
+  User,
+  UserSettings,
+  VoiceMessage,
 } from './types';
 
 const q = (params: Record<string, string | null | undefined>) => {
@@ -43,57 +47,92 @@ const q = (params: Record<string, string | null | undefined>) => {
 
 const id = encodeURIComponent;
 
-/** Une fonction par route du backend PHP. Voir docs/API_CONTRACT.md. */
-export const httpApi = {
-  // Connexion par code SMS (ou WhatsApp hors Bénin), sans mot de passe
-  requestOtp: (phone: string) => apiSend<OtpSent>('POST', '/v1/auth/otp', { phone }),
-  verifyOtp: (body: OtpVerify) => apiSend<Session>('POST', '/v1/auth/verify', body),
-  me: () => apiGet<User>('/v1/me'),
-  updateMe: (patch: ProfilePatch) => apiSend<User>('PATCH', '/v1/me', patch),
+/** Une fonction par route du backend PHP. Connexion par email et mot de passe uniquement. */
+export const api = {
+  // Compte
+  register: (body: RegisterInput) => apiSend<{ user: User; message: string }>('POST', '/v1/auth/register', body),
+  verifyEmail: (email: string, code: string, device: string) => apiSend<Session>('POST', '/v1/auth/verify-email', { email, code, device }),
+  resendCode: (email: string, purpose: CodePurpose) => apiSend<{ message: string }>('POST', '/v1/auth/resend-code', { email, purpose }),
+  login: (email: string, password: string, device: string) => apiSend<Session>('POST', '/v1/auth/login', { email, password, device }),
+  forgotPassword: (email: string) => apiSend<{ message: string }>('POST', '/v1/auth/forgot-password', { email }),
+  resetPassword: (email: string, code: string, password: string, device: string) =>
+    apiSend<Session>('POST', '/v1/auth/reset-password', { email, code, password, device }),
+  changePassword: (current_password: string, new_password: string) => apiSend<{ changed: true }>('POST', '/v1/auth/change-password', { current_password, new_password }),
   logout: () => apiSend<{ logged_out: true }>('POST', '/v1/auth/logout'),
-  requestAgentVisit: () => apiSend<{ message: string }>('POST', '/v1/agent-visits'),
+  logoutAll: () => apiSend<{ logged_out: true }>('POST', '/v1/auth/logout-all'),
+  me: () => apiGet<User>('/v1/me'),
+  updateMe: (patch: Partial<Pick<User, 'first_name' | 'last_name' | 'lang'>> & { phone?: string | null }) => apiSend<User>('PATCH', '/v1/me', patch),
+  settings: () => apiGet<UserSettings>('/v1/me/settings'),
+  updateSettings: (patch: Partial<Omit<UserSettings, 'data' | 'lang' | 'notifications' | 'axi_points'>> & { data_cap_mb?: number; notifications?: Partial<UserSettings['notifications']> }) =>
+    apiSend<UserSettings>('PATCH', '/v1/me/settings', patch),
+  dataUsage: (bytes: number) => apiSend<UserSettings['data']>('POST', '/v1/me/data-usage', { bytes }),
+  sessions: () => apiGet<{ sessions: SessionInfo[] }>('/v1/me/sessions'),
+  revokeSession: (sessionId: string) => apiSend<{ revoked: true }>('DELETE', `/v1/me/sessions/${id(sessionId)}`),
+  loginHistory: () => apiGet<{ events: LoginEvent[] }>('/v1/me/login-history'),
+  consents: () => apiGet<{ consents: Consent[] }>('/v1/me/consents'),
+  revokeConsent: (consentId: string) => apiSend<{ revoked: true }>('DELETE', `/v1/me/consents/${id(consentId)}`),
+  exportData: () => apiSend<{ url: string }>('POST', '/v1/me/export'),
+  deleteAccount: (password: string) => apiSend<{ deleted: true }>('POST', '/v1/me/delete', { password }),
+  notifications: () => apiGet<{ unread: number; notifications: AppNotification[] }>('/v1/notifications'),
+  readNotifications: (ids: string[] | 'all') => apiSend<{ unread: number }>('POST', '/v1/notifications/read', ids === 'all' ? { all: true } : { ids }),
+  favorites: () => apiGet<{ products: ProductWithStall[] }>('/v1/favorites'),
+  setFavorite: (productId: string, favorite: boolean) => apiSend<{ is_favorite: boolean }>(favorite ? 'POST' : 'DELETE', `/v1/favorites/${id(productId)}`),
+  recentlyViewed: () => apiGet<{ products: ProductWithStall[] }>('/v1/me/recently-viewed'),
 
   // Client
   home: () => apiGet<HomePayload>('/v1/home'),
   aisle: (aisleId: string, cursor?: string | null) => apiGet<AislePayload>(`/v1/aisles/${id(aisleId)}/stalls${q({ cursor })}`),
   search: (query: string) => apiGet<SearchPayload>(`/v1/search${q({ q: query })}`),
-  voiceSearch: (audio: LocalFile) => apiUpload<SearchPayload>('/v1/search/voice', {}, { audio }),
   stall: (stallId: string, cursor?: string | null) => apiGet<StallPayload>(`/v1/stalls/${id(stallId)}${q({ cursor })}`),
-  setFollow: (stallId: string, follow: boolean) =>
-    apiSend<{ is_followed: boolean }>(follow ? 'POST' : 'DELETE', `/v1/stalls/${id(stallId)}/follow`),
-  sendVoiceMessage: (stallId: string, audio: LocalFile) =>
-    apiUpload<{ message: string }>(`/v1/stalls/${id(stallId)}/voice-messages`, {}, { audio }),
+  product: (productId: string) => apiGet<ProductDetail>(`/v1/products/${id(productId)}`),
+  promotionClick: (promotionId: string) => apiSend<{ counted: true }>('POST', `/v1/promotions/${id(promotionId)}/click`),
+  setFollow: (stallId: string, follow: boolean) => apiSend<{ is_followed: boolean }>(follow ? 'POST' : 'DELETE', `/v1/stalls/${id(stallId)}/follow`),
+  sendVoiceMessage: (stallId: string, audio: LocalFile) => apiUpload<{ message: string }>(`/v1/stalls/${id(stallId)}/voice-messages`, {}, { audio }),
   quote: (body: QuoteRequest) => apiSend<Quote>('POST', '/v1/orders/quote', body),
-  createOrder: (body: CreateOrderRequest) => apiSend<Order>('POST', '/v1/orders', body),
+  /** idempotencyKey : la même clé renvoie toujours la même commande (jamais deux débits) */
+  createOrder: (body: CreateOrderRequest, idempotencyKey: string) => apiSend<Order>('POST', '/v1/orders', body, { 'Idempotency-Key': idempotencyKey }),
+  orders: () => apiGet<{ orders: Order[] }>('/v1/orders'),
   order: (orderId: string) => apiGet<Order>(`/v1/orders/${id(orderId)}`),
+  verifyPayment: (orderId: string, transactionId?: string) => apiSend<Order>('POST', `/v1/orders/${id(orderId)}/verify-payment`, transactionId ? { transaction_id: transactionId } : {}),
+  cancelOrder: (orderId: string) => apiSend<Order>('POST', `/v1/orders/${id(orderId)}/cancel`),
+  confirmReceipt: (orderId: string) => apiSend<Order>('POST', `/v1/orders/${id(orderId)}/confirm-receipt`),
+  openDispute: (orderId: string, reason: string, stallId?: string) => apiSend<Order>('POST', `/v1/orders/${id(orderId)}/dispute`, stallId ? { reason, stall_id: stallId } : { reason }),
+  sales: (f: SalesFilters) => apiGet<SalesPayload>(`/v1/sales${q({ from: f.from, to: f.to, status: f.status, q: f.q })}`),
+  salesExport: (f: SalesFilters) => apiSend<{ url: string }>('POST', '/v1/sales/export', f),
 
   // Commerçant
-  merchantToday: () => apiGet<MerchantToday>('/v1/merchant/today'),
-  broadcastRelocation: () => apiSend<BroadcastResult>('POST', '/v1/merchant/relocation/broadcast'),
-  markOrderReady: (orderId: string) => apiSend<{ status: 'ready' }>('POST', `/v1/merchant/orders/${id(orderId)}/ready`),
-  announceArrival: (audio: LocalFile) => apiUpload<BroadcastResult>('/v1/merchant/arrivals', {}, { audio }),
+  stallOptions: () => apiGet<StallOptions>('/v1/merchant/stall-options'),
+  createStall: (input: StallInput) => apiSend<MerchantStall>('POST', '/v1/merchant/stall', input),
   merchantStall: () => apiGet<MerchantStall>('/v1/merchant/stall'),
-  createProduct: (fields: { name: string; price: string; is_today: string }, photo: LocalFile) =>
-    apiUpload<Product>('/v1/merchant/products', fields, { photo }),
-  updateProduct: (productId: string, patch: ProductPatch) =>
-    apiSend<Product>('PATCH', `/v1/merchant/products/${id(productId)}`, patch),
-  merchantClients: (segment: ClientSegment) => apiGet<MerchantClients>(`/v1/merchant/clients${q({ segment })}`),
-  addClient: (input: NewClientInput) => apiSend<MerchantClient>('POST', '/v1/merchant/clients', input),
+  updateStall: (input: StallInput) => apiSend<MerchantStall>('PATCH', '/v1/merchant/stall', input),
+  stallPhoto: (photo: LocalFile) => apiUpload<MerchantStall>('/v1/merchant/stall/photo', {}, { photo }),
+  requestVerification: () => apiSend<{ message: string }>('POST', '/v1/merchant/verification-request'),
+  createProduct: (fields: { name: string; price: string; price_max: string; is_today: string }, photos: LocalFile[]) =>
+    apiUpload<Product>('/v1/merchant/products', fields, photos.length ? { photos } : {}),
+  createVoiceProduct: (audio: LocalFile, photos: LocalFile[]) => apiUpload<Product>('/v1/merchant/products/voice', {}, photos.length ? { audio, photos } : { audio }),
+  updateProduct: (productId: string, patch: ProductPatch) => apiSend<Product>('PATCH', `/v1/merchant/products/${id(productId)}`, patch),
+  addProductPhotos: (productId: string, photos: LocalFile[]) => apiUpload<Product>(`/v1/merchant/products/${id(productId)}/photos`, {}, { photos }),
+  removeProductPhoto: (productId: string, index: number) => apiSend<Product>('DELETE', `/v1/merchant/products/${id(productId)}/photos/${index}`),
+  deleteProduct: (productId: string) => apiSend<{ deleted: true }>('DELETE', `/v1/merchant/products/${id(productId)}`),
+  voiceMessages: () => apiGet<{ messages: VoiceMessage[] }>('/v1/merchant/voice-messages'),
+  markListened: (messageId: string) => apiSend<{ listened: true }>('POST', `/v1/merchant/voice-messages/${id(messageId)}/listened`),
+  merchantToday: () => apiGet<MerchantToday>('/v1/merchant/today'),
+  markOrderReady: (orderId: string) => apiSend<{ status: 'ready' }>('POST', `/v1/merchant/orders/${id(orderId)}/ready`),
+  broadcastRelocation: () => apiSend<BroadcastResult>('POST', '/v1/merchant/relocation/broadcast'),
+  announceArrival: (audio: LocalFile) => apiUpload<BroadcastResult>('/v1/merchant/arrivals', {}, { audio }),
+  merchantClients: (segment: ClientSegment, search?: string) => apiGet<MerchantClients>(`/v1/merchant/clients${q({ segment, q: search })}`),
+  merchantClient: (clientId: string) => apiGet<MerchantClientDetail>(`/v1/merchant/clients/${id(clientId)}`),
+  addClient: (input: ClientInput) => apiSend<MerchantClient>('POST', '/v1/merchant/clients', input),
+  updateClient: (clientId: string, input: Partial<ClientInput>) => apiSend<MerchantClient>('PATCH', `/v1/merchant/clients/${id(clientId)}`, input),
+  deleteClient: (clientId: string) => apiSend<{ deleted: true }>('DELETE', `/v1/merchant/clients/${id(clientId)}`),
   followUpClient: (clientId: string) => apiSend<BroadcastResult>('POST', `/v1/merchant/clients/${id(clientId)}/follow-up`),
-  broadcastToLoyal: (channel: BroadcastChannel) =>
-    apiSend<BroadcastResult>('POST', '/v1/merchant/broadcasts', { segment: 'loyal', channel }),
+  broadcastToSegment: (segment: ClientSegment, text?: string) => apiSend<BroadcastResult>('POST', '/v1/merchant/broadcasts', text ? { segment, text } : { segment }),
   merchantMoney: () => apiGet<MerchantMoney>('/v1/merchant/money'),
-  requestCredit: () => apiSend<{ message: string }>('POST', '/v1/merchant/credit-requests'),
+  paySubscription: () => apiSend<SubscriptionPayment>('POST', '/v1/merchant/subscription/pay'),
+  verifySubscription: (reference: string, transactionId?: string) =>
+    apiSend<SubscriptionPayment>('POST', '/v1/merchant/subscription/verify', transactionId ? { reference, transaction_id: transactionId } : { reference }),
+  requestCredit: (amount?: number) => apiSend<{ message: string }>('POST', '/v1/merchant/credit-requests', amount ? { amount } : {}),
   setDataSharing: (enabled: boolean) => apiSend<{ enabled: boolean }>('PUT', '/v1/merchant/data-sharing', { enabled }),
-
-  // Axi Pro (web, partenaires)
-  proOverview: (site?: string | null) => apiGet<ProOverview>(`/v1/pro/overview${q({ site })}`),
-  proCampaigns: () => apiGet<ProCampaigns>('/v1/pro/campaigns'),
-  createCampaign: (body: NewCampaign) => apiSend<Campaign>('POST', '/v1/pro/campaigns', body),
-  proCensus: () => apiGet<ProCensus>('/v1/pro/census'),
-  proFinancing: () => apiGet<ProFinancing>('/v1/pro/financing'),
 };
 
-export type Api = typeof httpApi;
-
-export const api: Api = USE_MOCKS ? mockApi : httpApi;
+export type Api = typeof api;

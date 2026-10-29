@@ -1,103 +1,131 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { create } from 'zustand';
 
 import { ApiError, setAuthToken, setUnauthorizedHandler } from '../api/client';
 import { api } from '../api/endpoints';
 import { clearEtagCache } from '../api/etagCache';
 import type { User } from '../api/types';
+import { useLangStore } from '../i18n';
+import { setDataUsageSender } from '../lib/dataUsage';
 import { queryClient } from '../lib/queryClient';
 import { deleteToken, readToken, writeToken } from '../lib/tokenStorage';
+import { useThemeStore } from '../theme';
 
-/** Espace affiché au démarrage. "merchant" n'est possible que pour un compte commerçant. */
-export type Mode = 'client' | 'merchant';
+/**
+ * loading : lecture de la session ; welcome : premier lancement (Créer un compte / Se connecter /
+ * Continuer en visiteur) ; visitor : visite libre ; signedIn : connecté.
+ */
+type Status = 'loading' | 'welcome' | 'visitor' | 'signedIn';
 
 type AuthState = {
-  status: 'loading' | 'signedOut' | 'signedIn';
+  status: Status;
   user: User | null;
-  mode: Mode;
+  /** Écran à rouvrir après la connexion (action interrompue : payer, suivre un étal…) */
+  pendingRedirect: string | null;
+  /** Espace affiché : un commerçant arrive dans son espace mais peut aussi faire ses achats */
+  mode: 'client' | 'merchant';
+  setMode: (mode: 'client' | 'merchant') => void;
   bootstrap: () => Promise<void>;
+  continueAsVisitor: () => Promise<void>;
   signIn: (token: string, user: User) => Promise<void>;
   setUser: (user: User) => void;
-  setMode: (mode: Mode) => void;
-  signOut: () => Promise<void>;
+  setPendingRedirect: (path: string | null) => void;
+  signOut: (callServer?: boolean) => Promise<void>;
 };
 
-// Le profil et l'espace choisi sont gardés à part du jeton : ils ne sont pas secrets
-// et permettent d'afficher l'application tout de suite, même sans réseau.
+// Le profil est gardé à part du jeton : il n'est pas secret et permet d'afficher l'application tout de suite.
 const PROFILE_KEY = 'axi-profile';
+const VISITOR_KEY = 'axi-visitor';
 
-async function saveProfile(user: User | null, mode: Mode) {
+export const deviceName = () => `${Platform.OS} ${Platform.Version}`;
+
+async function saveProfile(user: User | null) {
   try {
-    if (user) await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify({ user, mode }));
+    if (user) await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(user));
     else await AsyncStorage.removeItem(PROFILE_KEY);
   } catch {
     // Le profil sera relu depuis le serveur.
   }
 }
 
-async function loadProfile(): Promise<{ user: User; mode: Mode } | null> {
+/** Thème et langue enregistrés en base appliqués à l'application */
+async function applyServerSettings() {
   try {
-    const raw = await AsyncStorage.getItem(PROFILE_KEY);
-    return raw ? (JSON.parse(raw) as { user: User; mode: Mode }) : null;
+    const settings = await api.settings();
+    useThemeStore.getState().setPreference(settings.theme);
+    useLangStore.getState().setLang(settings.lang);
   } catch {
-    return null;
+    // Préférences locales conservées.
   }
 }
 
 export const useAuthStore = create<AuthState>()((set, get) => ({
   status: 'loading',
   user: null,
+  pendingRedirect: null,
   mode: 'client',
 
+  setMode: (mode) => set({ mode: mode === 'merchant' && get().user?.role !== 'merchant' ? 'client' : mode }),
+
   bootstrap: async () => {
-    const [token, profile] = await Promise.all([readToken(), loadProfile()]);
+    await Promise.all([useThemeStore.getState().load(), useLangStore.getState().load()]);
+    const [token, profile, visitor] = await Promise.all([
+      readToken(),
+      AsyncStorage.getItem(PROFILE_KEY).catch(() => null),
+      AsyncStorage.getItem(VISITOR_KEY).catch(() => null),
+    ]);
     if (!token) {
-      set({ status: 'signedOut', user: null, mode: 'client' });
+      set({ status: visitor === '1' ? 'visitor' : 'welcome', user: null });
       return;
     }
     setAuthToken(token);
-    set({ status: 'signedIn', user: profile?.user ?? null, mode: profile?.mode ?? 'client' });
-
-    // Rafraîchit le profil en arrière-plan (rôle donné par un agent, nom modifié…).
+    const saved = profile ? (JSON.parse(profile) as User) : null;
+    set({ status: 'signedIn', user: saved, mode: saved?.role === 'merchant' ? 'merchant' : 'client' });
     try {
-      const user = await api.me();
-      get().setUser(user);
+      get().setUser(await api.me());
+      applyServerSettings();
     } catch (e) {
-      if (e instanceof ApiError && e.status === 401) await get().signOut();
+      if (e instanceof ApiError && e.status === 401) await get().signOut(false);
     }
+  },
+
+  continueAsVisitor: async () => {
+    await AsyncStorage.setItem(VISITOR_KEY, '1').catch(() => undefined);
+    set({ status: 'visitor' });
   },
 
   signIn: async (token, user) => {
     await writeToken(token);
     setAuthToken(token);
-    const mode: Mode = user.role === 'merchant' ? 'merchant' : 'client';
-    set({ status: 'signedIn', user, mode });
-    await saveProfile(user, mode);
+    await AsyncStorage.setItem(VISITOR_KEY, '1').catch(() => undefined);
+    set({ status: 'signedIn', user, mode: user.role === 'merchant' ? 'merchant' : 'client' });
+    await saveProfile(user);
+    queryClient.invalidateQueries();
+    applyServerSettings();
   },
 
   setUser: (user) => {
-    const mode = user.role === 'merchant' ? get().mode : 'client';
-    set({ user, mode });
-    saveProfile(user, mode);
+    set({ user });
+    saveProfile(user);
   },
 
-  setMode: (mode) => {
-    const { user } = get();
-    const allowed = mode === 'client' || user?.role === 'merchant';
-    if (!allowed) return;
-    set({ mode });
-    saveProfile(user, mode);
-  },
+  setPendingRedirect: (pendingRedirect) => set({ pendingRedirect }),
 
-  signOut: async () => {
-    if (get().status === 'signedIn') api.logout().catch(() => undefined);
+  signOut: async (callServer = true) => {
+    if (callServer && get().status === 'signedIn') await api.logout().catch(() => undefined);
     setAuthToken(null);
-    set({ status: 'signedOut', user: null, mode: 'client' });
-    await Promise.all([deleteToken(), saveProfile(null, 'client'), clearEtagCache()]);
+    set({ status: 'welcome', user: null, pendingRedirect: null, mode: 'client' });
+    await Promise.all([deleteToken(), saveProfile(null), clearEtagCache(), AsyncStorage.removeItem(VISITOR_KEY).catch(() => undefined)]);
     queryClient.clear();
   },
 }));
 
 setUnauthorizedHandler(() => {
-  useAuthStore.getState().signOut();
+  useAuthStore.getState().signOut(false);
+});
+
+// Consommation de données : envoyée au serveur pour l'indicateur « Paramètres > Données »
+setDataUsageSender(async (bytes) => {
+  if (useAuthStore.getState().status === 'signedIn') await api.dataUsage(bytes);
 });

@@ -3,6 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Alert } from 'react-native';
 
 import type { LocalFile } from '../api/client';
+import { useLangStore } from '../i18n';
 
 // La photo est réduite à 1080 px et compressée en WebP sur le téléphone avant l'envoi :
 // environ 80 à 150 Ko au lieu de 3 à 5 Mo pour la photo d'origine.
@@ -14,9 +15,10 @@ export async function takeProductPhoto(source: 'camera' | 'library'): Promise<Lo
       ? await ImagePicker.requestCameraPermissionsAsync()
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!permission.granted) {
+    const en = useLangStore.getState().lang === 'en';
     Alert.alert(
-      source === 'camera' ? 'Appareil photo désactivé' : 'Photos désactivées',
-      'Autorisez l’accès dans les réglages du téléphone pour ajouter vos produits.',
+      source === 'camera' ? (en ? 'Camera disabled' : 'Appareil photo désactivé') : en ? 'Photos disabled' : 'Photos désactivées',
+      en ? 'Allow access in the phone settings to add your products.' : 'Autorisez l’accès dans les réglages du téléphone pour ajouter vos produits.',
     );
     return null;
   }

@@ -19,6 +19,13 @@ type CartState = {
   items: CartItem[];
   receptionMode: ReceptionMode;
   receptionDetail: string;
+  /**
+   * Clé de la tentative de paiement (Idempotency-Key) : gardée sur le téléphone jusqu'au succès,
+   * renvoyée à l'identique en cas de coupure réseau ou de double appui (jamais deux débits) ;
+   * effacée dès que le panier ou la réception changent.
+   */
+  paymentKey: string | null;
+  setPaymentKey: (key: string | null) => void;
   add: (item: Omit<CartItem, 'quantity'>, quantity?: number) => void;
   setQuantity: (productId: string, quantity: number) => void;
   setReception: (mode: ReceptionMode, detail?: string) => void;
@@ -32,26 +39,30 @@ export const useCartStore = create<CartState>()(
       items: [],
       receptionMode: 'delivery',
       receptionDetail: '',
+      paymentKey: null,
+      setPaymentKey: (paymentKey) => set({ paymentKey }),
       add: (item, quantity = 1) =>
         set((s) => {
           const existing = s.items.find((i) => i.product_id === item.product_id);
           if (existing) {
             return {
+              paymentKey: null,
               items: s.items.map((i) => (i.product_id === item.product_id ? { ...i, quantity: i.quantity + quantity } : i)),
             };
           }
-          return { items: [...s.items, { ...item, quantity }] };
+          return { paymentKey: null, items: [...s.items, { ...item, quantity }] };
         }),
       setQuantity: (productId, quantity) =>
         set((s) => ({
+          paymentKey: null,
           items:
             quantity <= 0
               ? s.items.filter((i) => i.product_id !== productId)
               : s.items.map((i) => (i.product_id === productId ? { ...i, quantity } : i)),
         })),
-      setReception: (receptionMode, receptionDetail = '') => set({ receptionMode, receptionDetail }),
-      setReceptionDetail: (receptionDetail) => set({ receptionDetail }),
-      clear: () => set({ items: [], receptionDetail: '' }),
+      setReception: (receptionMode, receptionDetail = '') => set({ receptionMode, receptionDetail, paymentKey: null }),
+      setReceptionDetail: (receptionDetail) => set({ receptionDetail, paymentKey: null }),
+      clear: () => set({ items: [], receptionDetail: '', paymentKey: null }),
     }),
     { name: 'axi-cart', storage: createJSONStorage(() => AsyncStorage) },
   ),
