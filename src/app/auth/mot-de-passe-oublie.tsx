@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { errorMessage } from '../../api/client';
 import { api } from '../../api/endpoints';
@@ -37,7 +37,7 @@ export default function ForgotScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <View style={{ flex: 1 }}>
       <ScreenHeader title={t('auth.forgotTitle')} />
       <Screen>
         <View style={styles.form}>
@@ -46,6 +46,6 @@ export default function ForgotScreen() {
           <Button label={t('auth.sendCode')} size="lg" onPress={submit} loading={loading} />
         </View>
       </Screen>
-    </KeyboardAvoidingView>
+    </View>
   );
 }

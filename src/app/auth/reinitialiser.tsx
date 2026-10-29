@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { ApiError, errorMessage } from '../../api/client';
 import { api } from '../../api/endpoints';
@@ -42,7 +42,7 @@ export default function ResetScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <View style={{ flex: 1 }}>
       <ScreenHeader title={t('auth.resetTitle')} />
       <Screen>
         <View style={styles.form}>
@@ -53,6 +53,6 @@ export default function ResetScreen() {
           <Button label={t('auth.resetButton')} size="lg" onPress={submit} loading={loading} disabled={code.length !== 6} />
         </View>
       </Screen>
-    </KeyboardAvoidingView>
+    </View>
   );
 }

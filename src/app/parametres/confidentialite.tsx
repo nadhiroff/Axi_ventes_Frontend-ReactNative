@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { Linking, Text, View } from 'react-native';
 
@@ -14,7 +13,7 @@ import { useAccountActions, useConsents, useSettings } from '../../hooks/api/acc
 import { useT } from '../../i18n';
 import { confirmAction, notify } from '../../lib/confirm';
 import { formatShortDate } from '../../lib/format';
-import { useAuthStore } from '../../store/authStore';
+import { leaveSession } from '../../lib/authFlow';
 import { fontSize, makeStyles, spacing } from '../../theme';
 
 /** Confidentialité : consentements (voir, révoquer), export de mes données, suppression du compte (double confirmation) */
@@ -24,14 +23,13 @@ export default function PrivacyScreen() {
   const consents = useConsents();
   const actions = useAccountActions();
   const dateFormat = useSettings().data?.date_format;
-  const signOut = useAuthStore((s) => s.signOut);
   const [password, setPassword] = useState('');
   const [deleting, setDeleting] = useState(false);
 
   const exportData = () =>
     actions.exportData.mutate(undefined, {
       onSuccess: ({ url }) => Linking.openURL(url),
-      onError: (e) => notify(t('settings.exportData'), errorMessage(e)),
+      onError: (e) => notify(t('settings.exportData'), errorMessage(e), 'error'),
     });
 
   const deleteAccount = () =>
@@ -40,11 +38,10 @@ export default function PrivacyScreen() {
         setDeleting(true);
         try {
           await api.deleteAccount(password);
-          await signOut(false);
-          router.replace('/bienvenue');
+          await leaveSession(false);
           notify(t('settings.deleted'));
         } catch (e) {
-          notify(t('settings.deleteAccount'), errorMessage(e));
+          notify(t('settings.deleteAccount'), errorMessage(e), 'error');
         } finally {
           setDeleting(false);
         }

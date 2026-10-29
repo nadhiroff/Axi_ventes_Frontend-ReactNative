@@ -3,15 +3,23 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
 import { useEffect } from 'react';
+import { KeyboardProvider, KeyboardToolbar } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+import { SessionWatcher } from '../components/SessionWatcher';
+import { DialogHost } from '../components/ui/DialogHost';
+import { useT } from '../i18n';
 
 import { PERSIST_MAX_AGE, queryClient, queryPersister } from '../lib/queryClient';
 import { useAuthStore } from '../store/authStore';
+import { useKeyboardToolbarStore } from '../store/uiStore';
 import { useTheme } from '../theme';
 
 export default function RootLayout() {
   const bootstrap = useAuthStore((s) => s.bootstrap);
   const { colors, dark } = useTheme();
+  const t = useT();
+  const toolbar = useKeyboardToolbarStore((s) => s.enabled);
 
   // Relit la session gardée sur l'appareil (jeton, profil, thème, langue).
   useEffect(() => {
@@ -25,6 +33,7 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
+      <KeyboardProvider>
       <PersistQueryClientProvider client={queryClient} persistOptions={{ persister: queryPersister, maxAge: PERSIST_MAX_AGE }}>
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
           <Stack.Screen name="(client)" />
@@ -34,7 +43,12 @@ export default function RootLayout() {
           <Stack.Screen name="commercant" />
         </Stack>
         <StatusBar style={dark ? 'light' : 'dark'} />
+        {/* Au-dessus du clavier : champ précédent / suivant et « OK » pour le fermer */}
+        {toolbar ? <KeyboardToolbar doneText={t('common.done')} theme={{ light: { primary: colors.brand, disabled: colors.textMuted, background: colors.surfaceAlt, ripple: colors.border }, dark: { primary: colors.brand, disabled: colors.textMuted, background: colors.surfaceAlt, ripple: colors.border } }} /> : null}
+        <SessionWatcher />
+        <DialogHost />
       </PersistQueryClientProvider>
+      </KeyboardProvider>
     </SafeAreaProvider>
   );
 }

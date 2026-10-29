@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 
@@ -14,7 +13,7 @@ import { useAccountActions, useLoginHistory, useSessions, useSettings } from '..
 import { useT } from '../../i18n';
 import { confirmAction, notify } from '../../lib/confirm';
 import { formatShortDate } from '../../lib/format';
-import { useAuthStore } from '../../store/authStore';
+import { leaveSession } from '../../lib/authFlow';
 import { fontSize, makeStyles, spacing } from '../../theme';
 
 /** Sécurité : changer le mot de passe, appareils connectés, historique, déconnexion de tous les appareils */
@@ -25,7 +24,6 @@ export default function SecurityScreen() {
   const history = useLoginHistory();
   const actions = useAccountActions();
   const dateFormat = useSettings().data?.date_format;
-  const signOut = useAuthStore((s) => s.signOut);
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -84,8 +82,7 @@ export default function SecurityScreen() {
           onPress={() =>
             confirmAction(t('settings.logoutAllConfirm'), t('account.logoutText'), async () => {
               await api.logoutAll().catch(() => undefined);
-              await signOut(false);
-              router.replace('/bienvenue');
+              await leaveSession(false);
             }, { destructive: true })
           }
         />

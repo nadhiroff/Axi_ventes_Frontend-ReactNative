@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { ApiError, errorMessage } from '../../api/client';
 import { api } from '../../api/endpoints';
@@ -55,7 +55,7 @@ export default function CodeScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <View style={{ flex: 1 }}>
       <ScreenHeader title={t('auth.codeTitle')} />
       <Screen>
         <View style={styles.form}>
@@ -67,6 +67,6 @@ export default function CodeScreen() {
           <Button label={wait > 0 ? t('auth.resendIn', { s: wait }) : t('auth.resend')} variant="ghost" onPress={resend} disabled={wait > 0} />
         </View>
       </Screen>
-    </KeyboardAvoidingView>
+    </View>
   );
 }

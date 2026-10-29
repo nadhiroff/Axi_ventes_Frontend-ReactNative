@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { RefreshControl, ScrollView, View, type StyleProp, type ViewStyle } from 'react-native';
+import { RefreshControl, View, type StyleProp, type ViewStyle } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
 import { spacing, useLayout, useTheme } from '../../theme';
 
@@ -16,6 +17,8 @@ type Props = {
 /**
  * Conteneur d'écran adaptatif : sur tablette et iPad, le contenu est centré avec une largeur
  * maximale lisible ; marges plus grandes ; défilement et « tirer pour actualiser ».
+ * Clavier : le champ en cours de saisie remonte toujours au-dessus du clavier ; toucher ailleurs ou
+ * glisser vers le bas ferme le clavier.
  */
 export function Screen({ children, refreshing = false, onRefresh, footer, contentStyle, scroll = true }: Props) {
   const { colors } = useTheme();
@@ -24,12 +27,14 @@ export function Screen({ children, refreshing = false, onRefresh, footer, conten
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       {scroll ? (
-        <ScrollView
+        <KeyboardAwareScrollView
+          bottomOffset={64}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
           refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand} /> : undefined}
         >
           {inner}
-        </ScrollView>
+        </KeyboardAwareScrollView>
       ) : (
         inner
       )}
