@@ -50,3 +50,17 @@ export function useSendMessage(conversationId: string) {
     },
   });
 }
+
+/** Modifier ou supprimer son propre message : la bulle change tout de suite */
+export function useMessageActions(conversationId: string) {
+  const qc = useQueryClient();
+  const key = queryKeys.conversation(conversationId);
+  const replace = (message: ChatMessage) => {
+    qc.setQueryData<ConversationPayload>(key, (old) => (old ? { ...old, messages: old.messages.map((m) => (m.id === message.id ? message : m)) } : old));
+    qc.invalidateQueries({ queryKey: queryKeys.conversations });
+  };
+  return {
+    edit: useMutation({ mutationFn: (v: { id: string; body: string }) => api.editMessage(conversationId, v.id, v.body), onSuccess: replace }),
+    remove: useMutation({ mutationFn: (messageId: string) => api.deleteMessage(conversationId, messageId), onSuccess: replace }),
+  };
+}
