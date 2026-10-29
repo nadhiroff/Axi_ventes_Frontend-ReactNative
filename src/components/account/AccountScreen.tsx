@@ -33,6 +33,7 @@ export function AccountScreen() {
             <Text style={styles.muted}>{t('account.visitorText')}</Text>
             <Button label={t('auth.createAccount')} onPress={() => router.push('/auth/inscription')} />
             <Button label={t('auth.signIn')} variant="ghost" onPress={() => router.push('/auth/connexion')} />
+            <Button label={t('account.backHome')} icon="home" variant="ghost" onPress={() => router.replace('/bienvenue')} />
           </Card>
           <MenuRow icon="settings" label={t('account.settings')} onPress={() => router.push('/parametres')} />
           <Text style={styles.muted}>{t('account.partnerInfo')}</Text>

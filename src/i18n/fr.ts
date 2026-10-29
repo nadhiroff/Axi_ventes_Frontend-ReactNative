@@ -405,6 +405,7 @@ export const fr = {
     recentEmpty: 'Les produits que vous consultez apparaîtront ici.',
   },
   account: {
+    backHome: 'Retour à la page d\'accueil',
     title: 'Mon compte',
     visitorTitle: 'Vous visitez Axi',
     visitorText: 'Créez un compte pour commander, suivre vos commerçants et payer en toute sécurité.',
