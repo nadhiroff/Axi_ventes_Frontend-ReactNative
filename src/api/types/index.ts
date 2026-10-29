@@ -347,6 +347,9 @@ export type ConversationSummary = {
   my_role: 'client' | 'merchant';
   stall: { id: string; name: string; avatar: ApiImage | null };
   other: { name: string; avatar: ApiImage | null };
+  /** Application de l'autre ouverte il y a moins d'une minute */
+  other_online: boolean;
+  other_last_seen_at: string | null;
   /** Messages gardés (le client suit l'étal) ; sinon effacés 24 h après leur envoi */
   kept: boolean;
   retention_note: string;
@@ -354,5 +357,7 @@ export type ConversationSummary = {
   last_message: { kind: MessageKind; preview: string; mine: boolean; created_at: string } | null;
 };
 export type MessageKind = 'text' | 'photo' | 'voice';
-export type ChatMessage = { id: string; mine: boolean; kind: MessageKind; body: string | null; image: ApiImage | null; audio_url: string | null; created_at: string; expires_at: string | null };
+/** sent : ✓ reçu par Axi ; delivered : ✓✓ arrivé sur le téléphone de l'autre ; read : ✓✓ bleu, lu */
+export type MessageStatus = 'sent' | 'delivered' | 'read';
+export type ChatMessage = { id: string; mine: boolean; status: MessageStatus | null; edited: boolean; deleted: boolean; kind: MessageKind; body: string | null; image: ApiImage | null; audio_url: string | null; created_at: string; expires_at: string | null };
 export type ConversationPayload = { conversation: ConversationSummary; messages: ChatMessage[] };
