@@ -40,7 +40,8 @@ export function DialogHost() {
   const insets = useSafeAreaInsets();
   return (
     <>
-      <View pointerEvents="box-none" style={{ position: 'absolute', top: insets.top + spacing.sm, left: spacing.lg, right: spacing.lg, gap: spacing.sm, alignItems: 'center' }}>
+      {/* En bas, au-dessus des onglets : ne cache jamais le bouton retour en haut de l'écran */}
+      <View pointerEvents="box-none" style={{ position: 'absolute', bottom: insets.bottom + 76, left: spacing.lg, right: spacing.lg, gap: spacing.sm, alignItems: 'center' }}>
         {toasts.map((t) => (
           <ToastView key={t.id} toast={t} />
         ))}
@@ -70,9 +71,10 @@ function DialogView({ dialog }: { dialog: Dialog }) {
           </View>
           <Text style={styles.title}>{dialog.title}</Text>
           {dialog.message ? <Text style={styles.message}>{dialog.message}</Text> : null}
-          <View style={styles.buttons}>
+          {/* Plus de deux choix : boutons empilés, « Annuler » en bas */}
+          <View style={[styles.buttons, dialog.buttons.length > 2 && { flexDirection: 'column-reverse' }]}>
             {dialog.buttons.map((b) => (
-              <Button key={b.label} label={b.label} variant={b.variant ?? 'primary'} onPress={() => press(b)} style={{ flex: 1 }} />
+              <Button key={b.label} label={b.label} variant={b.variant ?? 'primary'} onPress={() => press(b)} style={dialog.buttons.length > 2 ? undefined : { flex: 1 }} />
             ))}
           </View>
         </Pressable>
@@ -93,7 +95,7 @@ function ToastView({ toast }: { toast: Toast }) {
   }, [hide, opacity, toast.id]);
   const tint = toast.tone === 'success' ? colors.trust : toast.tone === 'error' ? colors.danger : colors.brand;
   return (
-    <Animated.View style={[styles.toast, { opacity, borderLeftColor: tint, transform: [{ translateY: opacity.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] }) }] }]}>
+    <Animated.View style={[styles.toast, { opacity, borderLeftColor: tint, transform: [{ translateY: opacity.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }] }]}>
       <Pressable onPress={() => hide(toast.id)} style={styles.toastRow} accessibilityRole="alert" accessibilityLiveRegion="polite">
         <View style={[styles.toastIcon, { backgroundColor: tint }]}>
           <Icon name={ICONS[toast.tone]} size={14} color="#FFFFFF" />

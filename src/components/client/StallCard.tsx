@@ -6,7 +6,7 @@ import { useT } from '../../i18n';
 import { fontSize, makeStyles, radius, spacing } from '../../theme';
 import { Avatar } from '../ui/Avatar';
 import { Tag } from '../ui/Tag';
-import { VerifiedIcon } from '../ui/VerifiedIcon';
+import { SubscriberBadge, VerifiedIcon } from '../ui/VerifiedIcon';
 
 /** Ligne d'étal : photo ou initiales, nom + coche verte, spécialité, emplacement, « Ouvert ». */
 export function StallCard({ stall }: { stall: StallSummary }) {
@@ -26,6 +26,7 @@ export function StallCard({ stall }: { stall: StallSummary }) {
             {stall.name}
           </Text>
           {stall.verified ? <VerifiedIcon /> : null}
+          {stall.subscribed ? <SubscriberBadge /> : null}
         </View>
         {stall.tagline ? (
           <Text style={styles.tagline} numberOfLines={1}>

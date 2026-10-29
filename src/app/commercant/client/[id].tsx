@@ -39,7 +39,7 @@ export default function ClientScreen() {
       <Screen refreshing={client.isRefetching} onRefresh={() => client.refetch()}>
         <Card style={{ gap: spacing.md }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-            <Avatar name={c.display_name} size={56} variant="soft" />
+            <Avatar name={c.display_name} image={c.avatar} size={56} variant="soft" />
             <View style={{ flex: 1 }}>
               <Text style={styles.muted}>{t('merchant.clientSince', { n: c.orders_count, amount: formatFcfa(c.total_spent) })}</Text>
               <Text style={styles.muted}>{c.has_axi_account ? t('merchant.hasAccount') : t('merchant.noAccount')}</Text>
@@ -48,6 +48,9 @@ export default function ClientScreen() {
             </View>
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+            {c.user_id ? (
+              <Button label={t('profile.title')} icon="user" size="sm" variant="ghost" onPress={() => router.push({ pathname: '/profil/[id]', params: { id: c.user_id!, cli: c.id } })} />
+            ) : null}
             {c.has_axi_account ? (
               <Button
                 label={t('chat.write')}

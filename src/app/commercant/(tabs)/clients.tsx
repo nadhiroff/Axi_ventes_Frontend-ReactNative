@@ -3,10 +3,11 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { errorMessage } from '../../../api/client';
+import { api } from '../../../api/endpoints';
 import type { ClientSegment } from '../../../api/types';
 import { showBroadcastResult } from '../../../components/merchant/broadcast';
 import { Avatar } from '../../../components/ui/Avatar';
-import { Button } from '../../../components/ui/Button';
+import { Button, IconButton } from '../../../components/ui/Button';
 import { Card } from '../../../components/ui/Card';
 import { Chip } from '../../../components/ui/Chip';
 import { Icon } from '../../../components/ui/Icon';
@@ -16,10 +17,11 @@ import { LoadingView } from '../../../components/ui/StateViews';
 import { Tag } from '../../../components/ui/Tag';
 import { useMerchantActions, useMerchantClients } from '../../../hooks/api/merchant';
 import { useT } from '../../../i18n';
+import { formatCount } from '../../../lib/format';
 import { confirmAction, notify } from '../../../lib/confirm';
 import { fontSize, makeStyles, radius, spacing, useLayout, useTheme } from '../../../theme';
 
-const SEGMENTS: ClientSegment[] = ['all', 'resellers', 'loyal', 'to_follow_up'];
+const SEGMENTS: ClientSegment[] = ['all', 'followers', 'resellers', 'loyal', 'to_follow_up'];
 
 /** « Mes clients » : fichier clients du commerçant, filtres, recherche, relances, message aux fidèles. */
 export default function ClientsScreen() {
@@ -39,6 +41,13 @@ export default function ClientsScreen() {
     return () => clearTimeout(timer);
   }, [text]);
 
+  // Discussion directe avec un client qui a un compte Axi
+  const write = (clientId: string) =>
+    api
+      .openClientConversation(clientId)
+      .then(({ conversation }) => router.push(`/messages/${conversation.id}`))
+      .catch((e) => notify(t('chat.title'), errorMessage(e), 'error'));
+
   const broadcast = () =>
     confirmAction(t('merchant.broadcastLoyal'), t('merchant.broadcastConfirm'), () =>
       actions.broadcast.mutate({ segment: 'loyal' }, { onSuccess: (r) => showBroadcastResult(t('merchant.broadcastLoyal'), r), onError: (e) => notify(t('merchant.broadcastLoyal'), errorMessage(e), 'error') }),
@@ -46,7 +55,7 @@ export default function ClientsScreen() {
 
   return (
     <>
-      <ScreenHeader title={t('nav.clients')} showBack={false} right={<Button label={t('common.add')} icon="user-plus" size="sm" onPress={() => router.push('/commercant/client/nouveau')} />} />
+      <ScreenHeader title={t('nav.clients')} subtitle={data ? t('merchant.followersCount', { n: data.followers_count, count: formatCount(data.followers_count) }) : undefined} showBack={false} right={<Button label={t('common.add')} icon="user-plus" size="sm" onPress={() => router.push('/commercant/client/nouveau')} />} />
       <Screen refreshing={clients.isRefetching} onRefresh={() => clients.refetch()}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
           {SEGMENTS.map((s) => (
@@ -72,11 +81,11 @@ export default function ClientsScreen() {
           <Grid columns={listColumns}>
             {data.clients.map((c) => (
               <Pressable key={c.id} onPress={() => router.push(`/commercant/client/${c.id}`)} style={({ pressed }) => [styles.card, pressed && { opacity: 0.85 }]} accessibilityRole="button">
-                <Avatar name={c.display_name} size={48} variant="soft" />
+                <Avatar name={c.display_name} image={c.avatar} size={48} variant="soft" />
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={styles.title}>{c.display_name}</Text>
                   <Text style={styles.muted}>{c.description}</Text>
-                  {c.badge ? <Tag label={c.badge.label} tone={c.badge.kind === 'follow_up' ? 'brand' : c.badge.kind === 'loyal' ? 'trust' : 'neutral'} /> : null}
+                  {c.badge ? <Tag label={c.badge.label} tone={c.badge.kind === 'follow_up' ? 'brand' : c.badge.kind === 'loyal' || c.badge.kind === 'follower' ? 'trust' : 'neutral'} /> : null}
                 </View>
                 {c.badge?.kind === 'follow_up' ? (
                   <Button
@@ -88,6 +97,8 @@ export default function ClientsScreen() {
                       )
                     }
                   />
+                ) : c.user_id ? (
+                  <IconButton icon="message-circle" label={t('chat.write')} onPress={() => write(c.id)} />
                 ) : (
                   <Icon name="chevron-right" size={18} color={colors.textMuted} />
                 )}

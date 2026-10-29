@@ -11,9 +11,9 @@ import { Grid, Screen } from '../../../components/ui/Screen';
 import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { ErrorView, LoadingView } from '../../../components/ui/StateViews';
 import { Tag } from '../../../components/ui/Tag';
-import { VoiceRecordModal } from '../../../components/ui/VoiceRecordModal';
+import { ArrivalSheet } from '../../../components/merchant/ArrivalSheet';
 import { useBadges } from '../../../hooks/api/chat';
-import { useMerchantActions, useMerchantToday } from '../../../hooks/api/merchant';
+import { useMerchantActions, useMerchantMoney, useMerchantToday } from '../../../hooks/api/merchant';
 import { SubscriptionBanner } from '../../../components/merchant/SubscriptionBanner';
 import { confirmAction, notify } from '../../../lib/confirm';
 import { formatDate, formatFcfa } from '../../../lib/format';
@@ -31,6 +31,7 @@ export default function TodayScreen() {
   const today = useMerchantToday();
   const actions = useMerchantActions();
   const [arrivalOpen, setArrivalOpen] = useState(false);
+  const money = useMerchantMoney().data;
   const d = today.data;
 
   if (today.isPending) return <LoadingView />;
@@ -87,7 +88,7 @@ export default function TodayScreen() {
         <View style={[styles.quick, { flexDirection: tablet ? 'row' : 'column' }]}>
           <Button label={t('merchant.addPhoto')} icon="camera" onPress={() => router.push('/commercant/produit/nouveau')} style={{ flex: 1 }} />
           <Button label={t('merchant.addVoice')} icon="mic" variant="ghost" onPress={() => router.push({ pathname: '/commercant/produit/nouveau', params: { mode: 'voice' } })} style={{ flex: 1 }} />
-          <Button label={t('merchant.arrival')} icon="volume-2" variant="ghost" onPress={() => setArrivalOpen(true)} style={{ flex: 1 }} />
+          <Button label={t('merchant.arrival')} icon="package" variant="ghost" onPress={() => setArrivalOpen(true)} style={{ flex: 1 }} />
         </View>
 
         <Text style={styles.section}>{t('merchant.ordersToday')}</Text>
@@ -118,14 +119,14 @@ export default function TodayScreen() {
           ))}
         </Grid>
       </Screen>
-      <VoiceRecordModal
+      <ArrivalSheet
+        key={arrivalOpen ? 'open' : 'closed'}
         visible={arrivalOpen}
-        title={t('merchant.arrivalTitle')}
-        hint={t('merchant.arrivalHint')}
+        subscribed={money?.subscription.status === 'active'}
         sending={actions.arrival.isPending}
         onClose={() => setArrivalOpen(false)}
-        onSend={(audio) =>
-          actions.arrival.mutate(audio, {
+        onSend={(text, photo) =>
+          actions.arrival.mutate({ text, photo }, {
             onSuccess: (r) => {
               setArrivalOpen(false);
               showBroadcastResult(t('merchant.arrivalTitle'), r);

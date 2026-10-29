@@ -4,8 +4,12 @@ import { Animated, FlatList, PanResponder, Pressable, Text, TextInput, View } fr
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useQueryClient } from '@tanstack/react-query';
+
 import { errorMessage, type LocalFile } from '../../api/client';
-import type { ApiImage, ChatMessage } from '../../api/types';
+import { api } from '../../api/endpoints';
+import { queryKeys } from '../../hooks/api/queryKeys';
+import type { ApiImage, ChatMessage, ConversationPayload } from '../../api/types';
 import { AudioPlayerButton } from '../../components/ui/AudioPlayerButton';
 import { Avatar } from '../../components/ui/Avatar';
 import { CachedImage } from '../../components/ui/CachedImage';
@@ -40,6 +44,7 @@ export default function ConversationScreen() {
   const query = useConversation(id);
   const send = useSendMessage(id);
   const actions = useMessageActions(id);
+  const qc = useQueryClient();
   const [editing, setEditing] = useState<ChatMessage | null>(null);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const conv = query.data?.conversation;
@@ -96,9 +101,32 @@ export default function ConversationScreen() {
       },
       onError: (e) => notify(t('chat.notSent'), errorMessage(e), 'error'),
     });
-  // Appui long sur un de mes messages : modifier (texte) ou supprimer pour tout le monde
+  // Supprimer pour moi : le message disparaît de mon écran, il reste chez l'autre
+  const hideForMe = (m: ChatMessage) =>
+    confirmAction(t('chat.hideConfirm'), t('chat.hideText'), () =>
+      api
+        .hideMessage(id, m.id)
+        .then(() => {
+          qc.setQueryData<ConversationPayload>(queryKeys.conversation(id), (old) => (old ? { ...old, messages: old.messages.filter((x) => x.id !== m.id) } : old));
+          toast(t('chat.hidden'), 'info');
+        })
+        .catch((e) => notify(t('chat.hideConfirm'), errorMessage(e), 'error')),
+    { destructive: true, confirmLabel: t('chat.hideAction') });
+
+  // Appui long : mes messages → modifier, supprimer pour tous ou pour moi ; ceux de l'autre → supprimer pour moi
   const openMenu = (m: ChatMessage) => {
-    if (!m.mine || m.deleted) return;
+    if (!m.mine || m.deleted) {
+      useDialogStore.getState().showDialog({
+        title: t('chat.menuTitleOther'),
+        message: m.deleted ? t('chat.deletedText') : (m.body ?? (m.kind === 'photo' ? t('chat.photo') : t('chat.voice'))),
+        tone: 'info',
+        buttons: [
+          { label: t('common.cancel'), variant: 'ghost' },
+          { label: t('chat.hideAction'), variant: 'destructive', onPress: () => hideForMe(m) },
+        ],
+      });
+      return;
+    }
     const remove = () =>
       confirmAction(t('chat.deleteConfirm'), t('chat.deleteText'), () =>
         actions.remove.mutate(m.id, { onSuccess: () => toast(t('chat.deleted'), 'info'), onError: (e) => notify(t('chat.deleteConfirm'), errorMessage(e), 'error') }),
@@ -112,7 +140,8 @@ export default function ConversationScreen() {
         ...(m.kind === 'text'
           ? [{ label: t('common.edit'), onPress: () => { setEditing(m); setText(m.body ?? ''); } }]
           : []),
-        { label: t('common.delete'), variant: 'destructive' as const, onPress: remove },
+        { label: t('chat.deleteForAll'), variant: 'destructive' as const, onPress: remove },
+        { label: t('chat.hideAction'), variant: 'ghost' as const, onPress: () => hideForMe(m) },
       ],
     });
   };
@@ -128,8 +157,9 @@ export default function ConversationScreen() {
         <BackButton />
         <Pressable
           style={styles.headerMain}
-          onPress={() => conv.my_role === 'client' && router.push(`/etal/${conv.stall.id}`)}
-          accessibilityRole={conv.my_role === 'client' ? 'link' : 'header'}
+          onPress={() => router.push({ pathname: '/profil/[id]', params: { id: conv.other_user_id, conv: conv.id } })}
+          accessibilityRole="link"
+          accessibilityHint={t('profile.title')}
         >
           <Avatar name={conv.other.name} image={conv.other.avatar} size={40} variant={conv.my_role === 'client' ? 'brand' : 'soft'} />
           <View style={{ flex: 1 }}>

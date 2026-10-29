@@ -27,7 +27,7 @@ export default function ProfileScreen() {
   const styles = useStyles();
   const t = useT();
   const { user, setUser } = useAuthStore();
-  const [form, setForm] = useState({ first_name: user?.first_name ?? '', last_name: user?.last_name ?? '', phone: user?.phone ?? '' });
+  const [form, setForm] = useState({ first_name: user?.first_name ?? '', last_name: user?.last_name ?? '', phone: user?.phone ?? '', bio: user?.bio ?? '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
@@ -35,7 +35,7 @@ export default function ProfileScreen() {
   const save = async () => {
     setSaving(true);
     try {
-      setUser(await api.updateMe({ first_name: form.first_name.trim(), last_name: form.last_name.trim(), phone: form.phone.trim() || null }));
+      setUser(await api.updateMe({ first_name: form.first_name.trim(), last_name: form.last_name.trim(), phone: form.phone.trim() || null, bio: form.bio.trim() || null }));
       setErrors({});
       toast(t('settings.profileSaved'));
     } catch (e) {
@@ -107,6 +107,16 @@ export default function ProfileScreen() {
             <Field label={t('auth.firstName')} value={form.first_name} onChangeText={(v) => setForm((f) => ({ ...f, first_name: v }))} error={errors.first_name} />
             <Field label={t('auth.lastName')} value={form.last_name} onChangeText={(v) => setForm((f) => ({ ...f, last_name: v }))} error={errors.last_name} />
             <Field label={`${t('auth.phone')} (${t('common.optional')})`} value={form.phone} onChangeText={(v) => setForm((f) => ({ ...f, phone: v }))} keyboardType="phone-pad" hint={t('auth.phoneHint')} error={errors.phone} />
+            <Field
+              label={`${t('profile.bio')} (${t('common.optional')})`}
+              value={form.bio}
+              onChangeText={(v) => setForm((f) => ({ ...f, bio: v }))}
+              multiline
+              maxLength={300}
+              style={{ minHeight: 80, textAlignVertical: 'top' }}
+              hint={t('profile.bioHint')}
+              error={errors.bio}
+            />
             <Button label={t('common.save')} onPress={save} loading={saving} />
           </Card>
         </View>

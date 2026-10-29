@@ -21,6 +21,8 @@ export type User = {
   phone: string | null; // simple contact (Mobile Money, WhatsApp), jamais pour se connecter
   avatar: ApiImage | null;
   avatar_visibility: AvatarVisibility;
+  /** « À propos de moi », visible des personnes avec qui l'on échange */
+  bio: string | null;
   role: Role;
   lang: Lang;
   organization: null;
@@ -98,13 +100,34 @@ export type StallSummary = {
   location: StallLocation;
   has_new_products: boolean;
   merchant_type: MerchantType;
+  /** Commerçant abonné : badge (comme les comptes certifiés des réseaux sociaux) */
+  subscribed: boolean;
 };
+
+export type Announcement = { id: string; text: string; image: ApiImage | null; created_at: string };
+/** Petite annonce d'arrivage d'un commerçant abonné, sur l'accueil */
+export type HomeAnnouncement = Announcement & { stall: StallSummary; is_followed: boolean };
+
+/** Présentation publique d'une personne : jamais d'email ni de téléphone */
+export type PublicProfile = {
+  id: string;
+  display_name: string;
+  avatar: ApiImage | null;
+  bio: string | null;
+  member_since: string;
+  role: Role;
+  stall: { id: string; name: string; verified: boolean; subscribed: boolean } | null;
+  with_me: { orders_count: number; total_spent: number } | null;
+  reported: boolean;
+};
+export type ReportReason = 'spam' | 'fraud' | 'insult' | 'fake' | 'other';
 
 export type StallDetail = StallSummary & {
   /** Photos à faire défiler : principale puis galerie */
   photos: ApiImage[];
   gallery_count: number;
   followers_count: number;
+  announcements: Announcement[];
   owner_display_name: string;
   verification: { by: 'agent'; verified_at: string } | null;
   pay_on_delivery: boolean;
@@ -144,6 +167,7 @@ export type HomePayload = {
   aisles: Aisle[];
   followed_stalls: StallSummary[];
   featured_stalls: StallSummary[];
+  announcements: HomeAnnouncement[];
 };
 
 export type AislePayload = { aisle: Aisle; stalls: StallSummary[]; next_cursor: string | null };
@@ -289,9 +313,20 @@ export type MerchantToday = {
   orders: MerchantOrder[];
 };
 
-export type ClientSegment = 'all' | 'resellers' | 'loyal' | 'to_follow_up';
-export type MerchantClient = { id: string; display_name: string; description: string; phone: string | null; email: string | null; badge: { kind: 'loyal' | 'new' | 'follow_up'; label: string } | null };
-export type MerchantClients = { arrival_prompt: { title: string; text: string; button_label: string } | null; clients: MerchantClient[] };
+export type ClientSegment = 'all' | 'followers' | 'resellers' | 'loyal' | 'to_follow_up';
+export type MerchantClient = {
+  id: string;
+  display_name: string;
+  description: string;
+  phone: string | null;
+  email: string | null;
+  badge: { kind: 'loyal' | 'new' | 'follow_up' | 'follower'; label: string } | null;
+  /** Compte Axi : profil et discussion dans l'application */
+  user_id: string | null;
+  avatar: ApiImage | null;
+  follows: boolean;
+};
+export type MerchantClients = { arrival_prompt: { title: string; text: string; button_label: string } | null; followers_count: number; clients: MerchantClient[] };
 export type MerchantClientDetail = MerchantClient & {
   kind: 'individual' | 'reseller';
   note: string | null;
@@ -353,6 +388,7 @@ export type ConversationSummary = {
   my_role: 'client' | 'merchant';
   stall: { id: string; name: string; avatar: ApiImage | null };
   other: { name: string; avatar: ApiImage | null };
+  other_user_id: string;
   /** Application de l'autre ouverte il y a moins d'une minute */
   other_online: boolean;
   other_last_seen_at: string | null;

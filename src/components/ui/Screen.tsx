@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
-import { RefreshControl, View, type StyleProp, type ViewStyle } from 'react-native';
+import { View, type StyleProp, type ViewStyle } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
 import { spacing, useLayout, useTheme } from '../../theme';
 
 type Props = {
   children: ReactNode;
+  /** Ignorés : pas de « tirer pour actualiser » (application, pas site web) ; les données se mettent à jour seules */
   refreshing?: boolean;
   onRefresh?: () => void;
   /** contenu fixe en bas (bouton principal) */
@@ -20,7 +21,7 @@ type Props = {
  * Clavier : le champ en cours de saisie remonte toujours au-dessus du clavier ; toucher ailleurs ou
  * glisser vers le bas ferme le clavier.
  */
-export function Screen({ children, refreshing = false, onRefresh, footer, contentStyle, scroll = true }: Props) {
+export function Screen({ children, footer, contentStyle, scroll = true }: Props) {
   const { colors } = useTheme();
   const { contentWidth, gutter } = useLayout();
   const inner = <View style={[{ width: '100%', maxWidth: contentWidth, alignSelf: 'center', paddingHorizontal: gutter, paddingTop: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.md }, contentStyle]}>{children}</View>;
@@ -28,10 +29,11 @@ export function Screen({ children, refreshing = false, onRefresh, footer, conten
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       {scroll ? (
         <KeyboardAwareScrollView
+          bounces={false}
+          overScrollMode="never"
           bottomOffset={64}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
-          refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand} /> : undefined}
         >
           {inner}
         </KeyboardAwareScrollView>
