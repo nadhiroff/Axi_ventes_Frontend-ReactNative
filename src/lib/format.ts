@@ -1,7 +1,7 @@
 import type { Price } from '../api/types';
 
 /** 15000 -> "15 000" */
-function group(amount: number): string {
+export function group(amount: number): string {
   return Math.round(amount)
     .toString()
     .replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
@@ -55,4 +55,11 @@ export function updatedLabel(iso: string | null, now = new Date()): string | nul
 export function whatsappUrl(phone: string, text?: string): string {
   const base = `https://wa.me/${phone.replace(/[^\d]/g, '')}`;
   return text ? `${base}?text=${encodeURIComponent(text)}` : base;
+}
+
+/** 2.5 -> "+2,5 %", -1.25 -> "−1,3 %", null -> "—" */
+export function formatPct(value: number | null, signed = true): string {
+  if (value === null) return '—';
+  const sign = signed && value > 0 ? '+' : value < 0 ? '−' : '';
+  return `${sign}${Math.abs(value).toFixed(1).replace('.', ',').replace(',0', '')} %`;
 }

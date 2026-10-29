@@ -13,6 +13,7 @@ import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { EmptyView } from '../../components/ui/StateViews';
 import { VerifiedIcon } from '../../components/ui/VerifiedIcon';
 import { useCreateOrder, useQuote } from '../../hooks/api/client';
+import { useRequireAuth } from '../../hooks/useRequireAuth';
 import { formatFcfa } from '../../lib/format';
 import { groupByStall, useCartStore, type CartItem } from '../../store/cartStore';
 import { colors, fontSize, radius, spacing } from '../../theme';
@@ -40,6 +41,7 @@ export default function CartScreen() {
   );
   const quote = useQuote(request);
   const createOrder = useCreateOrder();
+  const requireAuth = useRequireAuth();
 
   if (items.length === 0) {
     return (
@@ -80,7 +82,7 @@ export default function CartScreen() {
       Alert.alert('Panier', 'Certains produits ne sont plus disponibles. Retirez-les pour continuer.');
       return;
     }
-    setPaying(true);
+    requireAuth(() => setPaying(true), 'Connectez-vous pour payer et suivre votre commande.');
   };
 
   return (

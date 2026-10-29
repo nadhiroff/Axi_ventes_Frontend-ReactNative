@@ -24,3 +24,13 @@ export async function writeEtagEntry(url: string, entry: Entry): Promise<void> {
     // Le cache est une optimisation : un échec d'écriture ne doit pas casser l'appel.
   }
 }
+
+/** À la déconnexion : on ne garde aucune réponse liée au compte précédent. */
+export async function clearEtagCache(): Promise<void> {
+  try {
+    const keys = await AsyncStorage.getAllKeys();
+    await AsyncStorage.multiRemove(keys.filter((k) => k.startsWith(PREFIX)));
+  } catch {
+    // Rien à faire : au pire, le serveur renverra une réponse complète.
+  }
+}

@@ -14,17 +14,17 @@ import { Tag } from '../../../components/ui/Tag';
 import { VerifiedIcon } from '../../../components/ui/VerifiedIcon';
 import { useMerchantStall, useUpdateProduct } from '../../../hooks/api/merchant';
 import { formatPrice } from '../../../lib/format';
-import { useSessionStore } from '../../../store/sessionStore';
+import { useAuthStore } from '../../../store/authStore';
 import { colors, fontSize, pickColor, productTilePalette, radius, spacing } from '../../../theme';
 
 /** Mon étal : ce que voient les clients, et les produits du jour en un geste. */
 export default function MyStallScreen() {
   const insets = useSafeAreaInsets();
   const stall = useMerchantStall();
-  const setRole = useSessionStore((s) => s.setRole);
+  const setMode = useAuthStore((s) => s.setMode);
 
   const switchToClient = () => {
-    setRole('client');
+    setMode('client');
     router.replace('/');
   };
 
