@@ -1,4 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 export type Role = 'client' | 'merchant';
 
@@ -7,8 +9,14 @@ type SessionState = {
   setRole: (role: Role) => void;
 };
 
-// Sera alimenté par la connexion (POST /v1/auth/...) quand l'API sera prête.
-export const useSessionStore = create<SessionState>()((set) => ({
-  role: 'client',
-  setRole: (role) => set({ role }),
-}));
+// L'espace ouvert au démarrage est mémorisé. Sera relié à la connexion
+// (POST /v1/auth/...) quand l'API d'authentification sera prête.
+export const useSessionStore = create<SessionState>()(
+  persist(
+    (set) => ({
+      role: 'client',
+      setRole: (role) => set({ role }),
+    }),
+    { name: 'axi-session', storage: createJSONStorage(() => AsyncStorage) },
+  ),
+);

@@ -34,23 +34,25 @@ export type Price = {
   amount: number;
   amount_max: number | null; // renseigné pour une fourchette de prix
   currency: 'XOF';
-  negotiable: boolean;
 };
 
 export type StallLocation = {
   site: string; // ex. "Tokpa Yôyô"
   row: string | null; // ex. "Allée B"
   stand: string | null; // ex. "214"
-  label: string; // ex. "Tokpa Yôyô, Allée B, stand 214"
+  label: string; // ex. "Tokpa Yôyô · Allée B, stand 214"
+  map_url: string | null; // plan d'accès (lien Google Maps ou image)
   moved_at: string | null; // date du dernier déménagement, sinon null
 };
 
 export type StallSummary = {
   id: string;
-  name: string;
-  avatar: ApiImage | null;
+  name: string; // ex. "Chez Maman Afi"
+  tagline: string; // ex. "Pagnes wax et bazin"
+  avatar: ApiImage | null; // null : on affiche les initiales, sans téléchargement
   aisle_id: string;
   verified: boolean;
+  is_open: boolean;
   location: StallLocation;
   has_new_products: boolean;
 };
