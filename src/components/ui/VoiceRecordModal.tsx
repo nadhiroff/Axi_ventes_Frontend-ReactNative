@@ -28,7 +28,7 @@ export function VoiceRecordModal({ visible, onClose, ...rest }: Props) {
   );
 }
 
-type Phase = 'preparing' | 'recording' | 'done' | 'denied';
+type Phase = 'preparing' | 'recording' | 'done' | 'denied' | 'busy';
 
 /** Monté à chaque ouverture : un enregistrement neuf par ouverture. */
 function RecorderSheet({ title, hint, sendLabel, sending, onSend, onClose }: Omit<Props, 'visible'>) {
@@ -41,13 +41,19 @@ function RecorderSheet({ title, hint, sendLabel, sending, onSend, onClose }: Omi
 
   useEffect(() => {
     let active = true;
-    start().then((ok) => {
-      if (active) setPhase(ok ? 'recording' : 'denied');
+    start().then((result) => {
+      if (!active) return;
+      setPhase(result === 'ok' ? 'recording' : result);
     });
     return () => {
       active = false;
     };
   }, [start]);
+
+  // Micro occupé (appel en cours) : l'alerte explique, la feuille se ferme
+  useEffect(() => {
+    if (phase === 'busy') onClose();
+  }, [phase, onClose]);
 
   const close = async () => {
     if (voice.isRecording) await voice.stop();
