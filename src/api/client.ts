@@ -1,3 +1,5 @@
+import { File } from 'expo-file-system';
+
 import { API_CONFIGURED, API_URL } from '../config/env';
 import { useLangStore } from '../i18n';
 import { recordDataUsage } from '../lib/dataUsage';
@@ -13,6 +15,18 @@ export class ApiError extends Error {
     public extra: Record<string, unknown> = {},
   ) {
     super(message);
+  }
+}
+
+/** Le serveur n'a pas pu être joint (pas de réseau, mauvaise adresse, délai dépassé). */
+export class NetworkError extends Error {}
+
+/** fetch dont seules les pannes réseau deviennent NetworkError. */
+async function send(url: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch (e) {
+    throw new NetworkError(e instanceof Error ? e.message : String(e));
   }
 }
 
@@ -43,7 +57,7 @@ export async function apiGet<T>(path: string): Promise<T> {
   const url = API_URL + path;
   const cached = await readEtagEntry(url);
   const headers = baseHeaders(cached ? { 'If-None-Match': cached.etag } : {});
-  const res = await fetch(url, { headers });
+  const res = await send(url, { headers });
   if (res.status === 304 && cached) {
     recordDataUsage(200);
     return unwrap<T>(cached.body as ApiResponse<T>, 200);
@@ -58,7 +72,7 @@ export async function apiGet<T>(path: string): Promise<T> {
 export async function apiSend<T>(method: 'POST' | 'PATCH' | 'PUT' | 'DELETE', path: string, payload?: unknown, headers: Record<string, string> = {}): Promise<T> {
   const body = payload === undefined ? undefined : JSON.stringify(payload);
   recordDataUsage(body?.length ?? 0);
-  const res = await fetch(API_URL + path, { method, headers: baseHeaders({ 'Content-Type': 'application/json', ...headers }), body });
+  const res = await send(API_URL + path, { method, headers: baseHeaders({ 'Content-Type': 'application/json', ...headers }), body });
   return unwrap<T>(await parse<T>(res), res.status);
 }
 
@@ -68,12 +82,14 @@ export type LocalFile = { uri: string; name: string; type: string };
 export async function apiUpload<T>(path: string, fields: Record<string, string>, files: Record<string, LocalFile | LocalFile[]>): Promise<T> {
   const form = new FormData();
   for (const [key, value] of Object.entries(fields)) form.append(key, value);
-  // React Native accepte un objet { uri, name, type } à la place d'un Blob ; plusieurs photos : photos[0], photos[1]…
+  // Le fetch d'Expo (expo/fetch) refuse l'ancien objet { uri, name, type } de React Native :
+  // il faut un vrai fichier (File d'expo-file-system). Plusieurs photos : photos[0], photos[1]…
+  const toBlob = (f: LocalFile) => new File(f.uri) as unknown as Blob;
   for (const [key, file] of Object.entries(files)) {
-    if (Array.isArray(file)) file.forEach((f, i) => form.append(`${key}[${i}]`, f as unknown as Blob));
-    else form.append(key, file as unknown as Blob);
+    if (Array.isArray(file)) file.forEach((f, i) => form.append(`${key}[${i}]`, toBlob(f), f.name));
+    else form.append(key, toBlob(file), file.name);
   }
-  const res = await fetch(API_URL + path, { method: 'POST', headers: baseHeaders(), body: form });
+  const res = await send(API_URL + path, { method: 'POST', headers: baseHeaders(), body: form });
   return unwrap<T>(await parse<T>(res), res.status);
 }
 
@@ -103,5 +119,11 @@ export function errorMessage(error: unknown): string {
       ? 'Server address missing: set EXPO_PUBLIC_API_URL in .env.local, then restart with npx expo start --clear.'
       : 'Adresse du serveur absente : renseignez EXPO_PUBLIC_API_URL dans .env.local, puis relancez avec npx expo start --clear.';
   }
-  return useLangStore.getState().lang === 'en' ? 'No connection. Try again in a moment.' : 'Pas de connexion. Réessayez dans un instant.';
+  const en = useLangStore.getState().lang === 'en';
+  // Seule une vraie panne réseau devient « Pas de connexion » : une autre erreur ne doit plus être masquée.
+  if (!(error instanceof NetworkError)) {
+    const detail = error instanceof Error ? error.message : String(error);
+    return en ? `Something went wrong: ${detail}` : `Une erreur est survenue : ${detail}`;
+  }
+  return en ? 'No connection. Try again in a moment.' : 'Pas de connexion. Réessayez dans un instant.';
 }
