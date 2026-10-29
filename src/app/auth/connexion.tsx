@@ -11,6 +11,7 @@ import { Screen } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { useFormStyles as useStyles } from '../../components/auth/formStyles';
 import { useT } from '../../i18n';
+import { notify } from '../../lib/confirm';
 import { finishAuth, isEmail } from '../../lib/authFlow';
 import { deviceName } from '../../store/authStore';
 
@@ -38,6 +39,10 @@ export default function SignInScreen() {
     } catch (e) {
       if (e instanceof ApiError && e.code === 'EMAIL_NOT_VERIFIED') {
         router.push({ pathname: '/auth/code', params: { email: email.trim(), purpose: 'verify_email' } });
+      } else if (e instanceof ApiError && e.code === 'ACCOUNT_SUSPENDED') {
+        // Accès bloqué par un agent Axi : le motif est expliqué
+        setMessage(null);
+        notify(t('auth.suspendedTitle'), e.message, 'error');
       } else {
         setErrors(e instanceof ApiError ? e.fields : {});
         setMessage(errorMessage(e));

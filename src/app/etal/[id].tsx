@@ -11,6 +11,8 @@ import { Avatar } from '../../components/ui/Avatar';
 import { Button } from '../../components/ui/Button';
 import { ImageViewer } from '../../components/ui/ImageViewer';
 import { PhotoCarousel } from '../../components/ui/PhotoCarousel';
+import { AnnouncementCard } from '../../components/client/AnnouncementCard';
+import { SubscriberBadge } from '../../components/ui/VerifiedIcon';
 import { Grid, Screen } from '../../components/ui/Screen';
 import { BackButton } from '../../components/ui/ScreenHeader';
 import { SectionHeader } from '../../components/ui/SectionHeader';
@@ -84,7 +86,10 @@ export default function StallScreen() {
               <Avatar name={s.name} image={s.avatar} size={76} variant="inverse" />
             </Pressable>
             <View style={{ flex: 1, gap: 4 }}>
-              <Text style={styles.name}>{s.name}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <Text style={styles.name}>{s.name}</Text>
+                {s.subscribed ? <SubscriberBadge size={20} onDark /> : null}
+              </View>
               {s.tagline ? <Text style={styles.tagline}>{s.tagline}</Text> : null}
               <Text style={styles.location}>{s.location.label}</Text>
               <Text style={styles.followers}>{t('stall.followers', { n: s.followers_count, count: formatCount(s.followers_count) })}</Text>
@@ -110,6 +115,9 @@ export default function StallScreen() {
           {s.location.map_url ? <Button label={t('stall.map')} icon="map" variant="ghost" onPress={() => openLink(s.location.map_url!)} style={{ flexGrow: 1 }} /> : null}
         </View>
 
+        {s.announcements.map((a) => (
+          <AnnouncementCard key={a.id} a={a} />
+        ))}
         {products.length === 0 ? <Text style={styles.muted}>{t('stall.noProducts')}</Text> : null}
         {today.length ? (
           <>

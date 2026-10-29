@@ -8,6 +8,8 @@ import type {
   ConversationSummary,
   ChatMessage,
   Rates,
+  PublicProfile,
+  ReportReason,
   MerchantApplication,
   SubscriptionPeriod,
   AppNotification,
@@ -70,7 +72,7 @@ export const api = {
   logout: () => apiSend<{ logged_out: true }>('POST', '/v1/auth/logout'),
   logoutAll: () => apiSend<{ logged_out: true }>('POST', '/v1/auth/logout-all'),
   me: () => apiGet<User>('/v1/me'),
-  updateMe: (patch: Partial<Pick<User, 'first_name' | 'last_name' | 'lang'>> & { phone?: string | null; avatar_visibility?: AvatarVisibility }) => apiSend<User>('PATCH', '/v1/me', patch),
+  updateMe: (patch: Partial<Pick<User, 'first_name' | 'last_name' | 'lang'>> & { phone?: string | null; avatar_visibility?: AvatarVisibility; bio?: string | null }) => apiSend<User>('PATCH', '/v1/me', patch),
   uploadAvatar: (photo: LocalFile) => apiUpload<User>('/v1/me/avatar', {}, { photo }),
   deleteAvatar: () => apiSend<User>('DELETE', '/v1/me/avatar'),
   badges: () => apiGet<Badges>('/v1/me/badges'),
@@ -97,6 +99,10 @@ export const api = {
   sendMedia: (conversationId: string, file: { photo: LocalFile } | { audio: LocalFile }, replyTo?: string) =>
     apiUpload<ChatMessage>(`/v1/conversations/${id(conversationId)}/messages`, replyTo ? { reply_to: replyTo } : {}, file),
   rates: () => apiGet<Rates>('/v1/rates'),
+  hideMessage: (conversationId: string, messageId: string) => apiSend<{ hidden: true; id: string }>('POST', `/v1/conversations/${id(conversationId)}/messages/${id(messageId)}/hide`),
+  profile: (userId: string) => apiGet<PublicProfile>(`/v1/users/${id(userId)}/profile`),
+  report: (userId: string, reason: ReportReason, details: string, conversationId?: string) =>
+    apiSend<{ message: string }>('POST', `/v1/users/${id(userId)}/report`, { reason, details, ...(conversationId ? { conversation_id: conversationId } : {}) }),
   settings: () => apiGet<UserSettings>('/v1/me/settings'),
   updateSettings: (patch: Partial<Omit<UserSettings, 'data' | 'lang' | 'notifications' | 'axi_points'>> & { data_cap_mb?: number; notifications?: Partial<UserSettings['notifications']> }) =>
     apiSend<UserSettings>('PATCH', '/v1/me/settings', patch),
@@ -155,7 +161,8 @@ export const api = {
   merchantToday: () => apiGet<MerchantToday>('/v1/merchant/today'),
   markOrderReady: (orderId: string) => apiSend<{ status: 'ready' }>('POST', `/v1/merchant/orders/${id(orderId)}/ready`),
   broadcastRelocation: () => apiSend<BroadcastResult>('POST', '/v1/merchant/relocation/broadcast'),
-  announceArrival: (audio: LocalFile) => apiUpload<BroadcastResult>('/v1/merchant/arrivals', {}, { audio }),
+  announceArrival: (text: string, photo: LocalFile | null) => apiUpload<BroadcastResult>('/v1/merchant/arrivals', { text }, photo ? { photo } : {}),
+  deleteVoiceMessage: (messageId: string) => apiSend<{ deleted: true }>('DELETE', `/v1/merchant/voice-messages/${id(messageId)}`),
   merchantClients: (segment: ClientSegment, search?: string) => apiGet<MerchantClients>(`/v1/merchant/clients${q({ segment, q: search })}`),
   merchantClient: (clientId: string) => apiGet<MerchantClientDetail>(`/v1/merchant/clients/${id(clientId)}`),
   addClient: (input: ClientInput) => apiSend<MerchantClient>('POST', '/v1/merchant/clients', input),

@@ -11,6 +11,8 @@ import { useSettings } from '../../hooks/api/account';
 import { useMerchantActions, useVoiceMessages } from '../../hooks/api/merchant';
 import { useT } from '../../i18n';
 import { formatShortDate } from '../../lib/format';
+import { confirmAction, notify, toast } from '../../lib/confirm';
+import { errorMessage } from '../../api/client';
 import { fontSize, spacing, useTheme } from '../../theme';
 import { callPhone, openWhatsapp } from '../../lib/contact';
 
@@ -41,6 +43,17 @@ export default function VoiceMessagesScreen() {
                 <AudioPlayerButton url={m.audio_url} onPlayed={() => !m.listened && actions.listened.mutate(m.id)} />
                 {m.client_phone ? <Button label={t('common.whatsapp')} icon="message-circle" size="sm" variant="ghost" onPress={() => openWhatsapp(m.client_phone!)} /> : null}
                 {m.client_phone ? <Button label={t('common.call')} icon="phone" size="sm" variant="ghost" onPress={() => callPhone(m.client_phone)} /> : null}
+                <Button
+                  label={t('common.delete')}
+                  icon="trash-2"
+                  size="sm"
+                  variant="danger"
+                  onPress={() =>
+                    confirmAction(t('merchant.deleteVoiceConfirm'), m.client_name, () =>
+                      actions.deleteVoiceMessage.mutate(m.id, { onSuccess: () => toast(t('merchant.voiceDeleted'), 'info'), onError: (e) => notify(t('merchant.messages'), errorMessage(e), 'error') }),
+                    { destructive: true, confirmLabel: t('common.delete') })
+                  }
+                />
               </View>
             </Card>
           ))}

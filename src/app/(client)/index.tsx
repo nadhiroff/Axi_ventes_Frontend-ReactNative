@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { api } from '../../api/endpoints';
@@ -11,6 +11,7 @@ import { CachedImage } from '../../components/ui/CachedImage';
 import { Icon } from '../../components/ui/Icon';
 import { Grid, Screen } from '../../components/ui/Screen';
 import { SectionHeader } from '../../components/ui/SectionHeader';
+import { HomeAnnouncementCard } from '../../components/client/AnnouncementCard';
 import { ErrorView, LoadingView } from '../../components/ui/StateViews';
 import { Tag } from '../../components/ui/Tag';
 import { API_CONFIGURED } from '../../config/env';
@@ -108,6 +109,18 @@ export default function HomeScreen() {
               </View>
               <Icon name="chevron-right" size={20} color={colors.textMuted} />
             </Pressable>
+          ) : null}
+
+          {/* Arrivages des commerçants abonnés : petites annonces avec photo, à faire défiler, « Suivre » en un geste */}
+          {(data.announcements ?? []).length ? (
+            <>
+              <SectionHeader title={t('home.arrivals')} />
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.md, paddingRight: spacing.md }}>
+                {data.announcements.map((a) => (
+                  <HomeAnnouncementCard key={a.id} a={a} width={Math.min(280, contentWidth * 0.78)} />
+                ))}
+              </ScrollView>
+            </>
           ) : null}
 
           <SectionHeader title={t('home.aisles')} actionLabel={data.aisles.length > aisleColumns * 2 ? t('common.seeAll') : undefined} onAction={() => router.push('/allees')} />

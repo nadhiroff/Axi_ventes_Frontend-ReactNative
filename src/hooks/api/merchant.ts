@@ -56,7 +56,8 @@ export function useMerchantActions() {
   return {
     ready: useMutation({ mutationFn: (orderId: string) => api.markOrderReady(orderId), onSuccess }),
     relocation: useMutation({ mutationFn: api.broadcastRelocation, onSuccess }),
-    arrival: useMutation({ mutationFn: (audio: LocalFile) => api.announceArrival(audio), onSuccess }),
+    arrival: useMutation({ mutationFn: (v: { text: string; photo: LocalFile | null }) => api.announceArrival(v.text, v.photo), onSuccess }),
+    deleteVoiceMessage: useMutation({ mutationFn: (messageId: string) => api.deleteVoiceMessage(messageId), onSuccess }),
     addClient: useMutation({ mutationFn: (input: ClientInput) => api.addClient(input), onSuccess }),
     updateClient: useMutation({ mutationFn: (v: { id: string; input: Partial<ClientInput> }) => api.updateClient(v.id, v.input), onSuccess }),
     deleteClient: useMutation({ mutationFn: (clientId: string) => api.deleteClient(clientId), onSuccess }),
