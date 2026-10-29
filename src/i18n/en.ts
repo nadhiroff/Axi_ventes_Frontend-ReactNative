@@ -406,6 +406,7 @@ export const en: Dict = {
     recentEmpty: 'The products you view will appear here.',
   },
   account: {
+    backHome: 'Back to the welcome page',
     title: 'My account',
     visitorTitle: 'You are visiting Axi',
     visitorText: 'Create an account to order, follow your traders and pay safely.',

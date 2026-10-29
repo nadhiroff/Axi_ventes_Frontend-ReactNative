@@ -5,6 +5,7 @@ import { Text, TextInput, View } from 'react-native';
 import { errorMessage } from '../../api/client';
 import { api } from '../../api/endpoints';
 import type { NotificationType, Operator, UserSettings } from '../../api/types';
+import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Chip, OptionTile } from '../../components/ui/Chip';
 import { MenuRow, SwitchRow } from '../../components/ui/Field';
@@ -64,6 +65,16 @@ export default function SettingsScreen() {
     <>
       <ScreenHeader title={t('settings.title')} />
       <Screen>
+        {!signedIn ? (
+          // Visiteur : revenir à la connexion, à la création de compte ou à la page d'accueil
+          <Card style={{ gap: spacing.md }}>
+            <Text style={styles.label}>{t('account.visitorTitle')}</Text>
+            <Text style={styles.muted}>{t('account.visitorText')}</Text>
+            <Button label={t('auth.signIn')} icon="log-in" onPress={() => router.push('/auth/connexion')} />
+            <Button label={t('auth.createAccount')} icon="user-plus" variant="ghost" onPress={() => router.push('/auth/inscription')} />
+            <Button label={t('account.backHome')} icon="home" variant="ghost" onPress={() => router.replace('/bienvenue')} />
+          </Card>
+        ) : null}
         {signedIn && merchant ? (
           <>
             {/* Paramètres propres au commerçant : sa boutique, son abonnement, son argent */}
