@@ -22,7 +22,7 @@ export const en: Dict = {
     seeAll: 'See all',
     saved: 'Saved',
     error: 'Something went wrong',
-    noApi: 'Server address missing: set EXPO_PUBLIC_API_URL in the .env.local file.',
+    noApi: 'Server address missing: restart « npx expo start » or set EXPO_PUBLIC_API_URL in .env.local.',
     camera: 'Camera',
     gallery: 'Gallery',
     share: 'Share',

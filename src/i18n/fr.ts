@@ -21,7 +21,7 @@ export const fr = {
     seeAll: 'Tout voir',
     saved: 'Enregistré',
     error: 'Une erreur est survenue',
-    noApi: 'Adresse du serveur absente : renseignez EXPO_PUBLIC_API_URL dans le fichier .env.local.',
+    noApi: 'Adresse du serveur absente : relancez « npx expo start » ou indiquez EXPO_PUBLIC_API_URL dans .env.local.',
     camera: 'Appareil photo',
     gallery: 'Galerie',
     share: 'Partager',
