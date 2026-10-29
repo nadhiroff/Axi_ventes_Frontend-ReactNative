@@ -16,7 +16,7 @@ import { Tag } from '../../components/ui/Tag';
 import { useMerchantMoney } from '../../hooks/api/merchant';
 import { useLangStore, useT } from '../../i18n';
 import { confirmAction, notify } from '../../lib/confirm';
-import { formatDate, formatFcfa } from '../../lib/format';
+import { formatDate, formatFcfa, formatPayment } from '../../lib/format';
 import { fontSize, makeStyles, spacing, useTheme } from '../../theme';
 
 /**
@@ -41,7 +41,7 @@ export default function SubscriptionScreen() {
 
   const pay = () =>
     confirmAction(
-      t('subscription.payConfirm', { amount: formatFcfa(amount), period: period === 'year' ? t('subscription.oneYear') : t('subscription.oneMonth') }),
+      t('subscription.payConfirm', { amount: formatPayment(amount), period: period === 'year' ? t('subscription.oneYear') : t('subscription.oneMonth') }),
       active ? t('subscription.extendText') : t('payment.closeText'),
       async () => {
         setPaying(true);
@@ -103,7 +103,7 @@ export default function SubscriptionScreen() {
               {period === 'year' && sub.prices.year_saving > 0 ? (
                 <Text style={[styles.text, { color: colors.trustText, fontWeight: '700' }]}>{t('subscription.saving', { amount: formatFcfa(sub.prices.year_saving) })}</Text>
               ) : null}
-              <Button label={t('subscription.payButton', { amount: formatFcfa(amount) })} icon="smartphone" size="lg" onPress={pay} loading={paying} />
+              <Button label={t('subscription.payButton', { amount: formatPayment(amount) })} icon="smartphone" size="lg" onPress={pay} loading={paying} />
               <Text style={styles.muted}>{t('subscription.payNote')}</Text>
             </Card>
           ) : null}

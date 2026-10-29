@@ -159,12 +159,16 @@ function ApplicationForm({ initialPhone }: { initialPhone: string }) {
         </View>
         <PlacePicker kind="aisle" options={options} value={form.aisle} onChange={set('aisle')} error={errors.aisle_id} />
         <PlacePicker kind="site" options={options} value={form.site} onChange={set('site')} error={errors.site_id} />
-        <View style={styles.row}>
-          <View style={{ flex: 1 }}>
-            <Field label={`${t('merchant.row')} (${t('common.optional')})`} value={form.row} onChangeText={set('row')} maxLength={30} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Field label={`${t('merchant.stand')} (${t('common.optional')})`} value={form.stand} onChangeText={set('stand')} maxLength={20} />
+        <View style={{ gap: spacing.sm }}>
+          <Text style={styles.label}>{`${t('merchant.placeTitle')} (${t('common.optional')})`}</Text>
+          {/* Deux champs côte à côte, libellés courts sur une ligne : parfaitement alignés */}
+          <View style={styles.row}>
+            <View style={{ flex: 1 }}>
+              <Field label={t('merchant.row')} value={form.row} onChangeText={set('row')} placeholder={t('merchant.rowPlaceholder')} maxLength={30} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Field label={t('merchant.stand')} value={form.stand} onChangeText={set('stand')} placeholder={t('merchant.standPlaceholder')} maxLength={20} />
+            </View>
           </View>
         </View>
         <PhotoSlot label={t('apply.stallPhoto')} hint={t('apply.stallPhotoHint')} photo={photos.stall_photo} square error={errors.stall_photo} onChange={(p) => setPhotos((x) => ({ ...x, stall_photo: p }))} />

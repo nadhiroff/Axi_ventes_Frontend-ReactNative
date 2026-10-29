@@ -42,8 +42,8 @@ export function useSendMessage(conversationId: string) {
   const append = (message: ChatMessage) =>
     qc.setQueryData<ConversationPayload>(key, (old) => (old ? { ...old, messages: [...old.messages.filter((m) => m.id !== message.id), message] } : old));
   return useMutation({
-    mutationFn: (input: { text: string } | { photo: LocalFile } | { audio: LocalFile }) =>
-      'text' in input ? api.sendText(conversationId, input.text) : api.sendMedia(conversationId, input),
+    mutationFn: ({ replyTo, ...input }: ({ text: string } | { photo: LocalFile } | { audio: LocalFile }) & { replyTo?: string }) =>
+      'text' in input ? api.sendText(conversationId, input.text, replyTo) : api.sendMedia(conversationId, input as { photo: LocalFile } | { audio: LocalFile }, replyTo),
     onSuccess: (message) => {
       append(message);
       qc.invalidateQueries({ queryKey: queryKeys.conversations });

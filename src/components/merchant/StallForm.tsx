@@ -82,10 +82,10 @@ export function StallForm({ initial, submitLabel, onSubmit }: Props) {
       {form.has_physical_place ? (
         <View style={styles.row}>
           <View style={{ flex: 1 }}>
-            <Field label={t('merchant.row')} value={form.row} onChangeText={set('row')} error={errors.row} />
+            <Field label={t('merchant.row')} value={form.row} onChangeText={set('row')} placeholder={t('merchant.rowPlaceholder')} error={errors.row} />
           </View>
           <View style={{ flex: 1 }}>
-            <Field label={t('merchant.stand')} value={form.stand} onChangeText={set('stand')} error={errors.stand} />
+            <Field label={t('merchant.stand')} value={form.stand} onChangeText={set('stand')} placeholder={t('merchant.standPlaceholder')} error={errors.stand} />
           </View>
         </View>
       ) : null}

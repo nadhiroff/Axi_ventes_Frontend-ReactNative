@@ -1,4 +1,4 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useEffect, useRef } from 'react';
 
@@ -7,6 +7,7 @@ import { useBadges } from '../hooks/api/chat';
 import { queryKeys } from '../hooks/api/queryKeys';
 import { t } from '../i18n';
 import { useAuthStore } from '../store/authStore';
+import { useCurrencyStore } from '../store/currencyStore';
 import { useDialogStore } from './ui/DialogHost';
 
 /**
@@ -22,6 +23,13 @@ export function SessionWatcher() {
   const badges = useBadges().data;
   const welcomed = useRef(false);
   const lastNotifications = useRef<number | null>(null);
+  const currency = useCurrencyStore((s) => s.currency);
+  const setRates = useCurrencyStore((s) => s.setRates);
+  // Taux du jour (euro, dollar) relus toutes les 6 h quand une autre devise que le F CFA est choisie
+  const rates = useQuery({ queryKey: ['rates'], queryFn: api.rates, enabled: currency !== 'XOF', staleTime: 6 * 3600_000 }).data;
+  useEffect(() => {
+    if (rates) setRates(rates.rates);
+  }, [rates, setRates]);
 
   // Rôle changé côté serveur ou félicitations en attente : profil relu
   useEffect(() => {

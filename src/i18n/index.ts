@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback } from 'react';
 import { create } from 'zustand';
 
+import { useCurrencyStore } from '../store/currencyStore';
+
 import { en } from './en';
 import { fon } from './fon';
 import { fr, type Dict } from './fr';
@@ -54,7 +56,11 @@ export function translate(lang: Lang, key: TKey, params: Record<string, string |
 
 export function useT() {
   const lang = useLangStore((s) => s.lang);
-  return useCallback((key: TKey, params?: Record<string, string | number>) => translate(lang, key, params), [lang]);
+  // La devise d'affichage change aussi le texte des montants : chaque écran se redessine quand on la change
+  const currency = useCurrencyStore((s) => s.currency);
+  const rate = useCurrencyStore((s) => s.rates[s.currency]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- currency et rate forcent une nouvelle fonction (montants reformatés)
+  return useCallback((key: TKey, params?: Record<string, string | number>) => translate(lang, key, params), [lang, currency, rate]);
 }
 
 /** Pour le code hors composant (alertes, stores) */

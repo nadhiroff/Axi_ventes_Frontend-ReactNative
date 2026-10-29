@@ -7,6 +7,7 @@ import type {
   ConversationPayload,
   ConversationSummary,
   ChatMessage,
+  Rates,
   MerchantApplication,
   SubscriptionPeriod,
   AppNotification,
@@ -89,10 +90,13 @@ export const api = {
   openStallConversation: (stallId: string) => apiSend<{ conversation: ConversationSummary }>('POST', `/v1/stalls/${id(stallId)}/conversation`),
   openClientConversation: (clientId: string) => apiSend<{ conversation: ConversationSummary }>('POST', `/v1/merchant/clients/${id(clientId)}/conversation`),
   messages: (conversationId: string) => apiGet<ConversationPayload>(`/v1/conversations/${id(conversationId)}/messages`),
-  sendText: (conversationId: string, body: string) => apiSend<ChatMessage>('POST', `/v1/conversations/${id(conversationId)}/messages`, { body }),
+  sendText: (conversationId: string, body: string, replyTo?: string) =>
+    apiSend<ChatMessage>('POST', `/v1/conversations/${id(conversationId)}/messages`, replyTo ? { body, reply_to: replyTo } : { body }),
   editMessage: (conversationId: string, messageId: string, body: string) => apiSend<ChatMessage>('PATCH', `/v1/conversations/${id(conversationId)}/messages/${id(messageId)}`, { body }),
   deleteMessage: (conversationId: string, messageId: string) => apiSend<ChatMessage>('DELETE', `/v1/conversations/${id(conversationId)}/messages/${id(messageId)}`),
-  sendMedia: (conversationId: string, file: { photo: LocalFile } | { audio: LocalFile }) => apiUpload<ChatMessage>(`/v1/conversations/${id(conversationId)}/messages`, {}, file),
+  sendMedia: (conversationId: string, file: { photo: LocalFile } | { audio: LocalFile }, replyTo?: string) =>
+    apiUpload<ChatMessage>(`/v1/conversations/${id(conversationId)}/messages`, replyTo ? { reply_to: replyTo } : {}, file),
+  rates: () => apiGet<Rates>('/v1/rates'),
   settings: () => apiGet<UserSettings>('/v1/me/settings'),
   updateSettings: (patch: Partial<Omit<UserSettings, 'data' | 'lang' | 'notifications' | 'axi_points'>> & { data_cap_mb?: number; notifications?: Partial<UserSettings['notifications']> }) =>
     apiSend<UserSettings>('PATCH', '/v1/me/settings', patch),
@@ -136,6 +140,8 @@ export const api = {
   merchantStall: () => apiGet<MerchantStall>('/v1/merchant/stall'),
   updateStall: (input: StallInput) => apiSend<MerchantStall>('PATCH', '/v1/merchant/stall', input),
   stallPhoto: (photo: LocalFile) => apiUpload<MerchantStall>('/v1/merchant/stall/photo', {}, { photo }),
+  addStallPhotos: (photos: LocalFile[]) => apiUpload<MerchantStall>('/v1/merchant/stall/photos', {}, { photos }),
+  removeStallPhoto: (index: number) => apiSend<MerchantStall>('DELETE', `/v1/merchant/stall/photos/${index}`),
   requestVerification: () => apiSend<{ message: string }>('POST', '/v1/merchant/verification-request'),
   createProduct: (fields: { name: string; price: string; price_max: string; is_today: string; stock_quantity: string }, photos: LocalFile[]) =>
     apiUpload<Product>('/v1/merchant/products', fields, photos.length ? { photos } : {}),

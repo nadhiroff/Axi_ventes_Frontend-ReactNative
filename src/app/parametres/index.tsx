@@ -4,7 +4,7 @@ import { Text, TextInput, View } from 'react-native';
 
 import { errorMessage } from '../../api/client';
 import { api } from '../../api/endpoints';
-import type { NotificationType, Operator, UserSettings } from '../../api/types';
+import type { Currency, NotificationType, Operator, UserSettings } from '../../api/types';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Chip, OptionTile } from '../../components/ui/Chip';
@@ -13,7 +13,8 @@ import { Screen } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { useSettings, useUpdateSettings } from '../../hooks/api/account';
 import { LANG_LABELS, useLangStore, useT, type Lang } from '../../i18n';
-import { notify } from '../../lib/confirm';
+import { notify, toast } from '../../lib/confirm';
+import { useCurrencyStore } from '../../store/currencyStore';
 import { formatBytes } from '../../lib/format';
 import { useAuthStore } from '../../store/authStore';
 import { fontSize, makeStyles, radius, spacing, useTheme, useThemeStore, type ThemePreference } from '../../theme';
@@ -45,6 +46,13 @@ export default function SettingsScreen() {
   const chooseTheme = (theme: ThemePreference) => {
     setPreference(theme);
     save({ theme });
+  };
+
+  const { currency, rates, setCurrency } = useCurrencyStore();
+  const chooseCurrency = (c: Currency) => {
+    setCurrency(c);
+    save({ currency: c });
+    toast(t('settings.currencySaved'));
   };
 
   const chooseLang = async (next: Lang) => {
@@ -116,12 +124,16 @@ export default function SettingsScreen() {
             ))}
           </View>
           <Text style={styles.muted}>{t('settings.langNote')}</Text>
+          <Text style={styles.label}>{t('settings.currency')}</Text>
+          <View style={styles.wrap}>
+            {(['XOF', 'EUR', 'USD'] as Currency[]).map((c) => (
+              <Chip key={c} label={t(`settings.currencies.${c}`)} selected={currency === c} onPress={() => chooseCurrency(c)} />
+            ))}
+          </View>
+          <Text style={styles.muted}>{currency === 'XOF' ? t('settings.currencyNoteXof') : t('settings.currencyNote', { rate: Math.round(rates[currency]).toString() })}</Text>
           {signedIn && s ? (
             <>
-              <Text style={styles.label}>{t('settings.currency')}</Text>
-              <View style={styles.wrap}>
-                <Chip label="FCFA (XOF)" selected onPress={() => undefined} />
-              </View>
+
               <Text style={styles.label}>{t('settings.dateFormat')}</Text>
               <View style={styles.row}>
                 {(['dd/mm/yyyy', 'yyyy-mm-dd'] as const).map((f) => (

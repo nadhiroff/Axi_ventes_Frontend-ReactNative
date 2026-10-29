@@ -12,6 +12,7 @@ import { SectionHeader } from '../../../components/ui/SectionHeader';
 import { ErrorView, LoadingView } from '../../../components/ui/StateViews';
 import { Tag } from '../../../components/ui/Tag';
 import { useMerchantStall, useStallMutations, useVoiceMessages } from '../../../hooks/api/merchant';
+import { formatCount } from '../../../lib/format';
 import { useT } from '../../../i18n';
 import { confirmAction, notify } from '../../../lib/confirm';
 import { fontSize, makeStyles, spacing, useLayout } from '../../../theme';
@@ -44,6 +45,7 @@ export default function MyStallScreen() {
               <Text style={styles.name}>{s.name}</Text>
               {s.tagline ? <Text style={styles.muted}>{s.tagline}</Text> : null}
               <Text style={styles.muted}>{s.location.label}</Text>
+              <Text style={[styles.muted, { fontWeight: '700' }]}>{t('stall.followers', { n: s.followers_count, count: formatCount(s.followers_count) })}</Text>
               <Text style={styles.type}>{s.merchant_type === 'wholesale' ? t('merchant.wholesale') : t('merchant.retail')}</Text>
             </View>
           </View>
