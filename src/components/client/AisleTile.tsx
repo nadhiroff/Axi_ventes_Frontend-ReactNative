@@ -1,11 +1,12 @@
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import type { Aisle, AisleIcon } from '../../api/types';
-import { colors, fontSize, radius, softPalette, spacing } from '../../theme';
+import { useT } from '../../i18n';
+import { fontSize, makeStyles, radius, softPalette, spacing } from '../../theme';
 import { Icon, type IconName } from '../ui/Icon';
 
-const icons: Record<AisleIcon, IconName> = {
+export const aisleIcons: Record<AisleIcon, IconName> = {
   fabric: 'scissors',
   grain: 'package',
   beauty: 'droplet',
@@ -16,35 +17,32 @@ const icons: Record<AisleIcon, IconName> = {
   other: 'grid',
 };
 
-/** Carré d'allée : pastille de couleur douce et nom, sur trois colonnes. */
+/** Carré d'allée : pastille de couleur douce, nom, nombre d'étals. */
 export function AisleTile({ aisle, index }: { aisle: Aisle; index: number }) {
+  const styles = useStyles();
+  const t = useT();
   const tint = softPalette[index % softPalette.length];
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${aisle.name}, ${aisle.stall_count} étals`}
+      accessibilityLabel={`${aisle.name}, ${t('aisle.stalls', { n: aisle.stall_count })}`}
       onPress={() => router.push(`/allee/${aisle.id}`)}
       style={({ pressed }) => [styles.tile, pressed && { opacity: 0.85 }]}
     >
       <View style={[styles.swatch, { backgroundColor: tint.bg }]}>
-        <Icon name={icons[aisle.icon] ?? 'grid'} size={18} color={tint.fg} />
+        <Icon name={aisleIcons[aisle.icon] ?? 'grid'} size={18} color={tint.fg} />
       </View>
-      <Text style={styles.name} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.85}>
+      <Text style={styles.name} numberOfLines={2}>
         {aisle.name}
       </Text>
+      <Text style={styles.count}>{t('aisle.stalls', { n: aisle.stall_count })}</Text>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  tile: {
-    flex: 1,
-    minHeight: 112,
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    justifyContent: 'space-between',
-  },
+const useStyles = makeStyles((c) => ({
+  tile: { flex: 1, minHeight: 118, backgroundColor: c.surface, borderRadius: radius.lg, padding: spacing.md, justifyContent: 'space-between', gap: 4 },
   swatch: { width: 40, height: 40, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
-  name: { fontSize: fontSize.small, fontWeight: '600', color: colors.text },
-});
+  name: { fontSize: fontSize.small, fontWeight: '600', color: c.text },
+  count: { fontSize: fontSize.caption, color: c.textMuted },
+}));
