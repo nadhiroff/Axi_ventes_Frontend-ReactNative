@@ -2,100 +2,67 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { LocalFile } from '../../api/client';
 import { api } from '../../api/endpoints';
-import type { BroadcastChannel, ClientSegment, NewClientInput, ProductPatch } from '../../api/types';
+import type { ClientInput, ClientSegment, ProductPatch, StallInput } from '../../api/types';
 import { queryKeys } from './queryKeys';
 
-// Les écrans commerçant se rafraîchissent plus souvent : les commandes arrivent dans la journée.
-const MERCHANT_STALE = 60_000;
+export const useStallOptions = () => useQuery({ queryKey: queryKeys.stallOptions, queryFn: api.stallOptions, staleTime: 3600_000 });
+export const useMerchantToday = () => useQuery({ queryKey: queryKeys.merchantToday, queryFn: api.merchantToday, refetchInterval: 60_000 });
+export const useMerchantStall = () => useQuery({ queryKey: queryKeys.merchantStall, queryFn: api.merchantStall });
+export const useMerchantClients = (segment: ClientSegment, search: string) =>
+  useQuery({ queryKey: queryKeys.merchantClients(segment, search), queryFn: () => api.merchantClients(segment, search || undefined) });
+export const useMerchantClient = (clientId: string) => useQuery({ queryKey: queryKeys.merchantClient(clientId), queryFn: () => api.merchantClient(clientId) });
+export const useMerchantMoney = () => useQuery({ queryKey: queryKeys.merchantMoney, queryFn: api.merchantMoney });
+export const useVoiceMessages = () => useQuery({ queryKey: queryKeys.voiceMessages, queryFn: api.voiceMessages });
 
-export function useMerchantToday() {
-  return useQuery({ queryKey: queryKeys.merchantToday, queryFn: api.merchantToday, staleTime: MERCHANT_STALE });
-}
-
-export function useBroadcastRelocation() {
+/** Invalide tout l'espace commerçant après une modification */
+function useRefreshMerchant() {
   const qc = useQueryClient();
-  return useMutation({
-    mutationFn: api.broadcastRelocation,
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.merchantToday }),
-  });
+  return () => qc.invalidateQueries({ queryKey: ['merchant'] });
 }
 
-export function useMarkOrderReady() {
+export function useStallMutations() {
+  const refresh = useRefreshMerchant();
   const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (orderId: string) => api.markOrderReady(orderId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.merchantToday }),
-  });
+  const onSuccess = () => {
+    refresh();
+    qc.invalidateQueries({ queryKey: queryKeys.me });
+  };
+  return {
+    create: useMutation({ mutationFn: (input: StallInput) => api.createStall(input), onSuccess }),
+    update: useMutation({ mutationFn: (input: StallInput) => api.updateStall(input), onSuccess }),
+    photo: useMutation({ mutationFn: (photo: LocalFile) => api.stallPhoto(photo), onSuccess }),
+    requestVerification: useMutation({ mutationFn: api.requestVerification, onSuccess }),
+  };
 }
 
-export function useAnnounceArrival() {
-  return useMutation({ mutationFn: (audio: LocalFile) => api.announceArrival(audio) });
+export function useProductMutations() {
+  const onSuccess = useRefreshMerchant();
+  return {
+    create: useMutation({
+      mutationFn: (v: { fields: { name: string; price: string; price_max: string; is_today: string }; photos: LocalFile[] }) => api.createProduct(v.fields, v.photos),
+      onSuccess,
+    }),
+    createVoice: useMutation({ mutationFn: (v: { audio: LocalFile; photos: LocalFile[] }) => api.createVoiceProduct(v.audio, v.photos), onSuccess }),
+    update: useMutation({ mutationFn: (v: { id: string; patch: ProductPatch }) => api.updateProduct(v.id, v.patch), onSuccess }),
+    addPhotos: useMutation({ mutationFn: (v: { id: string; photos: LocalFile[] }) => api.addProductPhotos(v.id, v.photos), onSuccess }),
+    removePhoto: useMutation({ mutationFn: (v: { id: string; index: number }) => api.removeProductPhoto(v.id, v.index), onSuccess }),
+    remove: useMutation({ mutationFn: (productId: string) => api.deleteProduct(productId), onSuccess }),
+  };
 }
 
-export function useMerchantStall() {
-  return useQuery({ queryKey: queryKeys.merchantStall, queryFn: api.merchantStall, staleTime: MERCHANT_STALE });
-}
-
-export function useCreateProduct() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (input: { name: string; price: number | null; isToday: boolean; photo: LocalFile }) =>
-      api.createProduct(
-        { name: input.name, price: input.price === null ? '' : String(input.price), is_today: input.isToday ? '1' : '0' },
-        input.photo,
-      ),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.merchantStall }),
-  });
-}
-
-export function useUpdateProduct() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ productId, patch }: { productId: string; patch: ProductPatch }) => api.updateProduct(productId, patch),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.merchantStall }),
-  });
-}
-
-export function useMerchantClients(segment: ClientSegment) {
-  return useQuery({
-    queryKey: queryKeys.merchantClients(segment),
-    queryFn: () => api.merchantClients(segment),
-    staleTime: MERCHANT_STALE,
-  });
-}
-
-export function useAddClient() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (input: NewClientInput) => api.addClient(input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['merchant', 'clients'] }),
-  });
-}
-
-export function useFollowUpClient() {
-  return useMutation({ mutationFn: (clientId: string) => api.followUpClient(clientId) });
-}
-
-export function useBroadcastToLoyal() {
-  return useMutation({ mutationFn: (channel: BroadcastChannel) => api.broadcastToLoyal(channel) });
-}
-
-export function useMerchantMoney() {
-  return useQuery({ queryKey: queryKeys.merchantMoney, queryFn: api.merchantMoney, staleTime: MERCHANT_STALE });
-}
-
-export function useRequestCredit() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: api.requestCredit,
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.merchantMoney }),
-  });
-}
-
-export function useSetDataSharing() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (enabled: boolean) => api.setDataSharing(enabled),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.merchantMoney }),
-  });
+export function useMerchantActions() {
+  const onSuccess = useRefreshMerchant();
+  return {
+    ready: useMutation({ mutationFn: (orderId: string) => api.markOrderReady(orderId), onSuccess }),
+    relocation: useMutation({ mutationFn: api.broadcastRelocation, onSuccess }),
+    arrival: useMutation({ mutationFn: (audio: LocalFile) => api.announceArrival(audio), onSuccess }),
+    addClient: useMutation({ mutationFn: (input: ClientInput) => api.addClient(input), onSuccess }),
+    updateClient: useMutation({ mutationFn: (v: { id: string; input: Partial<ClientInput> }) => api.updateClient(v.id, v.input), onSuccess }),
+    deleteClient: useMutation({ mutationFn: (clientId: string) => api.deleteClient(clientId), onSuccess }),
+    followUp: useMutation({ mutationFn: (clientId: string) => api.followUpClient(clientId), onSuccess }),
+    broadcast: useMutation({ mutationFn: (v: { segment: ClientSegment; text?: string }) => api.broadcastToSegment(v.segment, v.text), onSuccess }),
+    listened: useMutation({ mutationFn: (messageId: string) => api.markListened(messageId), onSuccess }),
+    requestCredit: useMutation({ mutationFn: (amount?: number) => api.requestCredit(amount), onSuccess }),
+    dataSharing: useMutation({ mutationFn: (enabled: boolean) => api.setDataSharing(enabled), onSuccess }),
+  };
 }

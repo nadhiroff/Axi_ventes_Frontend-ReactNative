@@ -1,38 +1,44 @@
-import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import type { LocalFile } from '../../api/client';
 import { api } from '../../api/endpoints';
-import type { CreateOrderRequest, QuoteRequest } from '../../api/types';
+import type { QuoteRequest, SalesFilters } from '../../api/types';
+import { useAuthStore } from '../../store/authStore';
 import { queryKeys } from './queryKeys';
 
-export function useHome() {
-  return useQuery({ queryKey: queryKeys.home, queryFn: api.home });
-}
+const useSignedIn = () => useAuthStore((s) => s.status === 'signedIn');
 
-export function useAisle(aisleId: string) {
-  return useQuery({ queryKey: queryKeys.aisle(aisleId), queryFn: () => api.aisle(aisleId) });
-}
+export const useHome = () => useQuery({ queryKey: queryKeys.home, queryFn: api.home });
 
-export function useSearch(query: string) {
-  return useQuery({
-    queryKey: queryKeys.search(query),
-    queryFn: () => api.search(query),
-    enabled: query.trim().length >= 2,
-    staleTime: 60_000,
+export const useAisle = (aisleId: string) => useQuery({ queryKey: queryKeys.aisle(aisleId), queryFn: () => api.aisle(aisleId) });
+
+export const useSearch = (query: string) =>
+  useQuery({ queryKey: queryKeys.search(query), queryFn: () => api.search(query), enabled: query.trim().length >= 2, placeholderData: keepPreviousData });
+
+export const useStall = (stallId: string) => useQuery({ queryKey: queryKeys.stall(stallId), queryFn: () => api.stall(stallId) });
+
+export const useProduct = (productId: string) => useQuery({ queryKey: queryKeys.product(productId), queryFn: () => api.product(productId) });
+
+export const useQuote = (body: QuoteRequest, enabled: boolean) =>
+  useQuery({ queryKey: queryKeys.quote(body), queryFn: () => api.quote(body), enabled, placeholderData: keepPreviousData, staleTime: 30_000 });
+
+export const useOrders = () => useQuery({ queryKey: queryKeys.orders, queryFn: api.orders, enabled: useSignedIn() });
+
+/** Suivi de commande : rafraîchi toutes les 5 s tant que le paiement est attendu */
+export const useOrder = (orderId: string) =>
+  useQuery({
+    queryKey: queryKeys.order(orderId),
+    queryFn: () => api.order(orderId),
+    refetchInterval: (q) => (q.state.data?.status === 'awaiting_payment' ? 5000 : false),
+    staleTime: 0,
   });
-}
 
-/** Page d'un étal, produits paginés par curseur. */
-export function useStall(stallId: string) {
-  return useInfiniteQuery({
-    queryKey: queryKeys.stall(stallId),
-    queryFn: ({ pageParam }) => api.stall(stallId, pageParam),
-    initialPageParam: null as string | null,
-    getNextPageParam: (last) => last.next_cursor,
-  });
-}
+export const useSales = (filters: SalesFilters) =>
+  useQuery({ queryKey: queryKeys.sales(filters), queryFn: () => api.sales(filters), enabled: useSignedIn(), placeholderData: keepPreviousData });
 
-export function useFollowStall(stallId: string) {
+export const useFavorites = () => useQuery({ queryKey: queryKeys.favorites, queryFn: api.favorites, enabled: useSignedIn() });
+export const useRecentlyViewed = () => useQuery({ queryKey: queryKeys.recent, queryFn: api.recentlyViewed, enabled: useSignedIn() });
+
+export function useFollow(stallId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (follow: boolean) => api.setFollow(stallId, follow),
@@ -43,35 +49,28 @@ export function useFollowStall(stallId: string) {
   });
 }
 
-export function useSendVoiceMessage(stallId: string) {
-  return useMutation({ mutationFn: (audio: LocalFile) => api.sendVoiceMessage(stallId, audio) });
-}
-
-export function useVoiceSearch() {
-  return useMutation({ mutationFn: (audio: LocalFile) => api.voiceSearch(audio) });
-}
-
-/** Frais et total calculés par le serveur ; on garde l'ancien devis affiché pendant le recalcul. */
-export function useQuote(body: QuoteRequest) {
-  return useQuery({
-    queryKey: queryKeys.quote(body),
-    queryFn: () => api.quote(body),
-    enabled: body.lines.length > 0,
-    placeholderData: keepPreviousData,
-    staleTime: 30_000,
+export function useFavorite(productId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (favorite: boolean) => api.setFavorite(productId, favorite),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.product(productId) });
+      qc.invalidateQueries({ queryKey: queryKeys.favorites });
+    },
   });
 }
 
-export function useCreateOrder() {
-  return useMutation({ mutationFn: (body: CreateOrderRequest) => api.createOrder(body) });
-}
-
-/** Suit le paiement Mobile Money jusqu'à sa confirmation. */
-export function useOrder(orderId: string) {
-  return useQuery({
-    queryKey: queryKeys.order(orderId),
-    queryFn: () => api.order(orderId),
-    refetchInterval: (query) => (query.state.data?.status === 'awaiting_payment' ? 4000 : false),
-    staleTime: 0,
-  });
+/** Actions sur une commande : chaque réponse remplace le suivi en cache */
+export function useOrderAction(orderId: string) {
+  const qc = useQueryClient();
+  const done = (order: Awaited<ReturnType<typeof api.order>>) => {
+    qc.setQueryData(queryKeys.order(orderId), order);
+    qc.invalidateQueries({ queryKey: queryKeys.orders });
+  };
+  return {
+    verify: useMutation({ mutationFn: (transactionId?: string) => api.verifyPayment(orderId, transactionId), onSuccess: done }),
+    cancel: useMutation({ mutationFn: () => api.cancelOrder(orderId), onSuccess: done }),
+    receive: useMutation({ mutationFn: () => api.confirmReceipt(orderId), onSuccess: done }),
+    dispute: useMutation({ mutationFn: (v: { reason: string; stallId?: string }) => api.openDispute(orderId, v.reason, v.stallId), onSuccess: done }),
+  };
 }

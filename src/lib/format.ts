@@ -13,8 +13,8 @@ export function formatFcfa(amount: number): string {
 }
 
 /** Prix d'une tuile produit : "18 000 FCFA", "12 000 – 15 000 FCFA" ou "Prix à débattre". */
-export function formatPrice(price: Price | null): string {
-  if (!price) return 'Prix à débattre';
+export function formatPrice(price: Price | null, negotiable = 'Prix à débattre'): string {
+  if (!price) return negotiable;
   if (price.amount_max) return `${group(price.amount)} – ${group(price.amount_max)} FCFA`;
   return `${group(price.amount)} FCFA`;
 }
@@ -32,11 +32,35 @@ export function initials(name: string): string {
     .join('');
 }
 
-/** "2026-11-30" -> "30 novembre 2026" */
-export function formatDate(iso: string): string {
-  const months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+const MONTHS = {
+  fr: ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'],
+  en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+};
+
+/** "2026-11-30" -> "30 novembre 2026" (ou "30 November 2026") */
+export function formatDate(iso: string, lang: string = 'fr'): string {
   const d = new Date(iso);
+  const months = lang === 'en' ? MONTHS.en : MONTHS.fr;
   return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+/** Date courte selon le format choisi dans les paramètres : 29/10/2026 ou 2026-10-29, avec l'heure si demandé */
+export function formatShortDate(iso: string, format: 'dd/mm/yyyy' | 'yyyy-mm-dd' = 'dd/mm/yyyy', withTime = false): string {
+  const d = new Date(iso);
+  const p = (n: number) => String(n).padStart(2, '0');
+  const date = format === 'yyyy-mm-dd' ? `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}` : `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
+  return withTime ? `${date} ${p(d.getHours())}:${p(d.getMinutes())}` : date;
+}
+
+/** Octets → « 12,5 Mo » */
+export function formatBytes(bytes: number): string {
+  const mb = bytes / 1048576;
+  return mb >= 1 ? `${mb.toFixed(1).replace('.', ',')} Mo` : `${Math.round(bytes / 1024)} Ko`;
+}
+
+/** Clé unique d'une tentative de paiement (Idempotency-Key) */
+export function newIdempotencyKey(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 /** Libellé "Mis à jour ce matin / cet après-midi / hier / le 12 octobre". */
