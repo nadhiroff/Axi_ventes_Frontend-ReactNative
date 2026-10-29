@@ -10,12 +10,14 @@ API : backend PHP `Axi_ventes_backend-php`, routes décrites dans son `docs/POUR
 
 ```bash
 npm install
-cp .env.example .env.local      # puis mettre l'IP du PC qui fait tourner le backend
+cp .env.example .env.local      # rien à modifier en développement
 npx expo start --clear
 ```
 
-`EXPO_PUBLIC_API_URL` : `http://<IP du PC>:8000` (commande `hostname -I` sur le PC ; le téléphone doit être
-sur le même Wi-Fi). Il n'y a plus de données de démonstration : sans cette adresse, l'application l'indique.
+L'adresse de l'API est trouvée **automatiquement** en développement : c'est l'IP du PC qui lance `npx expo start`
+(la même qu'Expo Go utilise), avec le port `EXPO_PUBLIC_API_PORT` (8000). Changer de Wi-Fi ne demande rien :
+relancer `npx expo start`. Le backend doit écouter sur toutes les interfaces : `php -S 0.0.0.0:8000 -t public public/index.php`.
+Pour un serveur en ligne : `EXPO_PUBLIC_API_URL=https://…` dans `.env.local`.
 Tous les modules utilisés sont inclus dans Expo Go (WebView du paiement, photo, micro).
 
 ## Ce que fait l'application

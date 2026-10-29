@@ -116,8 +116,8 @@ export function errorMessage(error: unknown): string {
   if (error instanceof ApiError) return error.message;
   if (!API_CONFIGURED) {
     return useLangStore.getState().lang === 'en'
-      ? 'Server address missing: set EXPO_PUBLIC_API_URL in .env.local, then restart with npx expo start --clear.'
-      : 'Adresse du serveur absente : renseignez EXPO_PUBLIC_API_URL dans .env.local, puis relancez avec npx expo start --clear.';
+      ? 'Server address missing: restart with npx expo start --clear (or set EXPO_PUBLIC_API_URL for an online server).'
+      : 'Adresse du serveur absente : relancez avec npx expo start --clear (ou indiquez EXPO_PUBLIC_API_URL pour un serveur en ligne).';
   }
   const en = useLangStore.getState().lang === 'en';
   // Seule une vraie panne réseau devient « Pas de connexion » : une autre erreur ne doit plus être masquée.
