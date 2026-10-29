@@ -15,6 +15,7 @@ import { ErrorView, LoadingView } from '../../components/ui/StateViews';
 import { Tag } from '../../components/ui/Tag';
 import { VoiceRecordModal } from '../../components/ui/VoiceRecordModal';
 import { useFollowStall, useSendVoiceMessage, useStall } from '../../hooks/api/client';
+import { useRequireAuth } from '../../hooks/useRequireAuth';
 import { updatedLabel, whatsappUrl } from '../../lib/format';
 import { useCartStore } from '../../store/cartStore';
 import { colors, fontSize, radius, spacing } from '../../theme';
@@ -68,6 +69,7 @@ function StallView({ stall, products, updatedAt, hasMore, loadingMore, onLoadMor
   const voiceMessage = useSendVoiceMessage(stall.id);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const requireAuth = useRequireAuth();
 
   const today = useMemo(() => products.filter((p) => p.is_today), [products]);
   const others = useMemo(() => products.filter((p) => !p.is_today), [products]);
@@ -119,7 +121,12 @@ function StallView({ stall, products, updatedAt, hasMore, loadingMore, onLoadMor
   const actions: { icon: IconName; label: string; onPress: () => void; visible: boolean }[] = [
     { icon: 'phone', label: 'Appeler', onPress: () => call(stall.contacts.phone!), visible: !!stall.contacts.phone },
     { icon: 'message-circle', label: 'WhatsApp', onPress: () => openWhatsapp(stall), visible: !!stall.contacts.whatsapp },
-    { icon: 'mic', label: 'Message vocal', onPress: () => setVoiceOpen(true), visible: stall.contacts.accepts_voice_messages },
+    {
+      icon: 'mic',
+      label: 'Message vocal',
+      onPress: () => requireAuth(() => setVoiceOpen(true), 'Connectez-vous pour que le commerçant puisse vous répondre.'),
+      visible: stall.contacts.accepts_voice_messages,
+    },
   ];
 
   return (
@@ -134,7 +141,9 @@ function StallView({ stall, products, updatedAt, hasMore, loadingMore, onLoadMor
             <Pressable
               accessibilityRole="button"
               accessibilityState={{ selected: stall.is_followed }}
-              onPress={() => follow.mutate(!stall.is_followed)}
+              onPress={() =>
+                requireAuth(() => follow.mutate(!stall.is_followed), 'Connectez-vous pour retrouver cet étal sur votre accueil.')
+              }
               disabled={follow.isPending}
               style={[styles.follow, stall.is_followed && styles.followActive]}
             >

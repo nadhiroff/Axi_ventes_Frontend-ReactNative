@@ -16,7 +16,11 @@ Sommaire :
 7. [Commerçant : Mon étal](#7-commerçant--mon-étal)
 8. [Commerçant : Mes clients](#8-commerçant--mes-clients)
 9. [Commerçant : Mon argent](#9-commerçant--mon-argent)
-10. [Récapitulatif des routes](#10-récapitulatif-des-routes)
+10. [Connexion par code SMS](#10-connexion-par-code-sms)
+11. [Axi Pro (web partenaires)](#11-axi-pro-web-partenaires)
+12. [Récapitulatif des routes](#12-récapitulatif-des-routes)
+
+Le SQL des tables à ajouter est dans [`docs/sql/002_auth_et_axi_pro.sql`](sql/002_auth_et_axi_pro.sql).
 
 ## 1. Conventions générales
 
@@ -31,7 +35,7 @@ Sommaire :
 | Valeur absente | `null` (la clé est toujours présente) |
 | Listes vides | `[]`, jamais `null` |
 | Textes affichés | en français, prêts à afficher tels quels (le serveur choisit l'accord : « installée », « Nouvelle »…) |
-| Authentification | `Authorization: Bearer <token>`. Facultative pour l'accueil, l'étal et la recherche ; obligatoire pour les commandes et toutes les routes `/v1/merchant/…` |
+| Authentification | `Authorization: Bearer <token>` (voir [section 10](#10-connexion-par-code-sms)). Facultative pour l'accueil, l'étal et la recherche ; obligatoire pour les commandes, `/v1/merchant/…` et `/v1/pro/…` |
 | Envoi de fichiers | `multipart/form-data` (photo WebP ~100 Ko, audio AAC/M4A mono 16 kHz, 60 s max) |
 
 ### Enveloppe de réponse
@@ -555,7 +559,213 @@ Réponse : `{ "message": "Demande envoyée. [IMF partenaire] vous appellera sous
 Case « Partager mon historique ». Corps : `{ "enabled": true }`. Réponse : `{ "enabled": true }`.
 Accord explicite, révocable à tout moment.
 
-## 10. Récapitulatif des routes
+## 10. Connexion par code SMS
+
+Pas de mot de passe : le numéro de téléphone est l'identifiant, un code à 6 chiffres
+le confirme. Tables utilisées : `users`, `otp_codes`, `auth_tokens`.
+
+**Visite libre** : accueil, allées, étals et recherche fonctionnent sans jeton.
+La connexion est demandée seulement pour payer, suivre un étal, envoyer un message
+vocal, ouvrir l'espace commerçant ou Axi Pro.
+
+### `POST /v1/auth/otp`
+
+Corps : `{ "phone": "+22997000000" }` (toujours au format international E.164).
+
+```json
+{ "channel": "sms", "code_length": 6, "expires_in": 300, "resend_in": 60 }
+```
+
+| Règle | Valeur |
+|---|---|
+| Code | 6 chiffres, `random_int(0, 999999)` complété à gauche par des zéros |
+| Stockage | `otp_codes.code_hash = hash_hmac('sha256', $code, OTP_SECRET)` ; jamais le code en clair |
+| Validité | `expires_at` = maintenant + 5 min ; un nouveau code annule les précédents du même numéro |
+| Canal | `sms` pour `+229…` ; `whatsapp` pour les autres pays (SMS international plus cher) |
+| Limites | 1 envoi par minute et 5 par heure par numéro (index `idx_phone_created`), 20 par heure par adresse IP |
+| Erreurs | 422 `INVALID_PHONE` ; 429 `TOO_MANY_REQUESTS` (message : « Réessayez dans N minutes. ») |
+
+La réponse est la même que le numéro ait un compte ou non : on ne révèle pas qui est inscrit.
+
+### `POST /v1/auth/verify`
+
+Corps : `{ "phone": "+22997000000", "code": "123456", "device": "android Pixel 7" }`
+
+```json
+{
+  "token": "3f9c…64 caractères hexadécimaux…",
+  "is_new": true,
+  "user": {
+    "id": "usr_42",
+    "name": "",
+    "phone": "+22997000000",
+    "role": "client",
+    "lang": "fr",
+    "organization": null
+  }
+}
+```
+
+| Règle | Valeur |
+|---|---|
+| Vérification | dernier code non utilisé et non expiré du numéro ; comparer avec `hash_equals()` |
+| Essais | `attempts + 1` à chaque essai ; au-delà de 5, le code ne vaut plus rien |
+| Succès | `used_at = NOW()` ; crée la ligne `users` si le numéro est nouveau (`name` vide, `role = client`), `is_new: true` |
+| Jeton | `bin2hex(random_bytes(32))`, renvoyé **une seule fois** ; en base `auth_tokens.token_hash = hash('sha256', $token)` |
+| Durée | `expires_at` = maintenant + 90 jours, prolongé à chaque utilisation (`last_used_at`) |
+| Compte suspendu | 403 `ACCOUNT_SUSPENDED` |
+| Erreurs | 422 `OTP_INVALID` (message avec le nombre d'essais restants) ; 422 `OTP_EXPIRED` ; 429 `OTP_TOO_MANY_ATTEMPTS` |
+
+`users.name` étant `NOT NULL`, un nouveau compte est créé avec `name = ''`.
+L'application demande alors le nom puis appelle `PATCH /v1/me`.
+
+### `GET /v1/me` et `PATCH /v1/me`
+
+`GET` renvoie l'objet `user` ci-dessus. `PATCH` accepte `{ "name": "Madame Hounsou" }`
+et/ou `{ "lang": "fon" }` et renvoie l'objet à jour. Le **rôle n'est jamais modifiable
+par l'utilisateur** : `merchant` est donné par un agent après vérification de l'étal,
+`pro` par un administrateur.
+
+`organization` est renseigné pour les comptes `pro` :
+`{ "id": "org_1", "name": "ANaGeM", "type": "anagem" }`, avec `type` ∈ `anagem`,
+`advertiser`, `mfi`, `research`.
+
+### `POST /v1/auth/logout`
+
+Met `auth_tokens.revoked_at = NOW()` pour le jeton utilisé. Réponse : `{ "logged_out": true }`.
+
+### Jeton refusé
+
+Toute route protégée sans jeton valide (absent, expiré, révoqué) répond **401
+`UNAUTHENTICATED`**. L'application ferme alors la session et propose de se reconnecter.
+Un rôle insuffisant répond **403 `FORBIDDEN`**.
+
+### `POST /v1/agent-visits`
+
+Bouton « Demander la visite d'un agent » (onglet Compte, client connecté qui tient un étal).
+Réponse : `{ "message": "Demande enregistrée. Un agent Axi vous appelle pour fixer sa visite à votre étal." }`.
+
+## 11. Axi Pro (web partenaires)
+
+Site web servi par la même application (Expo web), réservé aux rôles `pro` et `admin`.
+**Données agrégées et anonymes seulement** ; règles appliquées par le serveur :
+
+- aucun chiffre calculé sur **moins de 5 étals** (le prix médian vaut alors `null`) ;
+- aucune liste de commerçants ou de clients, sauf les dossiers de financement des
+  commerçants qui ont accepté le partage (`PUT /v1/merchant/data-sharing`) ;
+- chaque route vérifie le type d'organisation :
+
+| Route | `anagem` | `advertiser` | `mfi` | `research` | `admin` |
+|---|---|---|---|---|---|
+| `GET /v1/pro/overview` | oui | oui | oui | oui | oui |
+| `GET/POST /v1/pro/campaigns` | — | oui | — | — | oui |
+| `GET /v1/pro/census` | oui | — | — | — | oui |
+| `GET /v1/pro/financing` | — | — | oui | — | oui |
+
+Sinon : 403 `FORBIDDEN`.
+
+### `GET /v1/pro/overview?site=yoyo` (Tendances du marché)
+
+```json
+{
+  "kpis": {
+    "stalls_registered": 2480,
+    "stalls_without_place": 610,
+    "stalls_active_month": 1735,
+    "sites_count": 4,
+    "online_orders_month": 4120,
+    "outside_cotonou_pct": 23,
+    "credits_granted": 86
+  },
+  "sites": [ { "id": "yoyo", "name": "Tokpa Yôyô" } ],
+  "median_prices": [
+    {
+      "product_ref_id": "ref_riz25",
+      "product_name": "Riz, sac de 25 kg",
+      "site": "Tokpa Dahô",
+      "median_price": 17500,
+      "change_30d_pct": -1.2,
+      "sample_size": 41
+    }
+  ]
+}
+```
+
+`median_prices` vient de la table `price_stats_daily` (calcul nocturne). `site` absent :
+tous les sites. `median_price` et `change_30d_pct` valent `null` si `sample_size < 5`.
+
+### `GET /v1/pro/campaigns` et `POST /v1/pro/campaigns` (Campagnes)
+
+```json
+{
+  "campaigns": [
+    {
+      "id": "cmp_1",
+      "audience_label": "Commerçants tissus, Tokpa Yôyô",
+      "format": "supplier_offer",
+      "format_label": "Offre fournisseur aux commerçants",
+      "budget": 250000,
+      "status": "active",
+      "status_label": "En cours",
+      "impressions": 3120,
+      "clicks": 214,
+      "created_at": "2026-10-02T09:00:00Z"
+    }
+  ],
+  "audiences": [ { "id": "aud_cosm_yoyo", "label": "Commerçants cosmétiques, Tokpa Yôyô", "reach": 142 } ],
+  "formats": [
+    { "id": "supplier_offer", "label": "Offre fournisseur aux commerçants" },
+    { "id": "sponsored_home", "label": "Promotion sur l'accueil client" }
+  ],
+  "min_budget": 50000
+}
+```
+
+`POST` : `{ "audience_id": "aud_cosm_yoyo", "format": "supplier_offer", "budget": 150000 }`
+→ la campagne créée, avec `status: "pending_review"` (« En relecture »). Elle n'est diffusée
+qu'après validation par l'équipe Axi. `reach` est un nombre d'étals (ou de clients) touchés,
+jamais une liste. Statuts : `pending_review`, `active`, `ended`, `rejected`.
+Erreurs : 422 `INVALID_AUDIENCE`, `BUDGET_TOO_LOW`.
+
+### `GET /v1/pro/census` (Recensement des étals, ANaGeM)
+
+```json
+{
+  "totals": { "stalls": 2480, "without_place": 610, "verified": 1902, "relocated": 1340 },
+  "by_site": [ { "label": "Tokpa Yôyô", "stalls": 1120, "without_place": 210, "verified": 905, "relocated": 760 } ],
+  "by_aisle": [ { "label": "Tissus et pagnes", "stalls": 412, "without_place": 98, "verified": 350, "relocated": 260 } ],
+  "updated_at": "2026-10-29T06:00:00Z"
+}
+```
+
+L'export CSV est fait par le navigateur à partir de cette réponse.
+
+### `GET /v1/pro/financing` (Financement, IMF)
+
+```json
+{
+  "totals": { "credits_granted": 86, "amount_granted": 21500000, "repayment_rate_pct": 97.2 },
+  "shared_files": [
+    {
+      "id": "dos_1",
+      "merchant_name": "Chez Maman Afi",
+      "site": "Tokpa Yôyô",
+      "aisle": "Tissus et pagnes",
+      "months_of_history": 7,
+      "avg_monthly_sales": 840000,
+      "status": "new",
+      "status_label": "Nouveau"
+    }
+  ]
+}
+```
+
+`shared_files` ne contient **que** les commerçants qui ont accepté de partager leur
+historique avec **cette** organisation. S'ils retirent leur accord, le dossier disparaît.
+`totals` ne porte que sur les crédits de l'organisation connectée (tous pour `admin`).
+Statuts : `new`, `in_review`, `granted`, `declined`.
+
+## 12. Récapitulatif des routes
 
 | Méthode | Route | Écran |
 |---|---|---|
@@ -583,6 +793,16 @@ Accord explicite, révocable à tout moment.
 | GET | `/v1/merchant/money` | Mon argent |
 | POST | `/v1/merchant/credit-requests` | Demander un crédit |
 | PUT | `/v1/merchant/data-sharing` | Partager mon historique |
+| POST | `/v1/auth/otp` | Connexion : envoi du code |
+| POST | `/v1/auth/verify` | Connexion : vérification du code |
+| GET / PATCH | `/v1/me` | Profil |
+| POST | `/v1/auth/logout` | Déconnexion |
+| POST | `/v1/agent-visits` | Demander la visite d'un agent |
+| GET | `/v1/pro/overview` | Axi Pro : Tendances du marché |
+| GET / POST | `/v1/pro/campaigns` | Axi Pro : Campagnes |
+| GET | `/v1/pro/census` | Axi Pro : Recensement des étals |
+| GET | `/v1/pro/financing` | Axi Pro : Financement |
 
-À définir ensuite : authentification par numéro de téléphone (OTP), Axi Pro (espace
-web partenaires).
+Routes protégées : toutes sauf `/v1/home`, `/v1/aisles/…`, `/v1/search…`, `GET /v1/stalls/{id}`
+et `/v1/auth/otp|verify`. Les routes `/v1/merchant/…` exigent le rôle `merchant`,
+les routes `/v1/pro/…` le rôle `pro` ou `admin`.

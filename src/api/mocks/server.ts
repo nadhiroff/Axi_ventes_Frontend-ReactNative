@@ -3,7 +3,9 @@
 import { ApiError } from '../client';
 import type { Api } from '../endpoints';
 import type { Order, Quote, QuoteRequest, StallSummary } from '../types';
+import { mockAuth, requireSession } from './auth';
 import { aisles, merchantClients, merchantOrders, productsByStall, stalls } from './data';
+import { mockPro } from './pro';
 
 const MY_STALL_ID = 'stl_214';
 
@@ -69,6 +71,9 @@ function computeQuote(body: QuoteRequest): Quote {
 }
 
 export const mockApi: Api = {
+  ...mockAuth,
+  ...mockPro,
+
   home: () =>
     delay({
       city: { id: 'cotonou', name: 'Cotonou' },
@@ -121,15 +126,20 @@ export const mockApi: Api = {
   },
 
   setFollow: (stallId, follow) => {
+    requireSession();
     findStall(stallId).is_followed = follow;
     return delay({ is_followed: follow });
   },
 
-  sendVoiceMessage: () => delay({ message: 'Message vocal envoyé. Le commerçant vous répondra ici ou par téléphone.' }, 800),
+  sendVoiceMessage: () => {
+    requireSession();
+    return delay({ message: 'Message vocal envoyé. Le commerçant vous répondra ici ou par téléphone.' }, 800);
+  },
 
   quote: (body) => delay(computeQuote(body)),
 
   createOrder: (body) => {
+    requireSession();
     const quote = computeQuote(body);
     const order: Order & { polls: number } = {
       id: `cmd_${Date.now()}`,

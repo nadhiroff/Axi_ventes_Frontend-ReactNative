@@ -13,8 +13,19 @@ import type {
   MerchantMoney,
   MerchantStall,
   MerchantToday,
+  NewCampaign,
   NewClientInput,
   Order,
+  OtpSent,
+  OtpVerify,
+  ProCampaigns,
+  ProCensus,
+  ProFinancing,
+  ProfilePatch,
+  ProOverview,
+  Campaign,
+  Session,
+  User,
   Product,
   ProductPatch,
   Quote,
@@ -34,6 +45,14 @@ const id = encodeURIComponent;
 
 /** Une fonction par route du backend PHP. Voir docs/API_CONTRACT.md. */
 export const httpApi = {
+  // Connexion par code SMS (ou WhatsApp hors Bénin), sans mot de passe
+  requestOtp: (phone: string) => apiSend<OtpSent>('POST', '/v1/auth/otp', { phone }),
+  verifyOtp: (body: OtpVerify) => apiSend<Session>('POST', '/v1/auth/verify', body),
+  me: () => apiGet<User>('/v1/me'),
+  updateMe: (patch: ProfilePatch) => apiSend<User>('PATCH', '/v1/me', patch),
+  logout: () => apiSend<{ logged_out: true }>('POST', '/v1/auth/logout'),
+  requestAgentVisit: () => apiSend<{ message: string }>('POST', '/v1/agent-visits'),
+
   // Client
   home: () => apiGet<HomePayload>('/v1/home'),
   aisle: (aisleId: string, cursor?: string | null) => apiGet<AislePayload>(`/v1/aisles/${id(aisleId)}/stalls${q({ cursor })}`),
@@ -66,6 +85,13 @@ export const httpApi = {
   merchantMoney: () => apiGet<MerchantMoney>('/v1/merchant/money'),
   requestCredit: () => apiSend<{ message: string }>('POST', '/v1/merchant/credit-requests'),
   setDataSharing: (enabled: boolean) => apiSend<{ enabled: boolean }>('PUT', '/v1/merchant/data-sharing', { enabled }),
+
+  // Axi Pro (web, partenaires)
+  proOverview: (site?: string | null) => apiGet<ProOverview>(`/v1/pro/overview${q({ site })}`),
+  proCampaigns: () => apiGet<ProCampaigns>('/v1/pro/campaigns'),
+  createCampaign: (body: NewCampaign) => apiSend<Campaign>('POST', '/v1/pro/campaigns', body),
+  proCensus: () => apiGet<ProCensus>('/v1/pro/census'),
+  proFinancing: () => apiGet<ProFinancing>('/v1/pro/financing'),
 };
 
 export type Api = typeof httpApi;

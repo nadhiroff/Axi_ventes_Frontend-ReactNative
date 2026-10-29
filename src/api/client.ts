@@ -13,9 +13,19 @@ export class ApiError extends Error {
 }
 
 let authToken: string | null = null;
+let onUnauthorized: (() => void) | null = null;
 
 export function setAuthToken(token: string | null) {
   authToken = token;
+}
+
+export function getAuthToken() {
+  return authToken;
+}
+
+/** Appelé quand le serveur refuse le jeton (expiré ou révoqué) : la session est fermée. */
+export function setUnauthorizedHandler(handler: () => void) {
+  onUnauthorized = handler;
 }
 
 function baseHeaders(): Record<string, string> {
@@ -75,6 +85,7 @@ async function parse<T>(res: Response): Promise<ApiResponse<T>> {
 }
 
 function unwrap<T>(body: ApiResponse<T>, status: number): T {
+  if (status === 401 && authToken) onUnauthorized?.();
   if (!body.ok) throw new ApiError(body.error.code, body.error.message, status);
   return body.data;
 }
