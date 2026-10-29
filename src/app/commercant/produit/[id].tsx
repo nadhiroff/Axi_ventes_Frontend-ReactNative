@@ -17,7 +17,7 @@ import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { EmptyView, LoadingView } from '../../../components/ui/StateViews';
 import { useMerchantStall, useProductMutations } from '../../../hooks/api/merchant';
 import { useT } from '../../../i18n';
-import { confirmAction, notify } from '../../../lib/confirm';
+import { confirmAction, notify, toast } from '../../../lib/confirm';
 import { fontSize, makeStyles, radius, spacing } from '../../../theme';
 
 /** Modifier un produit (ou compléter un brouillon vocal) : nom, prix, photos, stock, publication, suppression. */
@@ -40,20 +40,28 @@ function EditProductForm({ product }: { product: Product }) {
     price: product.price ? String(product.price.amount) : '',
     priceMax: product.price?.amount_max ? String(product.price.amount_max) : '',
     negotiable: product.price === null && product.status !== 'draft',
-    in_stock: product.in_stock,
+    in_stock: product.in_stock || product.sold_out,
     is_today: product.is_today,
+    trackStock: product.stock_quantity !== null,
+    stock: product.stock_quantity !== null ? String(product.stock_quantity) : '',
   });
   const [newPhotos, setNewPhotos] = useState<LocalFile[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [viewer, setViewer] = useState<number | null>(null);
   const draft = product.status === 'draft';
 
+  const paused = product.status === 'paused';
   const save = (publish: boolean) => {
+    if (form.trackStock && !form.stock.replace(/\D/g, '')) {
+      setErrors({ stock_quantity: t('merchant.stockRequired') });
+      return;
+    }
     const patch: ProductPatch = {
       name: form.name.trim(),
       price: form.negotiable || !form.price ? null : Number(form.price.replace(/\D/g, '')),
       price_max: form.negotiable || !form.priceMax ? null : Number(form.priceMax.replace(/\D/g, '')),
       in_stock: form.in_stock,
+      stock_quantity: form.trackStock ? Number(form.stock.replace(/\D/g, '')) : null,
       is_today: form.is_today,
       ...(publish ? { status: 'active' as const } : {}),
     };
@@ -61,12 +69,13 @@ function EditProductForm({ product }: { product: Product }) {
       { id: product.id, patch },
       {
         onSuccess: async () => {
-          if (newPhotos.length) await mutations.addPhotos.mutateAsync({ id: product.id, photos: newPhotos }).catch((e) => notify(t('merchant.photos'), errorMessage(e)));
+          if (newPhotos.length) await mutations.addPhotos.mutateAsync({ id: product.id, photos: newPhotos }).catch((e) => notify(t('merchant.photos'), errorMessage(e), 'error'));
+          toast(publish ? t('merchant.productPublished') : t('merchant.productSaved'));
           router.back();
         },
         onError: (e) => {
           setErrors(e instanceof ApiError ? e.fields : {});
-          notify(t('merchant.editProduct'), errorMessage(e));
+          notify(t('merchant.editProduct'), errorMessage(e), 'error');
         },
       },
     );
@@ -78,13 +87,16 @@ function EditProductForm({ product }: { product: Product }) {
       <Screen
         footer={
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            {paused ? <Button label={t('merchant.resume')} onPress={() => save(true)} loading={mutations.update.isPending} style={{ flex: 1 }} /> : null}
             {draft ? <Button label={t('merchant.publishDraft')} onPress={() => save(true)} loading={mutations.update.isPending} style={{ flex: 1 }} /> : null}
-            <Button label={t('common.save')} variant={draft ? 'ghost' : 'primary'} onPress={() => save(false)} loading={mutations.update.isPending} style={{ flex: 1 }} />
+            <Button label={t('common.save')} variant={draft || paused ? 'ghost' : 'primary'} onPress={() => save(false)} loading={mutations.update.isPending} style={{ flex: 1 }} />
           </View>
         }
       >
         <View style={{ gap: spacing.lg, width: '100%', maxWidth: 640, alignSelf: 'center' }}>
           {draft ? <Card tone="brandSoft"><Text style={styles.brand}>{t('merchant.voiceDraft')}</Text></Card> : null}
+          {paused ? <Card tone="brandSoft"><Text style={styles.brand}>{t('merchant.pausedText')}</Text></Card> : null}
+          {product.sold_out ? <Card tone="brandSoft"><Text style={styles.brand}>{t('merchant.soldOutText')}</Text></Card> : null}
           {product.voice_note_url ? (
             <Card style={{ gap: spacing.sm }}>
               <Text style={styles.label}>{t('merchant.voiceNote')}</Text>
@@ -125,6 +137,10 @@ function EditProductForm({ product }: { product: Product }) {
             </View>
           ) : null}
           <SwitchRow label={t('merchant.inStock')} value={form.in_stock} onChange={(v) => setForm((f) => ({ ...f, in_stock: v }))} />
+          <SwitchRow label={t('merchant.trackStock')} hint={t('merchant.trackStockHint')} value={form.trackStock} onChange={(v) => setForm((f) => ({ ...f, trackStock: v }))} />
+          {form.trackStock ? (
+            <Field label={t('merchant.stockQuantity')} value={form.stock} onChangeText={(v) => setForm((f) => ({ ...f, stock: v }))} keyboardType="number-pad" error={errors.stock_quantity} hint={product.sold_out ? t('merchant.restockHint') : undefined} />
+          ) : null}
           <SwitchRow label={t('merchant.todayToggle')} value={form.is_today} onChange={(v) => setForm((f) => ({ ...f, is_today: v }))} />
           <Button
             label={t('common.delete')}

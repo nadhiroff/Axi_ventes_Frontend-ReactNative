@@ -1,6 +1,14 @@
 import { apiGet, apiSend, apiUpload, type LocalFile } from './client';
 import type {
   AislePayload,
+  ApplicationInput,
+  AvatarVisibility,
+  Badges,
+  ConversationPayload,
+  ConversationSummary,
+  ChatMessage,
+  MerchantApplication,
+  SubscriptionPeriod,
   AppNotification,
   BroadcastResult,
   ClientInput,
@@ -61,7 +69,28 @@ export const api = {
   logout: () => apiSend<{ logged_out: true }>('POST', '/v1/auth/logout'),
   logoutAll: () => apiSend<{ logged_out: true }>('POST', '/v1/auth/logout-all'),
   me: () => apiGet<User>('/v1/me'),
-  updateMe: (patch: Partial<Pick<User, 'first_name' | 'last_name' | 'lang'>> & { phone?: string | null }) => apiSend<User>('PATCH', '/v1/me', patch),
+  updateMe: (patch: Partial<Pick<User, 'first_name' | 'last_name' | 'lang'>> & { phone?: string | null; avatar_visibility?: AvatarVisibility }) => apiSend<User>('PATCH', '/v1/me', patch),
+  uploadAvatar: (photo: LocalFile) => apiUpload<User>('/v1/me/avatar', {}, { photo }),
+  deleteAvatar: () => apiSend<User>('DELETE', '/v1/me/avatar'),
+  badges: () => apiGet<Badges>('/v1/me/badges'),
+
+  // Devenir commerçant : demande vérifiée par un agent Axi
+  merchantApplication: () => apiGet<{ application: MerchantApplication | null }>('/v1/me/merchant-application'),
+  applyMerchant: (fields: ApplicationInput, files: { id_front: LocalFile; id_back: LocalFile | null; selfie: LocalFile; stall_photo: LocalFile }) =>
+    apiUpload<{ application: MerchantApplication; user: User; message: string }>(
+      '/v1/me/merchant-application',
+      Object.fromEntries(Object.entries(fields).filter(([, v]) => v !== '')),
+      Object.fromEntries(Object.entries(files).filter(([, v]) => v !== null)) as Record<string, LocalFile>,
+    ),
+  merchantWelcomeSeen: () => apiSend<{ seen: true }>('POST', '/v1/me/merchant-welcome/seen'),
+
+  // Messagerie (effacée après 24 h sauf si le client suit l'étal)
+  conversations: () => apiGet<{ conversations: ConversationSummary[]; ttl_hours: number }>('/v1/conversations'),
+  openStallConversation: (stallId: string) => apiSend<{ conversation: ConversationSummary }>('POST', `/v1/stalls/${id(stallId)}/conversation`),
+  openClientConversation: (clientId: string) => apiSend<{ conversation: ConversationSummary }>('POST', `/v1/merchant/clients/${id(clientId)}/conversation`),
+  messages: (conversationId: string) => apiGet<ConversationPayload>(`/v1/conversations/${id(conversationId)}/messages`),
+  sendText: (conversationId: string, body: string) => apiSend<ChatMessage>('POST', `/v1/conversations/${id(conversationId)}/messages`, { body }),
+  sendMedia: (conversationId: string, file: { photo: LocalFile } | { audio: LocalFile }) => apiUpload<ChatMessage>(`/v1/conversations/${id(conversationId)}/messages`, {}, file),
   settings: () => apiGet<UserSettings>('/v1/me/settings'),
   updateSettings: (patch: Partial<Omit<UserSettings, 'data' | 'lang' | 'notifications' | 'axi_points'>> & { data_cap_mb?: number; notifications?: Partial<UserSettings['notifications']> }) =>
     apiSend<UserSettings>('PATCH', '/v1/me/settings', patch),
@@ -102,12 +131,11 @@ export const api = {
 
   // Commerçant
   stallOptions: () => apiGet<StallOptions>('/v1/merchant/stall-options'),
-  createStall: (input: StallInput) => apiSend<MerchantStall>('POST', '/v1/merchant/stall', input),
   merchantStall: () => apiGet<MerchantStall>('/v1/merchant/stall'),
   updateStall: (input: StallInput) => apiSend<MerchantStall>('PATCH', '/v1/merchant/stall', input),
   stallPhoto: (photo: LocalFile) => apiUpload<MerchantStall>('/v1/merchant/stall/photo', {}, { photo }),
   requestVerification: () => apiSend<{ message: string }>('POST', '/v1/merchant/verification-request'),
-  createProduct: (fields: { name: string; price: string; price_max: string; is_today: string }, photos: LocalFile[]) =>
+  createProduct: (fields: { name: string; price: string; price_max: string; is_today: string; stock_quantity: string }, photos: LocalFile[]) =>
     apiUpload<Product>('/v1/merchant/products', fields, photos.length ? { photos } : {}),
   createVoiceProduct: (audio: LocalFile, photos: LocalFile[]) => apiUpload<Product>('/v1/merchant/products/voice', {}, photos.length ? { audio, photos } : { audio }),
   updateProduct: (productId: string, patch: ProductPatch) => apiSend<Product>('PATCH', `/v1/merchant/products/${id(productId)}`, patch),
@@ -128,7 +156,7 @@ export const api = {
   followUpClient: (clientId: string) => apiSend<BroadcastResult>('POST', `/v1/merchant/clients/${id(clientId)}/follow-up`),
   broadcastToSegment: (segment: ClientSegment, text?: string) => apiSend<BroadcastResult>('POST', '/v1/merchant/broadcasts', text ? { segment, text } : { segment }),
   merchantMoney: () => apiGet<MerchantMoney>('/v1/merchant/money'),
-  paySubscription: () => apiSend<SubscriptionPayment>('POST', '/v1/merchant/subscription/pay'),
+  paySubscription: (period: SubscriptionPeriod) => apiSend<SubscriptionPayment>('POST', '/v1/merchant/subscription/pay', { period }),
   verifySubscription: (reference: string, transactionId?: string) =>
     apiSend<SubscriptionPayment>('POST', '/v1/merchant/subscription/verify', transactionId ? { reference, transaction_id: transactionId } : { reference }),
   requestCredit: (amount?: number) => apiSend<{ message: string }>('POST', '/v1/merchant/credit-requests', amount ? { amount } : {}),

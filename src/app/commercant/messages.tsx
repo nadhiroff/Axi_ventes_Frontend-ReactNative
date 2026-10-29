@@ -1,4 +1,4 @@
-import { Linking, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { AudioPlayerButton } from '../../components/ui/AudioPlayerButton';
 import { Button } from '../../components/ui/Button';
@@ -10,8 +10,9 @@ import { Tag } from '../../components/ui/Tag';
 import { useSettings } from '../../hooks/api/account';
 import { useMerchantActions, useVoiceMessages } from '../../hooks/api/merchant';
 import { useT } from '../../i18n';
-import { formatShortDate, whatsappUrl } from '../../lib/format';
+import { formatShortDate } from '../../lib/format';
 import { fontSize, spacing, useTheme } from '../../theme';
+import { callPhone, openWhatsapp } from '../../lib/contact';
 
 /** Messages vocaux laissés par les clients sur la page de l'étal */
 export default function VoiceMessagesScreen() {
@@ -38,8 +39,8 @@ export default function VoiceMessagesScreen() {
               <Text style={{ color: colors.textMuted, fontSize: fontSize.small }}>{formatShortDate(m.created_at, dateFormat, true)}</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
                 <AudioPlayerButton url={m.audio_url} onPlayed={() => !m.listened && actions.listened.mutate(m.id)} />
-                {m.client_phone ? <Button label={t('common.whatsapp')} icon="message-circle" size="sm" variant="ghost" onPress={() => Linking.openURL(whatsappUrl(m.client_phone!))} /> : null}
-                {m.client_phone ? <Button label={t('common.call')} icon="phone" size="sm" variant="ghost" onPress={() => Linking.openURL(`tel:${m.client_phone}`)} /> : null}
+                {m.client_phone ? <Button label={t('common.whatsapp')} icon="message-circle" size="sm" variant="ghost" onPress={() => openWhatsapp(m.client_phone!)} /> : null}
+                {m.client_phone ? <Button label={t('common.call')} icon="phone" size="sm" variant="ghost" onPress={() => callPhone(m.client_phone)} /> : null}
               </View>
             </Card>
           ))}

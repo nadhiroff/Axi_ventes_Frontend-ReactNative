@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Linking, Modal, Text, TextInput, View } from 'react-native';
+import { Modal, Text, TextInput, View } from 'react-native';
 
 import { errorMessage } from '../../api/client';
 import type { Order } from '../../api/types';
@@ -15,9 +15,10 @@ import { useOrder, useOrderAction } from '../../hooks/api/client';
 import { useSettings } from '../../hooks/api/account';
 import { useT } from '../../i18n';
 import { confirmAction, notify } from '../../lib/confirm';
-import { formatFcfa, formatShortDate, whatsappUrl } from '../../lib/format';
+import { formatFcfa, formatShortDate } from '../../lib/format';
 import { useCartStore } from '../../store/cartStore';
 import { fontSize, makeStyles, radius, spacing, useTheme } from '../../theme';
+import { callPhone, openWhatsapp } from '../../lib/contact';
 
 /** Suivi d'une commande : paiement, préparation par étal, réception, litige. */
 export default function OrderScreen() {
@@ -42,7 +43,7 @@ export default function OrderScreen() {
   if (!o) return <ErrorView error={order.error} onRetry={() => order.refetch()} />;
 
   const run = (mutation: { mutate: (v?: never, opts?: { onError: (e: unknown) => void; onSuccess?: () => void }) => void }, success?: string) =>
-    mutation.mutate(undefined, { onError: (e) => notify(t('orders.title'), errorMessage(e)), onSuccess: success ? () => notify(success) : undefined });
+    mutation.mutate(undefined, { onError: (e) => notify(t('orders.title'), errorMessage(e), 'error'), onSuccess: success ? () => notify(success) : undefined });
 
   const tone = o.status === 'delivered' ? 'trust' : o.status === 'disputed' || o.status === 'cancelled' ? 'danger' : o.status === 'refunded' ? 'outline' : 'brand';
 
@@ -65,7 +66,7 @@ export default function OrderScreen() {
                   onPress={() => router.push({ pathname: '/paiement', params: { orderId: o.id, url: o.payment!.payment_url!, returnPrefix: o.payment!.return_url_prefix } })}
                 />
               ) : null}
-              <Button label={o.payment?.payment_url ? t('orders.checkPayment') : t('orders.retryPayment')} variant="ghost" loading={actions.verify.isPending} onPress={() => actions.verify.mutate(undefined, { onError: (e) => notify(t('orders.title'), errorMessage(e)) })} />
+              <Button label={o.payment?.payment_url ? t('orders.checkPayment') : t('orders.retryPayment')} variant="ghost" loading={actions.verify.isPending} onPress={() => actions.verify.mutate(undefined, { onError: (e) => notify(t('orders.title'), errorMessage(e), 'error') })} />
               {o.can_cancel ? (
                 <Button label={t('orders.cancel')} variant="danger" onPress={() => confirmAction(t('orders.cancelConfirm'), t('orders.cancelText'), () => run(actions.cancel), { destructive: true })} />
               ) : null}
@@ -93,7 +94,9 @@ export default function OrderScreen() {
           <Line label={t('cart.items')} value={formatFcfa(o.items_total)} />
           {o.grouping_fee > 0 ? <Line label={t('cart.grouping', { n: o.stalls.length })} value={formatFcfa(o.grouping_fee)} /> : null}
           <Line label={`${o.reception.label} · ${o.reception.detail}`} value={formatFcfa(o.reception_fee)} />
-          <Line label={t('orders.total')} value={formatFcfa(o.total)} strong />
+          {o.service_fee > 0 ? <Line label={t('cart.serviceFee')} value={formatFcfa(o.service_fee)} /> : null}
+          <Line label={o.payment_mode === 'on_site' ? t('cart.paidOnline') : t('orders.total')} value={formatFcfa(o.total)} strong />
+          {o.payment_mode === 'on_site' ? <Line label={t('cart.payCash')} value={formatFcfa(o.cash_total)} /> : null}
           {o.payment ? <Text style={styles.ref}>{`${o.payment.provider.toUpperCase()} · ${o.payment.reference}${o.payment.provider_ref ? ` · ${o.payment.provider_ref}` : ''}`}</Text> : null}
         </Card>
       </Screen>
@@ -113,7 +116,7 @@ export default function OrderScreen() {
                 confirmAction(t('orders.disputeConfirm'), t('orders.disputeConfirmText'), () =>
                   actions.dispute.mutate(
                     { reason: reason.trim() },
-                    { onSuccess: () => setDisputeOpen(false), onError: (e) => notify(t('orders.disputeTitle'), errorMessage(e)) },
+                    { onSuccess: () => setDisputeOpen(false), onError: (e) => notify(t('orders.disputeTitle'), errorMessage(e), 'error') },
                   ),
                 )
               }
@@ -136,8 +139,8 @@ function StallBlock({ stall }: { stall: Order['stalls'][number] }) {
           <Text style={styles.stallName}>{stall.name}</Text>
           <Text style={styles.muted}>{stall.status_label}</Text>
         </View>
-        {stall.whatsapp ? <IconButton icon="message-circle" label={t('common.whatsapp')} onPress={() => Linking.openURL(whatsappUrl(stall.whatsapp!))} /> : null}
-        {stall.phone ? <IconButton icon="phone" label={t('common.call')} onPress={() => Linking.openURL(`tel:${stall.phone}`)} /> : null}
+        {stall.whatsapp ? <IconButton icon="message-circle" label={t('common.whatsapp')} onPress={() => openWhatsapp(stall.whatsapp!)} /> : null}
+        {stall.phone ? <IconButton icon="phone" label={t('common.call')} onPress={() => callPhone(stall.phone)} /> : null}
       </View>
       {stall.items.map((i, k) => (
         <Line key={k} label={`${i.quantity} × ${i.name}`} value={formatFcfa(i.line_total)} />

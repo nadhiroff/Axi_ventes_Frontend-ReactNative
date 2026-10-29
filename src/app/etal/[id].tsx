@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Linking, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { errorMessage } from '../../api/client';
@@ -19,10 +19,12 @@ import { VoiceRecordModal } from '../../components/ui/VoiceRecordModal';
 import { useFollow, useStall } from '../../hooks/api/client';
 import { useRequireAuth } from '../../hooks/useRequireAuth';
 import { useT } from '../../i18n';
-import { confirmAction, notify } from '../../lib/confirm';
-import { formatFcfa, whatsappUrl } from '../../lib/format';
+import { confirmAction, notify, toast } from '../../lib/confirm';
+import { useAuthStore } from '../../store/authStore';
+import { formatFcfa } from '../../lib/format';
 import { cartCount, useCartStore } from '../../store/cartStore';
 import { fontSize, makeStyles, radius, spacing, useLayout } from '../../theme';
+import { callPhone, openWhatsapp, openLink } from '../../lib/contact';
 
 /** Page d'un étal. Aucune publicité n'y est affichée (règle du cahier des charges). */
 export default function StallScreen() {
@@ -37,6 +39,8 @@ export default function StallScreen() {
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [opening, setOpening] = useState(false);
+  const ownStallId = useAuthStore((st) => st.user?.merchant?.stall_id ?? null);
   const cart = useCartStore((s) => s.items);
   const s = stall.data?.stall;
   const addToCart = useAddToCart(s ?? { id, name: '', verified: false, location: { site: '', site_id: '', row: null, stand: null, label: '', map_url: null, moved_at: null } });
@@ -51,9 +55,23 @@ export default function StallScreen() {
 
   const toggleFollow = () =>
     requireAuth(() => {
-      if (s.is_followed) confirmAction(t('stall.unfollowConfirm'), t('stall.unfollowText'), () => follow.mutate(false));
-      else follow.mutate(true);
+      if (s.is_followed) confirmAction(t('stall.unfollowConfirm'), t('stall.unfollowText'), () => follow.mutate(false, { onSuccess: () => toast(t('stall.unfollowed'), 'info'), onError: (e) => notify(t('stall.follow'), errorMessage(e), 'error') }));
+      else follow.mutate(true, { onSuccess: () => toast(t('stall.followed')), onError: (e) => notify(t('stall.follow'), errorMessage(e), 'error') });
     }, t('auth.reasonFollow'));
+
+  // Écrire au commerçant dans l'application (conversation retrouvée si elle existe déjà)
+  const writeToStall = () =>
+    requireAuth(async () => {
+      setOpening(true);
+      try {
+        const { conversation } = await api.openStallConversation(s.id);
+        router.push(`/messages/${conversation.id}`);
+      } catch (e) {
+        notify(t('chat.title'), errorMessage(e), 'error');
+      } finally {
+        setOpening(false);
+      }
+    }, t('auth.reasonChat'));
 
   return (
     <View style={{ flex: 1 }}>
@@ -82,10 +100,11 @@ export default function StallScreen() {
       <Screen refreshing={stall.isRefetching} onRefresh={() => stall.refetch()}>
         <View style={styles.actions}>
           <Button label={s.is_followed ? t('stall.following') : t('stall.follow')} icon={s.is_followed ? 'check' : 'plus'} variant={s.is_followed ? 'ghost' : 'primary'} onPress={toggleFollow} loading={follow.isPending} style={{ flexGrow: 1 }} />
-          {s.contacts.whatsapp ? <Button label={t('common.whatsapp')} icon="message-circle" variant="ghost" onPress={() => Linking.openURL(whatsappUrl(s.contacts.whatsapp!))} style={{ flexGrow: 1 }} /> : null}
-          {s.contacts.phone ? <Button label={t('common.call')} icon="phone" variant="ghost" onPress={() => Linking.openURL(`tel:${s.contacts.phone}`)} style={{ flexGrow: 1 }} /> : null}
+          {ownStallId !== s.id ? <Button label={t('chat.write')} icon="message-square" variant="ghost" onPress={writeToStall} loading={opening} style={{ flexGrow: 1 }} /> : null}
+          {s.contacts.whatsapp ? <Button label={t('common.whatsapp')} icon="message-circle" variant="ghost" onPress={() => openWhatsapp(s.contacts.whatsapp!)} style={{ flexGrow: 1 }} /> : null}
+          {s.contacts.phone ? <Button label={t('common.call')} icon="phone" variant="ghost" onPress={() => callPhone(s.contacts.phone)} style={{ flexGrow: 1 }} /> : null}
           {s.contacts.accepts_voice_messages ? <Button label={t('stall.voice')} icon="mic" variant="ghost" onPress={() => requireAuth(() => setVoiceOpen(true), t('auth.reasonVoice'))} style={{ flexGrow: 1 }} /> : null}
-          {s.location.map_url ? <Button label={t('stall.map')} icon="map" variant="ghost" onPress={() => Linking.openURL(s.location.map_url!)} style={{ flexGrow: 1 }} /> : null}
+          {s.location.map_url ? <Button label={t('stall.map')} icon="map" variant="ghost" onPress={() => openLink(s.location.map_url!)} style={{ flexGrow: 1 }} /> : null}
         </View>
 
         {products.length === 0 ? <Text style={styles.muted}>{t('stall.noProducts')}</Text> : null}
@@ -122,9 +141,9 @@ export default function StallScreen() {
           try {
             const result = await api.sendVoiceMessage(s.id, audio);
             setVoiceOpen(false);
-            notify(t('stall.voiceSent'), result.message);
+            notify(t('stall.voiceSent'), result.message, 'success');
           } catch (e) {
-            notify(t('stall.voiceTitle'), errorMessage(e));
+            notify(t('stall.voiceTitle'), errorMessage(e), 'error');
           } finally {
             setSending(false);
           }

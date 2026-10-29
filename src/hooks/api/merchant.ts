@@ -28,7 +28,6 @@ export function useStallMutations() {
     qc.invalidateQueries({ queryKey: queryKeys.me });
   };
   return {
-    create: useMutation({ mutationFn: (input: StallInput) => api.createStall(input), onSuccess }),
     update: useMutation({ mutationFn: (input: StallInput) => api.updateStall(input), onSuccess }),
     photo: useMutation({ mutationFn: (photo: LocalFile) => api.stallPhoto(photo), onSuccess }),
     requestVerification: useMutation({ mutationFn: api.requestVerification, onSuccess }),
@@ -39,7 +38,7 @@ export function useProductMutations() {
   const onSuccess = useRefreshMerchant();
   return {
     create: useMutation({
-      mutationFn: (v: { fields: { name: string; price: string; price_max: string; is_today: string }; photos: LocalFile[] }) => api.createProduct(v.fields, v.photos),
+      mutationFn: (v: { fields: { name: string; price: string; price_max: string; is_today: string; stock_quantity: string }; photos: LocalFile[] }) => api.createProduct(v.fields, v.photos),
       onSuccess,
     }),
     createVoice: useMutation({ mutationFn: (v: { audio: LocalFile; photos: LocalFile[] }) => api.createVoiceProduct(v.audio, v.photos), onSuccess }),

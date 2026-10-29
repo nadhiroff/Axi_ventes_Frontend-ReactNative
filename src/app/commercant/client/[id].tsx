@@ -1,8 +1,9 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Linking, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { errorMessage } from '../../../api/client';
+import { api } from '../../../api/endpoints';
 import { showBroadcastResult } from '../../../components/merchant/broadcast';
 import { Avatar } from '../../../components/ui/Avatar';
 import { Button } from '../../../components/ui/Button';
@@ -15,8 +16,9 @@ import { useSettings } from '../../../hooks/api/account';
 import { useMerchantActions, useMerchantClient } from '../../../hooks/api/merchant';
 import { useT } from '../../../i18n';
 import { confirmAction, notify } from '../../../lib/confirm';
-import { formatFcfa, formatShortDate, whatsappUrl } from '../../../lib/format';
+import { formatFcfa, formatShortDate } from '../../../lib/format';
 import { fontSize, makeStyles, spacing } from '../../../theme';
+import { callPhone, openWhatsapp } from '../../../lib/contact';
 
 /** Fiche client : contacts, note, historique des commandes, relance, suppression du fichier */
 export default function ClientScreen() {
@@ -46,15 +48,29 @@ export default function ClientScreen() {
             </View>
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
-            {c.phone ? <Button label={t('common.call')} icon="phone" variant="ghost" size="sm" onPress={() => Linking.openURL(`tel:${c.phone}`)} /> : null}
-            {c.phone ? <Button label={t('common.whatsapp')} icon="message-circle" variant="ghost" size="sm" onPress={() => Linking.openURL(whatsappUrl(c.phone!))} /> : null}
+            {c.has_axi_account ? (
+              <Button
+                label={t('chat.write')}
+                icon="message-square"
+                size="sm"
+                variant="ghost"
+                onPress={() =>
+                  api
+                    .openClientConversation(c.id)
+                    .then(({ conversation }) => router.push(`/messages/${conversation.id}`))
+                    .catch((e) => notify(t('chat.title'), errorMessage(e), 'error'))
+                }
+              />
+            ) : null}
+            {c.phone ? <Button label={t('common.call')} icon="phone" variant="ghost" size="sm" onPress={() => callPhone(c.phone)} /> : null}
+            {c.phone ? <Button label={t('common.whatsapp')} icon="message-circle" variant="ghost" size="sm" onPress={() => openWhatsapp(c.phone!)} /> : null}
             <Button
               label={t('merchant.followUp')}
               icon="send"
               size="sm"
               onPress={() =>
                 confirmAction(t('merchant.followUpConfirm', { name: c.display_name }), '', () =>
-                  actions.followUp.mutate(c.id, { onSuccess: (r) => showBroadcastResult(t('merchant.followUp'), r), onError: (e) => notify(t('merchant.followUp'), errorMessage(e)) }),
+                  actions.followUp.mutate(c.id, { onSuccess: (r) => showBroadcastResult(t('merchant.followUp'), r), onError: (e) => notify(t('merchant.followUp'), errorMessage(e), 'error') }),
                 )
               }
             />

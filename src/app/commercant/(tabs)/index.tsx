@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Linking, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { errorMessage } from '../../../api/client';
 import { showBroadcastResult } from '../../../components/merchant/broadcast';
@@ -12,11 +12,14 @@ import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { ErrorView, LoadingView } from '../../../components/ui/StateViews';
 import { Tag } from '../../../components/ui/Tag';
 import { VoiceRecordModal } from '../../../components/ui/VoiceRecordModal';
+import { useBadges } from '../../../hooks/api/chat';
 import { useMerchantActions, useMerchantToday } from '../../../hooks/api/merchant';
+import { SubscriptionBanner } from '../../../components/merchant/SubscriptionBanner';
 import { confirmAction, notify } from '../../../lib/confirm';
 import { formatDate, formatFcfa } from '../../../lib/format';
 import { useLangStore, useT } from '../../../i18n';
 import { fontSize, makeStyles, spacing, useLayout, useTheme } from '../../../theme';
+import { callPhone } from '../../../lib/contact';
 
 /** « Ma journée » : ventes, commandes à préparer, connexion, nouvelle adresse, ajouts rapides. */
 export default function TodayScreen() {
@@ -35,8 +38,10 @@ export default function TodayScreen() {
 
   return (
     <>
-      <ScreenHeader title={t('merchant.hello', { name: d.greeting_name })} showBack={false} right={<Tag label={d.stall_open ? t('stall.open') : t('stall.closed')} tone={d.stall_open ? 'trust' : 'outline'} size="md" />} />
+      <ScreenHeader title={t('merchant.hello', { name: d.greeting_name })} showBack={false} right={<MessagesButton />} />
       <Screen refreshing={today.isRefetching} onRefresh={() => today.refetch()}>
+        <Tag label={d.stall_open ? t('stall.open') : t('stall.closed')} tone={d.stall_open ? 'trust' : 'outline'} size="md" />
+        <SubscriptionBanner />
         <View style={{ flexDirection: 'row', gap: spacing.md }}>
           <Card tone="trustSoft" style={{ flex: 1 }}>
             <Text style={[styles.kpiLabel, { color: colors.trustText }]}>{t('merchant.salesToday')}</Text>
@@ -71,7 +76,7 @@ export default function TodayScreen() {
                 loading={actions.relocation.isPending}
                 onPress={() =>
                   confirmAction(t('merchant.relocationSend'), t('merchant.relocationConfirm', { n: d.relocation!.client_count }), () =>
-                    actions.relocation.mutate(undefined, { onSuccess: (r) => showBroadcastResult(t('merchant.relocationSend'), r), onError: (e) => notify(t('merchant.relocationSend'), errorMessage(e)) }),
+                    actions.relocation.mutate(undefined, { onSuccess: (r) => showBroadcastResult(t('merchant.relocationSend'), r), onError: (e) => notify(t('merchant.relocationSend'), errorMessage(e), 'error') }),
                   )
                 }
               />
@@ -104,10 +109,10 @@ export default function TodayScreen() {
                     variant="dark"
                     style={{ flex: 1 }}
                     loading={actions.ready.isPending && actions.ready.variables === o.id}
-                    onPress={() => confirmAction(t('merchant.readyConfirm'), o.summary, () => actions.ready.mutate(o.id, { onError: (e) => notify(t('merchant.ready'), errorMessage(e)) }))}
+                    onPress={() => confirmAction(t('merchant.readyConfirm'), o.summary, () => actions.ready.mutate(o.id, { onError: (e) => notify(t('merchant.ready'), errorMessage(e), 'error') }))}
                   />
                 ) : null}
-                {o.customer_phone ? <IconButton icon="phone" label={t('common.call')} onPress={() => Linking.openURL(`tel:${o.customer_phone}`)} /> : null}
+                {o.customer_phone ? <IconButton icon="phone" label={t('common.call')} onPress={() => callPhone(o.customer_phone)} /> : null}
               </View>
             </Card>
           ))}
@@ -125,7 +130,7 @@ export default function TodayScreen() {
               setArrivalOpen(false);
               showBroadcastResult(t('merchant.arrivalTitle'), r);
             },
-            onError: (e) => notify(t('merchant.arrivalTitle'), errorMessage(e)),
+            onError: (e) => notify(t('merchant.arrivalTitle'), errorMessage(e), 'error'),
           })
         }
       />
@@ -144,3 +149,20 @@ const useStyles = makeStyles((c) => ({
   quick: { gap: spacing.sm },
   section: { fontSize: fontSize.heading - 2, fontWeight: '700', color: c.text, marginTop: spacing.md },
 }));
+
+/** Bouton « Messages » avec le nombre de messages non lus */
+function MessagesButton() {
+  const t = useT();
+  const { colors } = useTheme();
+  const unread = useBadges().data?.unread_messages ?? 0;
+  return (
+    <Pressable onPress={() => router.push('/messages')} accessibilityRole="button" accessibilityLabel={t('chat.title')} hitSlop={8} style={{ padding: 6 }}>
+      <Icon name="message-circle" size={24} color={colors.text} />
+      {unread > 0 ? (
+        <View style={{ position: 'absolute', top: 0, right: 0, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: colors.brand, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 }}>
+          <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '700' }}>{unread}</Text>
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
