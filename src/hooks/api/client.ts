@@ -42,7 +42,9 @@ export function useFollow(stallId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (follow: boolean) => api.setFollow(stallId, follow),
-    onSuccess: () => {
+    onSuccess: ({ is_followed }) => {
+      // L'écran change tout de suite, sans attendre le rechargement de la page de l'étal
+      qc.setQueryData<Awaited<ReturnType<typeof api.stall>>>(queryKeys.stall(stallId), (old) => (old ? { ...old, stall: { ...old.stall, is_followed } } : old));
       qc.invalidateQueries({ queryKey: queryKeys.stall(stallId) });
       qc.invalidateQueries({ queryKey: queryKeys.home });
     },
