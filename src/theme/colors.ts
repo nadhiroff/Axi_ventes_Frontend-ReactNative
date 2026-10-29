@@ -83,7 +83,8 @@ export const softPalette = [
 // Tuiles produit sans photo : aplats vifs, comme sur la maquette de l'étal.
 export const productTilePalette = ['#F59E0B', '#1D4ED8', '#166534', '#BE185D', '#C2410C', '#0F766E'] as const;
 
-export function pickColor<T>(palette: readonly T[], key: string): T {
+export function pickColor<T>(palette: readonly T[], key: string | null | undefined): T {
+  key = key ?? '';
   let hash = 0;
   for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) | 0;
   return palette[Math.abs(hash) % palette.length];

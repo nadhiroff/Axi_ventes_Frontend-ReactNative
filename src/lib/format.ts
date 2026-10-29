@@ -22,14 +22,14 @@ export function formatPrice(price: Price | null, negotiable = 'Prix à débattre
 const STOP_WORDS = new Set(['chez', 'ets', 'et', 'le', 'la', 'les', 'de', 'du', 'des']);
 
 /** "Chez Maman Afi" -> "MA", "Boutique Sena, Lomé" -> "BS" */
-export function initials(name: string): string {
-  const words = name
+export function initials(name: string | null | undefined): string {
+  const words = (name ?? '')
     .split(/[\s,]+/)
     .filter((w) => w && !STOP_WORDS.has(w.toLowerCase()));
   return words
     .slice(0, 2)
     .map((w) => w[0]!.toUpperCase())
-    .join('');
+    .join('') || '?';
 }
 
 const MONTHS = {

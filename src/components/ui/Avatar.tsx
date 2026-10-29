@@ -14,7 +14,8 @@ type Props = {
 };
 
 /** Photo de l'étal si elle existe, sinon initiales (rien à télécharger). */
-export function Avatar({ name, image, size = 56, variant = 'brand' }: Props) {
+export function Avatar({ name: rawName, image, size = 56, variant = 'brand' }: Props) {
+  const name = rawName ?? '';
   const { colors } = useTheme();
   if (image) {
     return <CachedImage image={image} style={{ width: size, height: size, borderRadius: variant === 'soft' ? size / 2 : size * 0.22 }} />;
