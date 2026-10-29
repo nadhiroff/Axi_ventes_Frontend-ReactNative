@@ -6,6 +6,7 @@ export const useFormStyles = makeStyles((c) => ({
   reason: { color: c.brandDark, fontSize: fontSize.body, fontWeight: '600' },
   error: { color: c.danger, fontSize: fontSize.body, fontWeight: '600' },
   text: { color: c.textMuted, fontSize: fontSize.body },
+  hint: { color: c.textMuted, fontSize: fontSize.small, textAlign: 'center' },
   label: { fontSize: fontSize.small, fontWeight: '600', color: c.text },
   row: { flexDirection: 'row', gap: spacing.md },
 }));

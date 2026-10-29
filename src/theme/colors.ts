@@ -21,6 +21,9 @@ export type Palette = {
   danger: string;
   dangerSoft: string;
   overlay: string;
+  /** Choix sélectionné (puces, cases) : gris foncé bien visible */
+  selected: string;
+  selectedText: string;
 };
 
 export const lightPalette: Palette = {
@@ -44,6 +47,8 @@ export const lightPalette: Palette = {
   danger: '#B91C1C',
   dangerSoft: '#FEE2E2',
   overlay: 'rgba(0,0,0,0.92)',
+  selected: '#44403C',
+  selectedText: '#FFFFFF',
 };
 
 // Contrastes vérifiés pour la lecture : texte clair sur fonds sombres chauds, orange éclairci
@@ -68,6 +73,8 @@ export const darkPalette: Palette = {
   danger: '#F87171',
   dangerSoft: '#3A1616',
   overlay: 'rgba(0,0,0,0.95)',
+  selected: '#D6D3D1',
+  selectedText: '#1C1917',
 };
 
 // Pastilles d'initiales et carrés d'allées : couleurs douces, texte foncé assorti.

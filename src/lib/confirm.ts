@@ -1,27 +1,35 @@
-import { Alert, Platform } from 'react-native';
-
+import { useDialogStore, type Tone } from '../components/ui/DialogHost';
 import { t } from '../i18n';
 
 /**
  * Confirmation obligatoire avant toute action sensible ou destructive (déconnexion, suppression,
- * annulation, réception, litige…) : « Êtes-vous sûr… ? » Annuler / Confirmer.
+ * annulation, réception, litige…) : « Êtes-vous sûr… ? » Annuler / Confirmer, dans une fenêtre aux couleurs d'Axi.
  */
 export function confirmAction(title: string, message: string, onConfirm: () => void, options: { destructive?: boolean; confirmLabel?: string } = {}) {
-  if (Platform.OS === 'web') {
-    if (window.confirm(`${title}\n\n${message}`)) onConfirm();
-    return;
-  }
-  Alert.alert(title, message, [
-    { text: t('common.cancel'), style: 'cancel' },
-    { text: options.confirmLabel ?? t('common.confirm'), style: options.destructive ? 'destructive' : 'default', onPress: onConfirm },
-  ]);
+  useDialogStore.getState().showDialog({
+    title,
+    message,
+    tone: options.destructive ? 'danger' : 'info',
+    buttons: [
+      { label: t('common.cancel'), variant: 'ghost' },
+      { label: options.confirmLabel ?? t('common.confirm'), variant: options.destructive ? 'destructive' : 'primary', onPress: onConfirm },
+    ],
+  });
 }
 
-/** Message d'information ou d'erreur */
-export function notify(title: string, message?: string) {
-  if (Platform.OS === 'web') {
-    window.alert(message ? `${title}\n\n${message}` : title);
+/**
+ * Message à l'utilisateur. Sans détail : notification courte de succès en haut de l'écran.
+ * Avec détail : fenêtre à fermer (« error » pour un échec, « success » pour une bonne nouvelle importante).
+ */
+export function notify(title: string, message?: string, tone: Tone = message === undefined ? 'success' : 'info') {
+  if (message === undefined) {
+    toast(title, tone);
     return;
   }
-  Alert.alert(title, message);
+  useDialogStore.getState().showDialog({ title, message, tone, buttons: [{ label: 'OK', variant: 'primary' }] });
+}
+
+/** Notification courte qui disparaît seule (« Enregistré », « Message envoyé »…) */
+export function toast(message: string, tone: Tone = 'success') {
+  useDialogStore.getState().showToast(message, tone);
 }

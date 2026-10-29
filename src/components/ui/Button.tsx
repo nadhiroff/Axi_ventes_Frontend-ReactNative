@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, Text, type StyleProp, type ViewStyle } fr
 import { fontSize, makeStyles, radius, spacing, useTheme, type Palette } from '../../theme';
 import { Icon, type IconName } from './Icon';
 
-type Variant = 'primary' | 'outline' | 'dark' | 'accent' | 'ghost' | 'danger' | 'trust';
+type Variant = 'primary' | 'outline' | 'dark' | 'accent' | 'ghost' | 'danger' | 'destructive' | 'trust';
 
 const variants = (c: Palette): Record<Variant, { bg: string; fg: string; border: string }> => ({
   primary: { bg: c.brand, fg: c.textOnDark, border: c.brand },
@@ -12,6 +12,7 @@ const variants = (c: Palette): Record<Variant, { bg: string; fg: string; border:
   accent: { bg: c.brandMuted, fg: '#1C1917', border: c.brandMuted },
   ghost: { bg: c.surface, fg: c.text, border: c.border },
   danger: { bg: c.surface, fg: c.danger, border: c.danger },
+  destructive: { bg: c.danger, fg: '#FFFFFF', border: c.danger },
   trust: { bg: c.trust, fg: '#FFFFFF', border: c.trust },
 });
 

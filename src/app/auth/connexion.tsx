@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { ApiError, errorMessage } from '../../api/client';
 import { api } from '../../api/endpoints';
@@ -48,7 +48,7 @@ export default function SignInScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <View style={{ flex: 1 }}>
       <ScreenHeader title={t('auth.title')} />
       <Screen>
         <View style={styles.form}>
@@ -61,6 +61,6 @@ export default function SignInScreen() {
           <Button label={t('auth.noAccount')} variant="outline" onPress={() => router.replace('/auth/inscription')} />
         </View>
       </Screen>
-    </KeyboardAvoidingView>
+    </View>
   );
 }

@@ -14,5 +14,15 @@ export async function finishAuth(session: Session) {
   else router.replace(session.user.role === 'merchant' ? '/commercant' : '/');
 }
 
+/**
+ * Déconnexion sans clignotement : on quitte d'abord l'écran en cours pour l'accueil, puis la session est fermée.
+ * (Fermer la session d'abord faisait rediriger chaque écran ouvert, puis de nouveau vers l'accueil.)
+ */
+export async function leaveSession(callServer = true) {
+  if (router.canDismiss()) router.dismissAll();
+  router.replace('/bienvenue');
+  await useAuthStore.getState().signOut(callServer);
+}
+
 /** Validation simple côté téléphone, avant l'envoi (le serveur revérifie tout) */
 export const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
