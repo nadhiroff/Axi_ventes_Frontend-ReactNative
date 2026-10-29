@@ -1,4 +1,4 @@
-import { API_URL } from '../config/env';
+import { API_CONFIGURED, API_URL } from '../config/env';
 import { useLangStore } from '../i18n';
 import { recordDataUsage } from '../lib/dataUsage';
 import { readEtagEntry, writeEtagEntry } from './etagCache';
@@ -98,5 +98,10 @@ function unwrap<T>(body: ApiResponse<T>, status: number): T {
 
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError) return error.message;
+  if (!API_CONFIGURED) {
+    return useLangStore.getState().lang === 'en'
+      ? 'Server address missing: set EXPO_PUBLIC_API_URL in .env.local, then restart with npx expo start --clear.'
+      : 'Adresse du serveur absente : renseignez EXPO_PUBLIC_API_URL dans .env.local, puis relancez avec npx expo start --clear.';
+  }
   return useLangStore.getState().lang === 'en' ? 'No connection. Try again in a moment.' : 'Pas de connexion. Réessayez dans un instant.';
 }

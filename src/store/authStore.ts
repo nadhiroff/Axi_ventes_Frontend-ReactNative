@@ -40,6 +40,22 @@ const VISITOR_KEY = 'axi-visitor';
 
 export const deviceName = () => `${Platform.OS} ${Platform.Version}`;
 
+/**
+ * Profil gardé sur le téléphone, vérifié avant usage : une ancienne version de l'application
+ * (connexion par SMS) l'enregistrait sous une autre forme ; dans ce cas il est ignoré.
+ */
+function parseProfile(raw: string | null): User | null {
+  if (!raw) return null;
+  try {
+    const value = JSON.parse(raw) as Partial<User>;
+    return typeof value?.id === 'string' && typeof value.name === 'string' && typeof value.email === 'string' && (value.role === 'client' || value.role === 'merchant')
+      ? (value as User)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 async function saveProfile(user: User | null) {
   try {
     if (user) await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(user));
@@ -79,8 +95,13 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       set({ status: visitor === '1' ? 'visitor' : 'welcome', user: null });
       return;
     }
+    const saved = parseProfile(profile);
+    // Jeton de l'ancienne connexion par SMS (format différent) : session abandonnée, retour à l'accueil
+    if (!/^[a-f0-9]{64}$/.test(token)) {
+      await get().signOut(false);
+      return;
+    }
     setAuthToken(token);
-    const saved = profile ? (JSON.parse(profile) as User) : null;
     set({ status: 'signedIn', user: saved, mode: saved?.role === 'merchant' ? 'merchant' : 'client' });
     try {
       get().setUser(await api.me());
