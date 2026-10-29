@@ -18,13 +18,18 @@ export function setAuthToken(token: string | null) {
   authToken = token;
 }
 
+function baseHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { Accept: 'application/json' };
+  if (authToken) headers.Authorization = `Bearer ${authToken}`;
+  return headers;
+}
+
 /** GET avec revalidation par ETag (réponse 304 = zéro octet de corps). */
 export async function apiGet<T>(path: string): Promise<T> {
   const url = API_URL + path;
   const cached = await readEtagEntry(url);
 
-  const headers: Record<string, string> = { Accept: 'application/json' };
-  if (authToken) headers.Authorization = `Bearer ${authToken}`;
+  const headers = baseHeaders();
   if (cached) headers['If-None-Match'] = cached.etag;
 
   const res = await fetch(url, { headers });
@@ -33,28 +38,48 @@ export async function apiGet<T>(path: string): Promise<T> {
     return unwrap<T>(cached.body as ApiResponse<T>, 200);
   }
 
-  const body = (await res.json()) as ApiResponse<T>;
+  const body = await parse<T>(res);
   const etag = res.headers.get('ETag');
   if (res.ok && etag) await writeEtagEntry(url, { etag, body });
   return unwrap<T>(body, res.status);
 }
 
-export async function apiPost<T>(path: string, payload: unknown): Promise<T> {
-  const headers: Record<string, string> = {
-    Accept: 'application/json',
-    'Content-Type': 'application/json',
-  };
-  if (authToken) headers.Authorization = `Bearer ${authToken}`;
-
+export async function apiSend<T>(method: 'POST' | 'PATCH' | 'PUT' | 'DELETE', path: string, payload?: unknown): Promise<T> {
   const res = await fetch(API_URL + path, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(payload),
+    method,
+    headers: { ...baseHeaders(), 'Content-Type': 'application/json' },
+    body: payload === undefined ? undefined : JSON.stringify(payload),
   });
-  return unwrap<T>((await res.json()) as ApiResponse<T>, res.status);
+  return unwrap<T>(await parse<T>(res), res.status);
+}
+
+/** Fichier local (photo, enregistrement vocal) à envoyer en multipart. */
+export type LocalFile = { uri: string; name: string; type: string };
+
+export async function apiUpload<T>(path: string, fields: Record<string, string>, files: Record<string, LocalFile>): Promise<T> {
+  const form = new FormData();
+  for (const [key, value] of Object.entries(fields)) form.append(key, value);
+  // React Native accepte un objet { uri, name, type } à la place d'un Blob.
+  for (const [key, file] of Object.entries(files)) form.append(key, file as unknown as Blob);
+
+  const res = await fetch(API_URL + path, { method: 'POST', headers: baseHeaders(), body: form });
+  return unwrap<T>(await parse<T>(res), res.status);
+}
+
+async function parse<T>(res: Response): Promise<ApiResponse<T>> {
+  try {
+    return (await res.json()) as ApiResponse<T>;
+  } catch {
+    return { ok: false, error: { code: 'BAD_RESPONSE', message: 'Le serveur a répondu de façon inattendue.' } };
+  }
 }
 
 function unwrap<T>(body: ApiResponse<T>, status: number): T {
   if (!body.ok) throw new ApiError(body.error.code, body.error.message, status);
   return body.data;
+}
+
+export function errorMessage(error: unknown): string {
+  if (error instanceof ApiError) return error.message;
+  return 'Pas de connexion. Réessayez dans un instant.';
 }

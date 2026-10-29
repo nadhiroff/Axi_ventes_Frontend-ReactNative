@@ -4,15 +4,15 @@ import type { ApiImage, Price, StallSummary } from './common';
 export type StallPayload = {
   stall: StallDetail;
   products: Product[];
+  products_updated_at: string | null; // pour "Mis à jour ce matin"
   next_cursor: string | null;
 };
 
 export type StallDetail = StallSummary & {
   owner_display_name: string; // ex. "Maman Afi"
-  description: string | null;
-  verification: { by: 'agent'; agent_name: string | null; verified_at: string } | null;
+  verification: { by: 'agent'; verified_at: string } | null;
   pay_on_delivery: boolean;
-  languages: ('fr' | 'fon' | 'yo' | 'en')[];
+  delivery_note: string | null; // ex. "Livraison Cotonou et Calavi"
   contacts: {
     phone: string | null; // E.164, ex. "+22997000000"
     whatsapp: string | null;
@@ -23,11 +23,10 @@ export type StallDetail = StallSummary & {
 
 export type Product = {
   id: string;
-  name: string;
+  name: string; // ex. "Wax hollandais, 6 yards"
   image: ApiImage | null;
-  price: Price | null; // null = prix sur demande
-  unit: string; // ex. "pagne de 6 yards", "sac de 50 kg"
+  price: Price | null; // null = "Prix à débattre"
   in_stock: boolean;
-  is_today: boolean; // fait partie des "produits du jour"
+  is_today: boolean; // fait partie de "Disponible aujourd'hui"
   updated_at: string;
 };
