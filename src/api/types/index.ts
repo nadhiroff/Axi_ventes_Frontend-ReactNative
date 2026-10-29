@@ -54,13 +54,15 @@ export type Session = { token: string; user: User };
 export type RegisterInput = { first_name: string; last_name: string; email: string; password: string; password_confirmation: string; phone?: string; lang: Lang };
 export type CodePurpose = 'verify_email' | 'reset_password';
 
+export type Currency = 'XOF' | 'EUR' | 'USD';
+export type Rates = { base: 'XOF'; rates: Record<Currency, number>; updated_at: string | null };
 export type NotificationType = 'order' | 'payment' | 'reminder' | 'promotion' | 'arrival' | 'account';
 export type NotificationPrefs = Record<NotificationType, { app: boolean; email: boolean }>;
 
 export type UserSettings = {
   theme: 'system' | 'light' | 'dark';
   lang: Lang;
-  currency: 'XOF';
+  currency: Currency;
   date_format: 'dd/mm/yyyy' | 'yyyy-mm-dd';
   notifications: NotificationPrefs;
   default_address: string | null;
@@ -99,6 +101,10 @@ export type StallSummary = {
 };
 
 export type StallDetail = StallSummary & {
+  /** Photos à faire défiler : principale puis galerie */
+  photos: ApiImage[];
+  gallery_count: number;
+  followers_count: number;
   owner_display_name: string;
   verification: { by: 'agent'; verified_at: string } | null;
   pay_on_delivery: boolean;
@@ -359,5 +365,6 @@ export type ConversationSummary = {
 export type MessageKind = 'text' | 'photo' | 'voice';
 /** sent : ✓ reçu par Axi ; delivered : ✓✓ arrivé sur le téléphone de l'autre ; read : ✓✓ bleu, lu */
 export type MessageStatus = 'sent' | 'delivered' | 'read';
-export type ChatMessage = { id: string; mine: boolean; status: MessageStatus | null; edited: boolean; deleted: boolean; kind: MessageKind; body: string | null; image: ApiImage | null; audio_url: string | null; created_at: string; expires_at: string | null };
+export type ReplyPreview = { id: string; mine: boolean; kind: MessageKind; preview: string };
+export type ChatMessage = { id: string; mine: boolean; status: MessageStatus | null; edited: boolean; deleted: boolean; reply: ReplyPreview | null; kind: MessageKind; body: string | null; image: ApiImage | null; audio_url: string | null; created_at: string; expires_at: string | null };
 export type ConversationPayload = { conversation: ConversationSummary; messages: ChatMessage[] };

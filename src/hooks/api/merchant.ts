@@ -30,6 +30,8 @@ export function useStallMutations() {
   return {
     update: useMutation({ mutationFn: (input: StallInput) => api.updateStall(input), onSuccess }),
     photo: useMutation({ mutationFn: (photo: LocalFile) => api.stallPhoto(photo), onSuccess }),
+    addGallery: useMutation({ mutationFn: (photos: LocalFile[]) => api.addStallPhotos(photos), onSuccess }),
+    removeGallery: useMutation({ mutationFn: (index: number) => api.removeStallPhoto(index), onSuccess }),
     requestVerification: useMutation({ mutationFn: api.requestVerification, onSuccess }),
   };
 }

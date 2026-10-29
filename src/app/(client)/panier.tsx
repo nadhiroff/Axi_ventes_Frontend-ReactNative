@@ -17,7 +17,7 @@ import { useSettings } from '../../hooks/api/account';
 import { useQuote } from '../../hooks/api/client';
 import { useT } from '../../i18n';
 import { confirmAction, notify } from '../../lib/confirm';
-import { formatFcfa, newIdempotencyKey } from '../../lib/format';
+import { formatFcfa, formatPayment, newIdempotencyKey } from '../../lib/format';
 import { useAuthStore } from '../../store/authStore';
 import { groupByStall, useCartStore } from '../../store/cartStore';
 import { fontSize, makeStyles, radius, spacing, useLayout, useTheme } from '../../theme';
@@ -80,7 +80,7 @@ export default function CartScreen() {
       return;
     }
     if (!q) return;
-    confirmAction(t('cart.payConfirmTitle', { amount: formatFcfa(q.total) }), onSite ? t('cart.onSiteConfirm', { cash: formatFcfa(q.cash_total) }) : t('cart.payConfirmText'), async () => {
+    confirmAction(t('cart.payConfirmTitle', { amount: formatPayment(q.total) }), onSite ? t('cart.onSiteConfirm', { cash: formatPayment(q.cash_total) }) : t('cart.payConfirmText'), async () => {
       setPaying(true);
       // Même clé tant que le panier ne change pas : un nouvel essai ne crée jamais un second débit
       const key = paymentKey ?? newIdempotencyKey();
@@ -129,7 +129,7 @@ export default function CartScreen() {
         right={<Button label={t('cart.clear')} variant="ghost" size="sm" onPress={() => confirmAction(t('cart.clearConfirm'), t('cart.clearText'), clear, { destructive: true })} />}
       />
       <Screen
-        footer={<Button label={`${t('cart.pay')} · ${formatFcfa(q?.total ?? 0)}`} size="lg" icon="smartphone" onPress={pay} loading={paying} disabled={!q || unavailable.size > 0 || quote.isFetching} />}
+        footer={<Button label={`${t('cart.pay')} · ${formatPayment(q?.total ?? 0)}`} size="lg" icon="smartphone" onPress={pay} loading={paying} disabled={!q || unavailable.size > 0 || quote.isFetching} />}
       >
         <View style={{ flexDirection: tablet ? 'row' : 'column', gap: spacing.lg, alignItems: 'flex-start' }}>
           <View style={{ flex: tablet ? 3 : undefined, width: tablet ? undefined : '100%', gap: spacing.md }}>

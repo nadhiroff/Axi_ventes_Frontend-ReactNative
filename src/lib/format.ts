@@ -1,4 +1,5 @@
 import type { Price } from '../api/types';
+import { useCurrencyStore } from '../store/currencyStore';
 
 /** 15000 -> "15 000" */
 export function group(amount: number): string {
@@ -7,14 +8,37 @@ export function group(amount: number): string {
     .replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 }
 
-/** 15000 -> "15 000 F" */
-export function formatFcfa(amount: number): string {
+/** Montant en F CFA, toujours (paiements, abonnement) : 15000 -> "15 000 F" */
+export function formatXof(amount: number): string {
   return `${group(amount)} F`;
+}
+
+/** Conversion dans la devise choisie : "≈ 22,87 €" / "≈ $25.49" (null en F CFA) */
+export function converted(amount: number): string | null {
+  const { currency, rates } = useCurrencyStore.getState();
+  if (currency === 'XOF') return null;
+  const value = amount / rates[currency];
+  return currency === 'EUR'
+    ? `≈ ${value.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
+    : `≈ $${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+/** Montant affiché dans la devise choisie dans Paramètres : "15 000 F", "≈ 22,87 €" ou "≈ $25.49" */
+export function formatFcfa(amount: number): string {
+  return converted(amount) ?? formatXof(amount);
+}
+
+/** Pour un paiement : toujours le vrai montant en F CFA, avec la conversion entre parenthèses */
+export function formatPayment(amount: number): string {
+  const c = converted(amount);
+  return c ? `${formatXof(amount)} (${c})` : formatXof(amount);
 }
 
 /** Prix d'une tuile produit : "18 000 FCFA", "12 000 – 15 000 FCFA" ou "Prix à débattre". */
 export function formatPrice(price: Price | null, negotiable = 'Prix à débattre'): string {
   if (!price) return negotiable;
+  const low = converted(price.amount);
+  if (low) return price.amount_max ? `${low} – ${converted(price.amount_max)!.replace('≈ ', '')}` : low;
   if (price.amount_max) return `${group(price.amount)} – ${group(price.amount_max)} FCFA`;
   return `${group(price.amount)} FCFA`;
 }
@@ -86,4 +110,12 @@ export function formatPct(value: number | null, signed = true): string {
   if (value === null) return '—';
   const sign = signed && value > 0 ? '+' : value < 0 ? '−' : '';
   return `${sign}${Math.abs(value).toFixed(1).replace('.', ',').replace(',0', '')} %`;
+}
+
+/** Nombre court comme les réseaux : 950 -> "950", 1 234 -> "1,2K", 3 000 -> "3K", 2 500 000 -> "2,5M" */
+export function formatCount(n: number): string {
+  const short = (v: number, unit: string) => `${(Math.floor(v * 10) / 10).toString().replace('.', ',').replace(/,0$/, '')}${unit}`;
+  if (n >= 1_000_000) return short(n / 1_000_000, 'M');
+  if (n >= 1_000) return short(n / 1_000, 'K');
+  return String(n);
 }

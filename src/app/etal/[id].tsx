@@ -10,6 +10,7 @@ import { useAddToCart } from '../../components/client/useAddToCart';
 import { Avatar } from '../../components/ui/Avatar';
 import { Button } from '../../components/ui/Button';
 import { ImageViewer } from '../../components/ui/ImageViewer';
+import { PhotoCarousel } from '../../components/ui/PhotoCarousel';
 import { Grid, Screen } from '../../components/ui/Screen';
 import { BackButton } from '../../components/ui/ScreenHeader';
 import { SectionHeader } from '../../components/ui/SectionHeader';
@@ -21,7 +22,7 @@ import { useRequireAuth } from '../../hooks/useRequireAuth';
 import { useT } from '../../i18n';
 import { confirmAction, notify, toast } from '../../lib/confirm';
 import { useAuthStore } from '../../store/authStore';
-import { formatFcfa } from '../../lib/format';
+import { formatCount, formatFcfa } from '../../lib/format';
 import { cartCount, useCartStore } from '../../store/cartStore';
 import { fontSize, makeStyles, radius, spacing, useLayout } from '../../theme';
 import { callPhone, openWhatsapp, openLink } from '../../lib/contact';
@@ -38,7 +39,7 @@ export default function StallScreen() {
   const requireAuth = useRequireAuth();
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [sending, setSending] = useState(false);
-  const [photoOpen, setPhotoOpen] = useState(false);
+  const [photoIndex, setPhotoIndex] = useState<number | null>(null);
   const [opening, setOpening] = useState(false);
   const ownStallId = useAuthStore((st) => st.user?.merchant?.stall_id ?? null);
   const cart = useCartStore((s) => s.items);
@@ -79,13 +80,14 @@ export default function StallScreen() {
         <View style={{ width: '100%', maxWidth: contentWidth, paddingHorizontal: gutter, gap: spacing.md }}>
           <BackButton tone="onBrand" />
           <View style={styles.identity}>
-            <Pressable onPress={() => s.avatar && setPhotoOpen(true)} accessibilityRole="imagebutton" accessibilityLabel={s.name}>
+            <Pressable onPress={() => s.photos.length > 0 && setPhotoIndex(0)} accessibilityRole="imagebutton" accessibilityLabel={s.name}>
               <Avatar name={s.name} image={s.avatar} size={76} variant="inverse" />
             </Pressable>
             <View style={{ flex: 1, gap: 4 }}>
               <Text style={styles.name}>{s.name}</Text>
               {s.tagline ? <Text style={styles.tagline}>{s.tagline}</Text> : null}
               <Text style={styles.location}>{s.location.label}</Text>
+              <Text style={styles.followers}>{t('stall.followers', { n: s.followers_count, count: formatCount(s.followers_count) })}</Text>
             </View>
           </View>
           <View style={styles.tags}>
@@ -98,6 +100,7 @@ export default function StallScreen() {
       </View>
 
       <Screen refreshing={stall.isRefetching} onRefresh={() => stall.refetch()}>
+        {s.photos.length > 1 ? <PhotoCarousel images={s.photos} onOpen={setPhotoIndex} /> : null}
         <View style={styles.actions}>
           <Button label={s.is_followed ? t('stall.following') : t('stall.follow')} icon={s.is_followed ? 'check' : 'plus'} variant={s.is_followed ? 'ghost' : 'primary'} onPress={toggleFollow} loading={follow.isPending} style={{ flexGrow: 1 }} />
           {ownStallId !== s.id ? <Button label={t('chat.write')} icon="message-square" variant="ghost" onPress={writeToStall} loading={opening} style={{ flexGrow: 1 }} /> : null}
@@ -129,7 +132,7 @@ export default function StallScreen() {
         </View>
       ) : null}
 
-      <ImageViewer images={s.avatar ? [s.avatar] : []} visible={photoOpen} onClose={() => setPhotoOpen(false)} title={s.name} />
+      <ImageViewer images={s.photos} initialIndex={photoIndex ?? 0} visible={photoIndex !== null} onClose={() => setPhotoIndex(null)} title={s.name} />
       <VoiceRecordModal
         visible={voiceOpen}
         title={t('stall.voiceTitle')}
@@ -156,6 +159,7 @@ export default function StallScreen() {
 const useStyles = makeStyles((c) => ({
   header: { backgroundColor: c.brand, paddingBottom: spacing.xl, alignItems: 'center' },
   identity: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
+  followers: { color: '#FFFFFF', fontSize: fontSize.small, fontWeight: '700', marginTop: 2 },
   name: { fontSize: fontSize.display, fontWeight: '800', color: '#FFFFFF' },
   tagline: { fontSize: fontSize.body, color: '#FFEDD5' },
   location: { fontSize: fontSize.small, color: '#FED7AA', fontWeight: '600' },

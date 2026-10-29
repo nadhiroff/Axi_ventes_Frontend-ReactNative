@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, FlatList, PanResponder, Pressable, Text, TextInput, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -27,7 +27,8 @@ import { fontSize, makeStyles, radius, spacing, useLayout, useTheme } from '../.
 /**
  * Conversation client ↔ commerçant : texte, photo, message vocal. Nouveaux messages toutes les 4 s.
  * Sans suivi de l'étal, les messages disparaissent 24 h après leur envoi (rappelé en haut de l'écran).
- * Comme WhatsApp : ✓ envoyé, ✓✓ reçu, ✓✓ bleu lu, « en ligne » ; appui long sur son message : modifier, supprimer.
+ * Comme WhatsApp : ✓ envoyé, ✓✓ reçu, ✓✓ bleu lu, « en ligne » ; appui long sur son message : modifier, supprimer ;
+ * glisser un message vers la droite : y répondre.
  */
 export default function ConversationScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -40,6 +41,7 @@ export default function ConversationScreen() {
   const send = useSendMessage(id);
   const actions = useMessageActions(id);
   const [editing, setEditing] = useState<ChatMessage | null>(null);
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const conv = query.data?.conversation;
   const follow = useFollow(conv?.stall.id ?? '');
   const [text, setText] = useState('');
@@ -76,15 +78,24 @@ export default function ConversationScreen() {
     }
     if (!body || send.isPending) return;
     setText('');
-    send.mutate({ text: body }, {
+    const reply = replyTo;
+    setReplyTo(null);
+    send.mutate({ text: body, replyTo: reply?.id }, {
       onError: (e) => {
         setText(body);
+        setReplyTo(reply);
         notify(t('chat.notSent'), errorMessage(e), 'error');
       },
     });
   };
   const sendFile = (input: { photo: LocalFile } | { audio: LocalFile }) =>
-    send.mutate(input, { onSuccess: () => setVoiceOpen(false), onError: (e) => notify(t('chat.notSent'), errorMessage(e), 'error') });
+    send.mutate({ ...input, replyTo: replyTo?.id }, {
+      onSuccess: () => {
+        setVoiceOpen(false);
+        setReplyTo(null);
+      },
+      onError: (e) => notify(t('chat.notSent'), errorMessage(e), 'error'),
+    });
   // Appui long sur un de mes messages : modifier (texte) ou supprimer pour tout le monde
   const openMenu = (m: ChatMessage) => {
     if (!m.mine || m.deleted) return;
@@ -153,7 +164,11 @@ export default function ConversationScreen() {
         contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm, width: '100%', maxWidth: contentWidth, alignSelf: 'center' }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
-        renderItem={({ item }) => <Bubble message={item} onImage={setViewer} onLongPress={() => openMenu(item)} />}
+        renderItem={({ item }) => (
+          <SwipeToReply onReply={() => { if (!item.deleted) { setEditing(null); setReplyTo(item); } }} mine={item.mine}>
+            <Bubble message={item} onImage={setViewer} onLongPress={() => openMenu(item)} otherName={conv.other.name} />
+          </SwipeToReply>
+        )}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyText}>{conv.my_role === 'client' ? t('chat.startClient') : t('chat.startMerchant')}</Text>
@@ -161,6 +176,18 @@ export default function ConversationScreen() {
         }
       />
 
+      {replyTo && !editing ? (
+        <View style={styles.editBar}>
+          <Icon name="corner-up-left" size={16} color={colors.brand} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.editTitle}>{t('chat.replyTo', { name: replyTo.mine ? t('chat.yourself') : conv.other.name })}</Text>
+            <Text style={styles.editText} numberOfLines={1}>{previewOf(replyTo, t)}</Text>
+          </View>
+          <Pressable onPress={() => setReplyTo(null)} hitSlop={10} accessibilityRole="button" accessibilityLabel={t('common.cancel')}>
+            <Icon name="x" size={20} color={colors.textMuted} />
+          </Pressable>
+        </View>
+      ) : null}
       {editing ? (
         <View style={styles.editBar}>
           <Icon name="edit-2" size={16} color={colors.brand} />
@@ -230,12 +257,70 @@ function Ticks({ status }: { status: ChatMessage['status'] }) {
   );
 }
 
-function Bubble({ message, onImage, onLongPress }: { message: ChatMessage; onImage: (image: ApiImage) => void; onLongPress: () => void }) {
+/** Texte court d'un message (barre « Répondre à ») */
+function previewOf(m: ChatMessage, t: ReturnType<typeof useT>): string {
+  if (m.kind === 'photo') return `📷 ${t('chat.photoLabel')}`;
+  if (m.kind === 'voice') return `🎤 ${t('chat.voice')}`;
+  return m.body ?? '';
+}
+
+/**
+ * Glisser un message vers la droite pour y répondre (comme WhatsApp). Le geste ne démarre que
+ * s'il est nettement horizontal : le défilement vertical de la conversation reste normal.
+ */
+function SwipeToReply({ children, onReply, mine }: { children: React.ReactNode; onReply: () => void; mine: boolean }) {
+  const { colors } = useTheme();
+  const [x] = useState(() => new Animated.Value(0));
+  // Dernière version du rappel, sans recréer le geste à chaque rendu
+  const onReplyRef = useLatest(onReply);
+  // Le geste est créé une seule fois ; onReplyRef n'est lu que dans le rappel de fin de geste, jamais pendant le rendu
+  // eslint-disable-next-line react-hooks/refs
+  const [responder] = useState(() =>
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) => g.dx > 12 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
+      // Capture : le glissement l'emporte sur l'appui de la bulle (la bulle reste touchable sinon)
+      onMoveShouldSetPanResponderCapture: (_, g) => g.dx > 12 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderMove: (_, g) => x.setValue(Math.max(0, Math.min(g.dx, 90))),
+      onPanResponderRelease: (_, g) => {
+        if (g.dx > 60) onReplyRef.current();
+        Animated.spring(x, { toValue: 0, useNativeDriver: true, bounciness: 6 }).start();
+      },
+      onPanResponderTerminate: () => Animated.spring(x, { toValue: 0, useNativeDriver: true }).start(),
+    }),
+  );
+  return (
+    <View style={{ alignSelf: 'stretch', alignItems: mine ? 'flex-end' : 'flex-start' }}>
+      <Animated.View style={{ position: 'absolute', left: 4, top: 0, bottom: 0, justifyContent: 'center', opacity: x.interpolate({ inputRange: [0, 60], outputRange: [0, 1] }) }}>
+        <Icon name="corner-up-left" size={20} color={colors.textMuted} />
+      </Animated.View>
+      <Animated.View {...responder.panHandlers} style={{ maxWidth: '82%', transform: [{ translateX: x }] }}>
+        {children}
+      </Animated.View>
+    </View>
+  );
+}
+
+function useLatest<T>(value: T) {
+  const ref = useRef(value);
+  useEffect(() => {
+    ref.current = value;
+  });
+  return ref;
+}
+
+function Bubble({ message, onImage, onLongPress, otherName }: { message: ChatMessage; onImage: (image: ApiImage) => void; onLongPress: () => void; otherName: string }) {
   const styles = useStyles();
   const t = useT();
   const time = new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   return (
     <Pressable onLongPress={onLongPress} delayLongPress={350} style={[styles.bubble, message.mine ? styles.mine : styles.theirs]}>
+      {message.reply && !message.deleted ? (
+        <View style={[styles.quote, message.mine && styles.quoteMine]}>
+          <Text style={[styles.quoteName, message.mine && styles.bodyMine]} numberOfLines={1}>{message.reply.mine ? t('chat.yourself') : otherName}</Text>
+          <Text style={[styles.quoteText, message.mine && styles.bodyMine]} numberOfLines={2}>{message.reply.preview}</Text>
+        </View>
+      ) : null}
       {message.deleted ? (
         <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
           <Icon name="slash" size={14} color={message.mine ? 'rgba(255,255,255,0.85)' : styles.time.color} />
@@ -272,7 +357,11 @@ const useStyles = makeStyles((c) => ({
   keepText: { color: '#FFFFFF', fontWeight: '700', fontSize: fontSize.small },
   empty: { padding: spacing.xl, transform: [{ scaleY: -1 }] },
   emptyText: { textAlign: 'center', color: c.textMuted, fontSize: fontSize.body },
-  bubble: { maxWidth: '80%', borderRadius: radius.lg, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, gap: 4 },
+  quote: { borderLeftWidth: 3, borderLeftColor: c.brand, backgroundColor: c.surfaceAlt, borderRadius: 8, paddingHorizontal: spacing.sm, paddingVertical: 4, marginBottom: 2 },
+  quoteMine: { borderLeftColor: '#FFFFFF', backgroundColor: 'rgba(0,0,0,0.15)' },
+  quoteName: { fontSize: fontSize.caption, fontWeight: '700', color: c.brand },
+  quoteText: { fontSize: fontSize.small, color: c.textMuted },
+  bubble: { maxWidth: '100%', borderRadius: radius.lg, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, gap: 4 },
   mine: { alignSelf: 'flex-end', backgroundColor: c.brand, borderBottomRightRadius: 4 },
   theirs: { alignSelf: 'flex-start', backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderBottomLeftRadius: 4 },
   body: { fontSize: fontSize.body, color: c.text, lineHeight: 21 },

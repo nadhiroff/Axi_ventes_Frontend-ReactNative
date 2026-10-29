@@ -15,7 +15,9 @@ export function Field({ label, error, hint, secret, style, ...rest }: Props) {
   const [hidden, setHidden] = useState(true);
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.label} numberOfLines={2}>
+        {label}
+      </Text>
       <View style={[styles.inputRow, error ? styles.inputError : null]}>
         <TextInput
           placeholderTextColor={colors.textMuted}

@@ -11,6 +11,7 @@ import { setDataUsageSender } from '../lib/dataUsage';
 import { queryClient } from '../lib/queryClient';
 import { deleteToken, readToken, writeToken } from '../lib/tokenStorage';
 import { useThemeStore } from '../theme';
+import { useCurrencyStore } from './currencyStore';
 
 /**
  * loading : lecture de la session ; welcome : premier lancement (Créer un compte / Se connecter /
@@ -71,6 +72,7 @@ async function applyServerSettings() {
     const settings = await api.settings();
     useThemeStore.getState().setPreference(settings.theme);
     useLangStore.getState().setLang(settings.lang);
+    useCurrencyStore.getState().setCurrency(settings.currency);
   } catch {
     // Préférences locales conservées.
   }
@@ -85,7 +87,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   setMode: (mode) => set({ mode: mode === 'merchant' && get().user?.role !== 'merchant' ? 'client' : mode }),
 
   bootstrap: async () => {
-    await Promise.all([useThemeStore.getState().load(), useLangStore.getState().load()]);
+    await Promise.all([useThemeStore.getState().load(), useLangStore.getState().load(), useCurrencyStore.getState().load()]);
     const [token, profile, visitor] = await Promise.all([
       readToken(),
       AsyncStorage.getItem(PROFILE_KEY).catch(() => null),
