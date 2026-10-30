@@ -41,6 +41,11 @@ export function ProductRow({ product }: { product: Product }) {
         <Pressable style={{ flex: 1, gap: 2 }} onPress={() => router.push(`/commercant/produit/${product.id}`)} accessibilityRole="button">
           <Text style={styles.name} numberOfLines={2}>{product.name}</Text>
           <Text style={styles.price}>{formatPrice(product.price, t('product.negotiable'))}</Text>
+          {product.description ? (
+            <Text style={styles.description} numberOfLines={2}>
+              {product.description}
+            </Text>
+          ) : null}
           <View style={styles.tags}>
             {draft ? <Tag label={t('merchant.drafts')} tone="brand" /> : null}
             {product.status === 'paused' ? <Tag label={t('merchant.paused')} tone="outline" /> : null}
@@ -96,6 +101,7 @@ const useStyles = makeStyles((c) => ({
   thumbImg: { width: 64, height: 64 },
   name: { fontSize: fontSize.body, fontWeight: '700', color: c.text },
   price: { fontSize: fontSize.body, fontWeight: '700', color: c.brand },
+  description: { fontSize: fontSize.small, color: c.textMuted, lineHeight: 18 },
   muted: { fontSize: fontSize.caption, color: c.textMuted },
   // Étiquettes (stock, photos, brouillon) de même hauteur, alignées sur une ligne
   tags: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 4 },
