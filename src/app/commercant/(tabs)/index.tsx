@@ -122,10 +122,11 @@ export default function TodayScreen() {
         key={arrivalOpen ? 'open' : 'closed'}
         visible={arrivalOpen}
         subscribed={money?.subscription.status === 'active'}
+        limits={{ days: money?.subscription.limits.announcement_days ?? 7, photos: money?.subscription.limits.announcement_photos ?? 2 }}
         sending={actions.arrival.isPending}
         onClose={() => setArrivalOpen(false)}
-        onSend={(text, photo) =>
-          actions.arrival.mutate({ text, photo }, {
+        onSend={(text, endsOn, photos) =>
+          actions.arrival.mutate({ text, endsOn, photos }, {
             onSuccess: (r) => {
               setArrivalOpen(false);
               showBroadcastResult(t('merchant.arrivalTitle'), r);

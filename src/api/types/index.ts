@@ -104,7 +104,8 @@ export type StallSummary = {
   subscribed: boolean;
 };
 
-export type Announcement = { id: string; text: string; image: ApiImage | null; created_at: string };
+/** Annonce d'arrivage : visible jusqu'à ends_on inclus (heure du Bénin), puis disparaît d'elle-même */
+export type Announcement = { id: string; text: string; image: ApiImage | null; images: ApiImage[]; ends_on: string; created_at: string };
 /** Petite annonce d'arrivage d'un commerçant abonné, sur l'accueil */
 export type HomeAnnouncement = Announcement & { stall: StallSummary; is_followed: boolean };
 
@@ -364,7 +365,7 @@ export type SubscriptionInfo = {
   note: string | null;
   can_pay: boolean;
   /** Limites sans abonnement (product_limit null quand abonné) */
-  limits: { product_limit: number | null; active_products: number; paused_products: number; broadcasts: boolean; text: string | null };
+  limits: { product_limit: number | null; active_products: number; paused_products: number; broadcasts: boolean; text: string | null; announcement_days: number; announcement_photos: number };
   benefits: string[];
 };
 export type MerchantMoney = {
