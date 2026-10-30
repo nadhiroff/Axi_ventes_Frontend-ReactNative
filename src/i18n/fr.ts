@@ -247,6 +247,7 @@ export const fr = {
     noUrl: 'La page de paiement n\'a pas pu s\'ouvrir. Réessayez : vous ne serez débité qu\'une seule fois.',
   },
   merchant: {
+    seeProfile: 'Voir sa présentation',
     contactLabel: 'Email ou téléphone du client',
     contactPlaceholder: 'afi@exemple.bj ou 01 97 00 00 00',
     contactHint: 'Si la personne a un compte Axi, elle s\'affiche aussitôt.',

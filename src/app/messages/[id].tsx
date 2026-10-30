@@ -32,7 +32,7 @@ import { fontSize, makeStyles, radius, spacing, useLayout, useTheme } from '../.
  * Conversation client ↔ commerçant : texte, photo, message vocal. Nouveaux messages toutes les 4 s.
  * Sans suivi de l'étal, les messages disparaissent 24 h après leur envoi (rappelé en haut de l'écran).
  * Comme WhatsApp : ✓ envoyé, ✓✓ reçu, ✓✓ bleu lu, « en ligne » ; appui long sur son message : modifier, supprimer ;
- * glisser un message vers la droite : y répondre.
+ * glisser un message (le mien vers la gauche, celui de l'autre vers la droite) : y répondre.
  */
 export default function ConversationScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -307,13 +307,14 @@ function SwipeToReply({ children, onReply, mine }: { children: React.ReactNode; 
   // eslint-disable-next-line react-hooks/refs
   const [responder] = useState(() =>
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, g) => g.dx > 12 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
+      // Mes messages (à droite) : glisser vers la gauche ; ceux de l'autre (à gauche) : vers la droite
+      onMoveShouldSetPanResponder: (_, g) => (mine ? g.dx < -12 : g.dx > 12) && Math.abs(g.dx) > Math.abs(g.dy) * 2,
       // Capture : le glissement l'emporte sur l'appui de la bulle (la bulle reste touchable sinon)
-      onMoveShouldSetPanResponderCapture: (_, g) => g.dx > 12 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
+      onMoveShouldSetPanResponderCapture: (_, g) => (mine ? g.dx < -12 : g.dx > 12) && Math.abs(g.dx) > Math.abs(g.dy) * 2,
       onPanResponderTerminationRequest: () => false,
-      onPanResponderMove: (_, g) => x.setValue(Math.max(0, Math.min(g.dx, 90))),
+      onPanResponderMove: (_, g) => x.setValue(mine ? Math.max(-90, Math.min(g.dx, 0)) : Math.max(0, Math.min(g.dx, 90))),
       onPanResponderRelease: (_, g) => {
-        if (g.dx > 60) onReplyRef.current();
+        if (Math.abs(g.dx) > 60) onReplyRef.current();
         Animated.spring(x, { toValue: 0, useNativeDriver: true, bounciness: 6 }).start();
       },
       onPanResponderTerminate: () => Animated.spring(x, { toValue: 0, useNativeDriver: true }).start(),
@@ -321,7 +322,16 @@ function SwipeToReply({ children, onReply, mine }: { children: React.ReactNode; 
   );
   return (
     <View style={{ alignSelf: 'stretch', alignItems: mine ? 'flex-end' : 'flex-start' }}>
-      <Animated.View style={{ position: 'absolute', left: 4, top: 0, bottom: 0, justifyContent: 'center', opacity: x.interpolate({ inputRange: [0, 60], outputRange: [0, 1] }) }}>
+      <Animated.View
+        style={{
+          position: 'absolute',
+          ...(mine ? { right: 4 } : { left: 4 }),
+          top: 0,
+          bottom: 0,
+          justifyContent: 'center',
+          opacity: x.interpolate({ inputRange: mine ? [-60, 0] : [0, 60], outputRange: mine ? [1, 0] : [0, 1], extrapolate: 'clamp' }),
+        }}
+      >
         <Icon name="corner-up-left" size={20} color={colors.textMuted} />
       </Animated.View>
       <Animated.View {...responder.panHandlers} style={{ maxWidth: '82%', transform: [{ translateX: x }] }}>

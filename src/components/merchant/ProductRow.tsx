@@ -41,11 +41,11 @@ export function ProductRow({ product }: { product: Product }) {
         <Pressable style={{ flex: 1, gap: 2 }} onPress={() => router.push(`/commercant/produit/${product.id}`)} accessibilityRole="button">
           <Text style={styles.name} numberOfLines={2}>{product.name}</Text>
           <Text style={styles.price}>{formatPrice(product.price, t('product.negotiable'))}</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+          <View style={styles.tags}>
             {draft ? <Tag label={t('merchant.drafts')} tone="brand" /> : null}
             {product.status === 'paused' ? <Tag label={t('merchant.paused')} tone="outline" /> : null}
-            {product.sold_out ? <Tag label={t('merchant.soldOut')} tone="danger" /> : product.stock_quantity !== null ? <Tag label={t('merchant.stockLeft', { n: product.stock_quantity })} tone="neutral" /> : null}
-            {!draft && product.images.length ? <Text style={styles.muted}>{t('product.photos', { n: product.images.length })}</Text> : null}
+            {product.sold_out ? <Tag label={t('merchant.soldOut')} tone="danger" /> : product.stock_quantity !== null ? <Tag label={t('merchant.stockLeft', { n: product.stock_quantity })} tone="outline" icon="package" /> : null}
+            {!draft && product.images.length ? <Tag label={t('product.photos', { n: product.images.length })} tone="outline" icon="image" /> : null}
           </View>
         </Pressable>
         <Pressable onPress={() => router.push(`/commercant/produit/${product.id}`)} accessibilityRole="button" accessibilityLabel={t('common.edit')} hitSlop={8} style={styles.edit}>
@@ -97,6 +97,8 @@ const useStyles = makeStyles((c) => ({
   name: { fontSize: fontSize.body, fontWeight: '700', color: c.text },
   price: { fontSize: fontSize.body, fontWeight: '700', color: c.brand },
   muted: { fontSize: fontSize.caption, color: c.textMuted },
+  // Étiquettes (stock, photos, brouillon) de même hauteur, alignées sur une ligne
+  tags: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 4 },
   edit: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   // Un interrupteur par ligne : libellé à gauche, interrupteur à droite, toujours alignés quelle que soit la langue
   toggles: {},

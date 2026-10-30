@@ -248,6 +248,7 @@ export const en: Dict = {
     noUrl: 'The payment page could not open. Try again: you will be charged only once.',
   },
   merchant: {
+    seeProfile: 'See their profile',
     contactLabel: 'Customer email or phone',
     contactPlaceholder: 'afi@example.bj or 01 97 00 00 00',
     contactHint: 'If the person has an Axi account, it shows up right away.',
