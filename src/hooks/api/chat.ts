@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { LocalFile } from '../../api/client';
 import { api } from '../../api/endpoints';
-import type { ChatMessage, ConversationPayload } from '../../api/types';
+import type { ChatMessage, ConversationPayload, ConversationSummary } from '../../api/types';
 import { useAuthStore } from '../../store/authStore';
 import { queryKeys } from './queryKeys';
 
@@ -26,7 +26,10 @@ export function useConversation(conversationId: string) {
     queryKey: queryKeys.conversation(conversationId),
     queryFn: async () => {
       const data = await api.messages(conversationId);
-      // Lue : les pastilles se mettent à jour
+      // Conversation ouverte = lue : son compteur disparaît tout de suite de la liste, et les pastilles se mettent à jour
+      qc.setQueryData<{ conversations: ConversationSummary[]; ttl_hours: number }>(queryKeys.conversations, (old) =>
+        old ? { ...old, conversations: old.conversations.map((c) => (c.id === conversationId ? { ...c, unread_count: 0 } : c)) } : old,
+      );
       qc.invalidateQueries({ queryKey: queryKeys.badges });
       return data;
     },
