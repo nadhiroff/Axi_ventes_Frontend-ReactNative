@@ -44,14 +44,18 @@ export default function EditStallScreen() {
     <>
       <ScreenHeader title={t('merchant.editStall')} />
       <Screen>
-        <Card style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.lg, flexWrap: 'wrap' }}>
-          <Avatar name={s.name} image={s.avatar} size={84} />
-          <View style={{ flex: 1, gap: spacing.sm, minWidth: 200 }}>
-            <Text style={{ color: colors.text, fontWeight: '700', fontSize: fontSize.body }}>{t('merchant.stallPhoto')}</Text>
-            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-              <Button label={t('common.camera')} icon="camera" size="sm" variant="ghost" onPress={() => changePhoto('camera')} loading={mutations.photo.isPending} />
-              <Button label={t('common.gallery')} icon="image" size="sm" variant="ghost" onPress={() => changePhoto('library')} />
+        {/* Photo principale : aperçu à gauche, puis deux boutons de même largeur, alignés sur toute la largeur */}
+        <Card style={{ gap: spacing.md }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+            <Avatar name={s.name} image={s.avatar} size={72} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={{ color: colors.text, fontWeight: '700', fontSize: fontSize.body }}>{t('merchant.stallPhoto')}</Text>
+              <Text style={{ color: colors.textMuted, fontSize: fontSize.small }}>{t('merchant.stallPhotoHint')}</Text>
             </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            <Button label={t('common.camera')} icon="camera" size="sm" variant="ghost" onPress={() => changePhoto('camera')} loading={mutations.photo.isPending} style={{ flex: 1 }} />
+            <Button label={t('common.gallery')} icon="image" size="sm" variant="ghost" onPress={() => changePhoto('library')} disabled={mutations.photo.isPending} style={{ flex: 1 }} />
           </View>
         </Card>
         <Card style={{ gap: spacing.md }}>
