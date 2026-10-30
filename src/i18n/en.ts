@@ -656,6 +656,7 @@ export const en: Dict = {
     bioHint: 'A few words visible to the merchants and customers you talk with (300 characters).',
   },
   chat: {
+    searchByName: 'Search by name',
     search: 'Search',
     searchClient: 'Search a conversation or a stall',
     searchMerchant: 'Search a conversation or a customer',

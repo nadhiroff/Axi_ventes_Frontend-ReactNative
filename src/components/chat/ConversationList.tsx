@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
@@ -7,13 +7,13 @@ import { errorMessage } from '../../api/client';
 import { api } from '../../api/endpoints';
 import type { ConversationSummary } from '../../api/types';
 import { useConversations } from '../../hooks/api/chat';
-import { useSearch } from '../../hooks/api/client';
 import { queryKeys } from '../../hooks/api/queryKeys';
 import { useT } from '../../i18n';
 import { confirmAction, notify, toast } from '../../lib/confirm';
 import { formatShortDate } from '../../lib/format';
 import { fontSize, makeStyles, radius, spacing, useTheme } from '../../theme';
 import { Avatar } from '../ui/Avatar';
+import { Ticks } from './Ticks';
 import { Icon } from '../ui/Icon';
 import { Screen } from '../ui/Screen';
 import { EmptyView, ErrorView, LoadingView } from '../ui/StateViews';
@@ -36,17 +36,13 @@ export function ConversationList({ role }: { role?: 'client' | 'merchant' }) {
     return () => clearTimeout(timer);
   }, [text]);
   const merchant = role === 'merchant';
-  // Nouvelles personnes à qui écrire, selon le rôle
-  const stalls = useSearch(merchant ? '' : search).data?.stalls ?? [];
-  const clientsQuery = useQuery({ queryKey: queryKeys.merchantClients('all', search), queryFn: () => api.merchantClients('all', search), enabled: merchant && search.length >= 2 });
-  const clients = (clientsQuery.data?.clients ?? []).filter((c) => c.user_id);
 
   if (query.isPending) return <LoadingView />;
   if (!query.data) return <ErrorView error={query.error} onRetry={() => query.refetch()} />;
   const all = query.data.conversations.filter((c) => !role || c.my_role === role);
   const needle = search.toLowerCase();
-  const list = needle ? all.filter((c) => c.other.name.toLowerCase().includes(needle) || c.stall.name.toLowerCase().includes(needle)) : all;
-  const openStalls = new Set(all.map((c) => c.stall.id));
+  // Recherche par nom et prénom, parmi les personnes avec qui je discute déjà
+  const list = needle ? all.filter((c) => c.other.name.toLowerCase().includes(needle)) : all;
 
   const remove = (c: ConversationSummary) =>
     confirmAction(t('chat.clearConfirm', { name: c.other.name }), t('chat.clearText'), () => {
@@ -63,14 +59,6 @@ export function ConversationList({ role }: { role?: 'client' | 'merchant' }) {
         });
     }, { destructive: true, confirmLabel: t('common.delete') });
 
-  const open = async (start: () => Promise<{ conversation: ConversationSummary }>) => {
-    try {
-      router.push(`/messages/${(await start()).conversation.id}`);
-    } catch (e) {
-      notify(t('chat.title'), errorMessage(e), 'error');
-    }
-  };
-
   return (
     <Screen contentStyle={{ gap: 0 }}>
       <View style={styles.search}>
@@ -78,7 +66,7 @@ export function ConversationList({ role }: { role?: 'client' | 'merchant' }) {
         <TextInput
           value={text}
           onChangeText={setText}
-          placeholder={merchant ? t('chat.searchMerchant') : t('chat.searchClient')}
+          placeholder={t('chat.searchByName')}
           placeholderTextColor={colors.textMuted}
           style={styles.searchInput}
           autoCorrect={false}
@@ -94,36 +82,12 @@ export function ConversationList({ role }: { role?: 'client' | 'merchant' }) {
 
       {list.length === 0 && !search ? (
         <EmptyView icon="message-circle" title={t('chat.emptyTitle')} text={merchant ? t('chat.emptyMerchant') : t('chat.emptyClient', { h: query.data.ttl_hours })} />
+      ) : list.length === 0 ? (
+        <Text style={styles.empty}>{t('chat.noResult')}</Text>
       ) : (
         list.map((c) => <ConversationRow key={c.id} c={c} onLongPress={() => remove(c)} />)
       )}
 
-      {search.length >= 2 ? (
-        <>
-          <Text style={styles.section}>{merchant ? t('chat.newWithClient') : t('chat.newWithStall')}</Text>
-          {(merchant ? clients.length : stalls.filter((st) => !openStalls.has(st.id)).length) === 0 ? <Text style={styles.empty}>{t('chat.noResult')}</Text> : null}
-          {merchant
-            ? clients.map((cl) => (
-                <Pressable key={cl.id} onPress={() => open(() => api.openClientConversation(cl.id))} style={({ pressed }) => [styles.suggestion, pressed && { opacity: 0.7 }]} accessibilityRole="button">
-                  <Avatar name={cl.display_name} image={cl.avatar} size={40} variant="soft" />
-                  <Text style={styles.suggestionName} numberOfLines={1}>{cl.display_name}</Text>
-                  <Icon name="edit-3" size={18} color={colors.brand} />
-                </Pressable>
-              ))
-            : stalls
-                .filter((st) => !openStalls.has(st.id))
-                .map((st) => (
-                  <Pressable key={st.id} onPress={() => open(() => api.openStallConversation(st.id))} style={({ pressed }) => [styles.suggestion, pressed && { opacity: 0.7 }]} accessibilityRole="button">
-                    <Avatar name={st.name} image={st.avatar} size={40} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.suggestionName} numberOfLines={1}>{st.name}</Text>
-                      <Text style={styles.empty} numberOfLines={1}>{st.location.label}</Text>
-                    </View>
-                    <Icon name="edit-3" size={18} color={colors.brand} />
-                  </Pressable>
-                ))}
-        </>
-      ) : null}
     </Screen>
   );
 }
@@ -151,6 +115,7 @@ function ConversationRow({ c, onLongPress }: { c: ConversationSummary; onLongPre
           {c.last_message ? <Text style={styles.date}>{formatShortDate(c.last_message.created_at)}</Text> : null}
         </View>
         <View style={styles.line}>
+          {c.last_message?.mine ? <Ticks status={c.last_message.status} size={15} /> : null}
           <Text style={[styles.preview, unread && { color: colors.text, fontWeight: '600' }]} numberOfLines={1}>
             {c.last_message ? `${c.last_message.mine ? t('chat.you') : ''}${c.last_message.preview}` : ''}
           </Text>
