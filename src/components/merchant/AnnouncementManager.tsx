@@ -51,10 +51,11 @@ export function AnnouncementManager({ announcements, stall }: { announcements: A
           <View style={{ flex: 1, gap: 4 }}>
             <Text style={styles.text} numberOfLines={3}>{a.text}</Text>
             <Text style={styles.date}>{formatShortDate(a.created_at)}</Text>
+            {/* Trois petits boutons de même largeur, alignés sur une ligne */}
             <View style={styles.row}>
-              <Button label={t('merchant.announcementView')} icon="eye" size="sm" variant="ghost" onPress={() => setPreviewing(a)} />
-              <Button label={t('common.edit')} icon="edit-2" size="sm" variant="ghost" onPress={() => setEditing(a.id)} />
-              <Button label={t('common.delete')} icon="trash-2" size="sm" variant="danger" onPress={() => remove(a)} />
+              <SmallAction icon="eye" label={t('merchant.announcementView')} onPress={() => setPreviewing(a)} />
+              <SmallAction icon="edit-2" label={t('common.edit')} onPress={() => setEditing(a.id)} />
+              <SmallAction icon="trash-2" label={t('common.delete')} onPress={() => remove(a)} danger />
             </View>
           </View>
         </View>
@@ -63,6 +64,20 @@ export function AnnouncementManager({ announcements, stall }: { announcements: A
       {previewing ? <PreviewSheet announcement={previewing} stall={stall} onClose={() => setPreviewing(null)} onImage={setImage} /> : null}
       <ImageViewer images={image ? [image] : []} visible={!!image} onClose={() => setImage(null)} />
     </>
+  );
+}
+
+function SmallAction({ icon, label, onPress, danger = false }: { icon: 'eye' | 'edit-2' | 'trash-2'; label: string; onPress: () => void; danger?: boolean }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
+  const color = danger ? colors.danger : colors.text;
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={({ pressed }) => [styles.small, danger && { borderColor: colors.danger }, pressed && { opacity: 0.7 }]}>
+      <Icon name={icon} size={14} color={color} />
+      <Text style={[styles.smallLabel, { color }]} numberOfLines={1}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -170,7 +185,9 @@ const useStyles = makeStyles((c) => ({
   text: { fontSize: fontSize.body, color: c.text },
   date: { fontSize: fontSize.caption, color: c.textMuted },
   label: { fontSize: fontSize.small, fontWeight: '700', color: c.text },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: 4 },
+  row: { flexDirection: 'row', gap: 6, marginTop: 4 },
+  small: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, height: 32, borderRadius: radius.sm, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface, paddingHorizontal: 4 },
+  smallLabel: { fontSize: fontSize.caption, fontWeight: '600' },
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(12,10,9,0.5)' },
   sheet: { backgroundColor: c.surface, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: spacing.xl, gap: spacing.md, width: '100%', maxWidth: 640, alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
