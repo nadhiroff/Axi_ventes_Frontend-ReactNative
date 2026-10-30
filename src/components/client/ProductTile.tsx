@@ -19,13 +19,15 @@ type Props = {
   subtitle?: string;
   /** Ouvrir la fiche produit au toucher du nom (par défaut) */
   openDetail?: boolean;
+  /** Favoris : cœur en haut à droite pour retirer le produit */
+  onRemoveFavorite?: () => void;
 };
 
 /**
  * Tuile produit : vraie photo (toucher = plein écran avec zoom et galerie), nom, prix,
  * bouton « Ajouter au panier ». Sans photo : aplat de couleur, rien à télécharger.
  */
-export function ProductTile({ product, onAdd, inCart = 0, subtitle, openDetail = true }: Props) {
+export function ProductTile({ product, onAdd, inCart = 0, subtitle, openDetail = true, onRemoveFavorite }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
   const t = useT();
@@ -50,6 +52,11 @@ export function ProductTile({ product, onAdd, inCart = 0, subtitle, openDetail =
             <Icon name="image" size={12} color="#FFFFFF" />
             <Text style={styles.countText}>{images.length}</Text>
           </View>
+        ) : null}
+        {onRemoveFavorite ? (
+          <Pressable onPress={onRemoveFavorite} hitSlop={8} style={styles.favorite} accessibilityRole="button" accessibilityLabel={t('favorites.remove', { name: product.name })}>
+            <Icon name="heart" size={15} color="#FFFFFF" />
+          </Pressable>
         ) : null}
         {product.is_today ? (
           <View style={styles.today}>
@@ -86,6 +93,7 @@ const useStyles = makeStyles((c) => ({
   fill: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   count: { position: 'absolute', bottom: 6, right: 6, flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: radius.pill, paddingHorizontal: 7, paddingVertical: 2 },
   countText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
+  favorite: { position: 'absolute', top: 6, right: 6, width: 30, height: 30, borderRadius: 15, backgroundColor: c.brand, alignItems: 'center', justifyContent: 'center' },
   today: { position: 'absolute', top: 6, left: 6, backgroundColor: c.trust, borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 2 },
   todayText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
   body: { padding: spacing.md, gap: 2, flexGrow: 1 },

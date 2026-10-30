@@ -10,7 +10,8 @@ import { Icon, type IconName } from './Icon';
 export type Tone = 'success' | 'error' | 'info' | 'danger';
 export type DialogButton = { label: string; onPress?: () => void; variant?: 'primary' | 'ghost' | 'destructive' };
 type Dialog = { id: number; title: string; message?: string; tone: Tone; buttons: DialogButton[] };
-type Toast = { id: number; message: string; tone: Tone };
+type ToastAction = { label: string; onPress: () => void };
+type Toast = { id: number; message: string; tone: Tone; action?: ToastAction };
 
 let nextId = 1;
 
@@ -20,14 +21,16 @@ export const useDialogStore = create<{
   toasts: Toast[];
   showDialog: (d: Omit<Dialog, 'id'>) => void;
   closeDialog: () => void;
-  showToast: (message: string, tone: Tone) => void;
+  showToast: (message: string, tone: Tone, action?: ToastAction) => void;
   hideToast: (id: number) => void;
 }>()((set) => ({
   dialogs: [],
   toasts: [],
-  showDialog: (d) => set((s) => ({ dialogs: [...s.dialogs, { ...d, id: nextId++ }] })),
+  // Même message déjà affiché (plusieurs appuis) : pas de fenêtre en double à refermer
+  showDialog: (d) => set((s) => (s.dialogs.some((x) => x.title === d.title && x.message === d.message) ? s : { dialogs: [...s.dialogs, { ...d, id: nextId++ }] })),
   closeDialog: () => set((s) => ({ dialogs: s.dialogs.slice(1) })),
-  showToast: (message, tone) => set((s) => ({ toasts: [...s.toasts.slice(-2), { id: nextId++, message, tone }] })),
+  // Message avec bouton : un seul à la fois, le nouveau remplace le précédent (ajouts au panier à la suite)
+  showToast: (message, tone, action) => set((s) => ({ toasts: [...(action ? s.toasts.filter((t) => !t.action) : s.toasts).slice(-2), { id: nextId++, message, tone, action }] })),
   hideToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
 }));
 
@@ -42,7 +45,13 @@ export function DialogHost() {
     <>
       {/* En haut à droite, étroites et semi-transparentes : le bouton retour, à gauche, reste toujours visible */}
       <View pointerEvents="box-none" style={{ position: 'absolute', top: insets.top + spacing.sm, right: spacing.md, width: '68%', maxWidth: 360, gap: spacing.sm, alignItems: 'flex-end' }}>
-        {toasts.map((t) => (
+        {toasts.filter((t) => !t.action).map((t) => (
+          <ToastView key={t.id} toast={t} />
+        ))}
+      </View>
+      {/* Message avec bouton (« Voir le panier ») : en bas, à portée du pouce, au-dessus de la barre d'onglets */}
+      <View pointerEvents="box-none" style={{ position: 'absolute', bottom: insets.bottom + 88, left: spacing.md, right: spacing.md, alignItems: 'center' }}>
+        {toasts.filter((t) => t.action).map((t) => (
           <ToastView key={t.id} toast={t} />
         ))}
       </View>
@@ -100,7 +109,20 @@ function ToastView({ toast }: { toast: Toast }) {
         <View style={[styles.toastIcon, { backgroundColor: tint }]}>
           <Icon name={ICONS[toast.tone]} size={12} color="#FFFFFF" />
         </View>
-        <Text style={[styles.toastText, { color: dark ? '#1C1917' : '#FFFFFF' }]}>{toast.message}</Text>
+        <Text style={[styles.toastText, { color: dark ? '#1C1917' : '#FFFFFF' }]} numberOfLines={1}>{toast.message}</Text>
+        {toast.action ? (
+          <Pressable
+            onPress={() => {
+              hide(toast.id);
+              toast.action?.onPress();
+            }}
+            hitSlop={10}
+            accessibilityRole="button"
+            style={styles.toastAction}
+          >
+            <Text style={styles.toastActionText}>{toast.action.label}</Text>
+          </Pressable>
+        ) : null}
       </Pressable>
     </Animated.View>
   );
@@ -117,4 +139,6 @@ const useStyles = makeStyles((c) => ({
   toastRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
   toastIcon: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   toastText: { flexShrink: 1, fontSize: fontSize.small, fontWeight: '600' },
+  toastAction: { paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radius.pill, backgroundColor: c.brand },
+  toastActionText: { color: '#FFFFFF', fontSize: fontSize.small, fontWeight: '700' },
 }));

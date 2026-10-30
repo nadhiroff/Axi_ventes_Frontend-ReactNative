@@ -1,19 +1,18 @@
-import { router } from 'expo-router';
+import { router, useIsFocused } from 'expo-router';
+import { useEffect } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { api } from '../../api/endpoints';
+import { AdsCarousel } from '../../components/AdCard';
 import { AisleTile } from '../../components/client/AisleTile';
 import { StallCard } from '../../components/client/StallCard';
 import { AxiLogo } from '../../components/ui/AxiLogo';
 import { Button } from '../../components/ui/Button';
-import { CachedImage } from '../../components/ui/CachedImage';
 import { Icon } from '../../components/ui/Icon';
 import { Grid, Screen } from '../../components/ui/Screen';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { ArrivalsCarousel } from '../../components/client/ArrivalsCarousel';
 import { ErrorView, LoadingView } from '../../components/ui/StateViews';
-import { Tag } from '../../components/ui/Tag';
 import { API_CONFIGURED } from '../../config/env';
 import { useNotifications } from '../../hooks/api/account';
 import { useHome } from '../../hooks/api/client';
@@ -28,14 +27,19 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { contentWidth, gutter, aisleColumns, listColumns } = useLayout();
-  const home = useHome();
+  const focused = useIsFocused();
+  const home = useHome(focused);
+  const { refetch } = home;
+  useEffect(() => {
+    if (focused) refetch();
+  }, [focused, refetch]);
   const signedIn = useAuthStore((s) => s.status === 'signedIn');
   const unread = useNotifications().data?.unread ?? 0;
   const data = home.data;
 
   const header = (
-    <View style={[styles.header, { paddingTop: insets.top + spacing.lg }]}>
-      <View style={{ width: '100%', maxWidth: contentWidth, paddingHorizontal: gutter, gap: spacing.lg }}>
+    <View style={[styles.header, { paddingTop: insets.top + spacing.xs }]}>
+      <View style={{ width: '100%', maxWidth: contentWidth, paddingHorizontal: gutter, gap: spacing.md }}>
         <View style={styles.brandRow}>
           <View>
             <AxiLogo />
@@ -92,24 +96,7 @@ export default function HomeScreen() {
             {data.market_notice ? <Text style={styles.bannerNote}>{data.market_notice.text + (data.market_notice.partner ? ` · ${data.market_notice.partner}` : '')}</Text> : null}
           </View>
 
-          {data.sponsored ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => {
-                api.promotionClick(data.sponsored!.id).catch(() => undefined);
-                router.push(data.sponsored!.target.type === 'stall' ? `/etal/${data.sponsored!.target.id}` : `/allee/${data.sponsored!.target.id}`);
-              }}
-              style={styles.sponsored}
-            >
-              {data.sponsored.image ? <CachedImage image={data.sponsored.image} variant="medium" style={styles.sponsoredImage} contentFit="cover" /> : null}
-              <View style={{ flex: 1, gap: 4 }}>
-                <Tag label={t('home.sponsored')} tone="outline" />
-                <Text style={styles.sponsoredTitle}>{data.sponsored.title}</Text>
-                {data.sponsored.text ? <Text style={styles.sponsoredText}>{data.sponsored.text}</Text> : null}
-              </View>
-              <Icon name="chevron-right" size={20} color={colors.textMuted} />
-            </Pressable>
-          ) : null}
+          <AdsCarousel ads={data.ads} />
 
           {/* Arrivages des commerçants abonnés : petites annonces avec photo, à faire défiler, « Suivre » en un geste */}
           {(data.announcements ?? []).length ? (
@@ -146,7 +133,7 @@ export default function HomeScreen() {
 }
 
 const useStyles = makeStyles((c) => ({
-  header: { backgroundColor: c.surface, paddingBottom: spacing.lg, alignItems: 'center' },
+  header: { backgroundColor: c.surface, paddingBottom: spacing.md, alignItems: 'center' },
   brandRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   tagline: { fontSize: fontSize.body, color: c.textMuted, marginTop: -4 },
@@ -157,14 +144,10 @@ const useStyles = makeStyles((c) => ({
   badgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
   search: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: c.surfaceAlt, borderRadius: radius.lg, paddingHorizontal: spacing.lg, minHeight: 54 },
   searchText: { fontSize: fontSize.title, color: c.textMuted },
-  banner: { backgroundColor: '#1C1917', borderRadius: radius.lg, padding: spacing.xl, gap: spacing.xs },
+  banner: { backgroundColor: c.ink, borderRadius: radius.lg, padding: spacing.xl, gap: spacing.xs },
   bannerTitle: { fontSize: fontSize.heading, fontWeight: '800', color: '#FFFFFF' },
   bannerText: { fontSize: fontSize.body, color: '#D6D3D1' },
   bannerNote: { fontSize: fontSize.small, color: '#FB923C', fontWeight: '600', marginTop: spacing.sm },
-  sponsored: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: c.surface, borderWidth: 1.5, borderColor: c.brandMuted, borderRadius: radius.lg, padding: spacing.lg },
-  sponsoredImage: { width: 72, height: 72, borderRadius: radius.md },
-  sponsoredTitle: { fontSize: fontSize.title, fontWeight: '700', color: c.text },
-  sponsoredText: { fontSize: fontSize.small, color: c.textMuted },
   emptyCard: { backgroundColor: c.surface, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.md },
   emptyText: { fontSize: fontSize.body, color: c.textMuted },
 }));

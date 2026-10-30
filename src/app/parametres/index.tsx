@@ -174,6 +174,18 @@ export default function SettingsScreen() {
             </Card>
             <Text style={styles.muted}>{t('settings.reminders')}</Text>
 
+            {/* Historique : seulement caché sur mon compte, les commandes terminées uniquement */}
+            <Text style={styles.section}>{t('settings.historyTitle')}</Text>
+            <Card style={{ gap: spacing.md }}>
+              <Text style={styles.label}>{t('settings.historyAuto')}</Text>
+              <View style={styles.wrap}>
+                {([0, 3, 6, 12] as const).map((m) => (
+                  <Chip key={m} label={m === 0 ? t('settings.historyNever') : t('settings.historyMonths', { n: m })} selected={s.history_months === m} onPress={() => save({ history_months: m })} />
+                ))}
+              </View>
+              <Text style={styles.muted}>{t('settings.historyHint')}</Text>
+            </Card>
+
             <Text style={styles.section}>{merchant ? t('settings.savedBuyer') : t('settings.saved')}</Text>
             <Card style={{ gap: spacing.md }}>
               <Text style={styles.muted}>{t('settings.savedHint')}</Text>

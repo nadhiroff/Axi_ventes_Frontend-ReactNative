@@ -14,7 +14,7 @@ export default function ClientTabsLayout() {
   const status = useAuthStore((s) => s.status);
   const mode = useAuthStore((s) => s.mode);
   const count = useCartStore((s) => cartCount(s.items));
-  const unread = useBadges().data?.unread_messages ?? 0;
+  const unread = useBadges().data?.unread_as_client ?? 0;
   const { colors } = useTheme();
   const { tablet } = useLayout();
   const t = useT();

@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useIsFocused } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
@@ -19,7 +19,7 @@ import { formatCount, formatShortDate } from '../../../lib/format';
 import { SubscriberTag } from '../../../components/ui/VerifiedIcon';
 import { useT } from '../../../i18n';
 import { notify } from '../../../lib/confirm';
-import { fontSize, makeStyles, spacing, useLayout } from '../../../theme';
+import { fontSize, makeStyles, spacing, useLayout, useTheme } from '../../../theme';
 
 const PREVIEW = 6;
 
@@ -28,7 +28,8 @@ export default function MyStallScreen() {
   const styles = useStyles();
   const t = useT();
   const { listColumns, tablet } = useLayout();
-  const stall = useMerchantStall();
+  const { dark } = useTheme();
+  const stall = useMerchantStall(useIsFocused());
   const mutations = useStallMutations();
   const d = stall.data;
   const [showAll, setShowAll] = useState(false);
@@ -48,29 +49,32 @@ export default function MyStallScreen() {
     <>
       <ScreenHeader title={t('nav.stall')} showBack={false} right={<Button label={t('common.edit')} icon="edit-2" size="sm" variant="ghost" onPress={() => router.push('/commercant/modifier-etal')} />} />
       <Screen refreshing={stall.isRefetching} onRefresh={() => stall.refetch()}>
-        <Card style={{ gap: spacing.md }}>
+        {/* En mode sombre, la carte n'a plus de bord : sans marge, la photo s'aligne sur le titre « Mon étal » */}
+        <Card style={[{ gap: spacing.sm }, dark && { paddingHorizontal: 0, paddingVertical: 0 }]}>
           <View style={styles.identity}>
             <Pressable onPress={() => s.photos.length > 0 && setPhotoIndex(0)} disabled={!s.photos.length} accessibilityRole="imagebutton" accessibilityLabel={s.name}>
-              <Avatar name={s.name} image={s.avatar} size={72} />
+              <Avatar name={s.name} image={s.avatar} size={60} />
             </Pressable>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={styles.name}>{s.name}</Text>
-              {s.tagline ? <Text style={styles.muted}>{s.tagline}</Text> : null}
-              <Text style={styles.muted}>{s.location.label}</Text>
-              <Text style={[styles.muted, { fontWeight: '700' }]}>{t('stall.followers', { n: s.followers_count, count: formatCount(s.followers_count) })}</Text>
-              <Text style={styles.type}>{s.merchant_type === 'wholesale' ? t('merchant.wholesale') : t('merchant.retail')}</Text>
-              {/* Abonnement visible d'un coup d'œil ; sans abonnement, un toucher mène à la page d'abonnement */}
-              {s.subscription.status === 'active' ? (
-                <View style={{ alignSelf: 'flex-start', marginTop: 4 }}>
-                  <SubscriberTag label={s.subscription.ends_on ? t('stall.subscribedUntil', { date: formatShortDate(s.subscription.ends_on) }) : undefined} />
-                </View>
-              ) : (
-                <Pressable onPress={() => router.push('/commercant/abonnement')} style={{ alignSelf: 'flex-start', marginTop: 4 }} accessibilityRole="button">
-                  <Tag label={`${t('stall.notSubscribed')} ›`} tone="outline" icon="star" />
-                </Pressable>
-              )}
+            <View style={{ flex: 1, gap: 1 }}>
+              <Text style={styles.name} numberOfLines={1}>{s.name}</Text>
+              <Text style={styles.muted} numberOfLines={1}>{[s.tagline, s.location.label].filter(Boolean).join(' · ')}</Text>
+              <Text style={styles.muted} numberOfLines={1}>
+                <Text style={{ fontWeight: '700' }}>{t('stall.followers', { n: s.followers_count, count: formatCount(s.followers_count) })}</Text>
+                {' · '}
+                <Text style={styles.type}>{s.merchant_type === 'wholesale' ? t('merchant.wholesale') : t('merchant.retail')}</Text>
+              </Text>
             </View>
           </View>
+          {/* Abonnement : sans abonnement, un toucher mène à la page d'abonnement */}
+          {s.subscription.status === 'active' ? (
+            <View style={{ alignSelf: 'flex-start' }}>
+              <SubscriberTag label={s.subscription.ends_on ? t('stall.subscribedUntil', { date: formatShortDate(s.subscription.ends_on) }) : undefined} />
+            </View>
+          ) : (
+            <Pressable onPress={() => router.push('/commercant/abonnement')} style={{ alignSelf: 'flex-start' }} accessibilityRole="button">
+              <Tag label={`${t('stall.notSubscribed')} ›`} tone="outline" icon="star" />
+            </Pressable>
+          )}
           {s.verified ? (
             <Tag label={t('merchant.verifiedBadge')} tone="trustSolid" icon="check-circle" size="md" />
           ) : (
@@ -119,7 +123,7 @@ export default function MyStallScreen() {
 
 const useStyles = makeStyles((c) => ({
   identity: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  name: { fontSize: fontSize.heading, fontWeight: '800', color: c.text },
+  name: { fontSize: fontSize.title + 2, fontWeight: '800', color: c.text },
   muted: { fontSize: fontSize.small, color: c.textMuted },
   type: { fontSize: fontSize.small, color: c.brandDark, fontWeight: '700' },
   pending: { fontSize: fontSize.body, color: c.brandDark, fontWeight: '600' },
