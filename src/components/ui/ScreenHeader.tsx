@@ -30,7 +30,8 @@ export function ScreenHeader({ title, subtitle, showBack = true, right }: Props)
   );
 }
 
-export function BackButton({ tone = 'light' }: { tone?: 'light' | 'onBrand' }) {
+/** Bouton retour ; compact : plus petit, pour les en-têtes colorés où il partage la ligne avec le contenu */
+export function BackButton({ tone = 'light', compact = false }: { tone?: 'light' | 'onBrand'; compact?: boolean }) {
   const styles = useStyles();
   const t = useT();
   const { colors } = useTheme();
@@ -40,9 +41,9 @@ export function BackButton({ tone = 'light' }: { tone?: 'light' | 'onBrand' }) {
       accessibilityLabel={t('common.back')}
       hitSlop={8}
       onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
-      style={[styles.back, tone === 'onBrand' && styles.backOnBrand]}
+      style={[styles.back, compact && styles.backCompact, tone === 'onBrand' && styles.backOnBrand]}
     >
-      <Icon name="chevron-left" size={22} color={tone === 'onBrand' ? '#FFFFFF' : colors.text} />
+      <Icon name="chevron-left" size={compact ? 20 : 22} color={tone === 'onBrand' ? '#FFFFFF' : colors.text} />
     </Pressable>
   );
 }
@@ -54,5 +55,6 @@ const useStyles = makeStyles((c) => ({
   title: { fontSize: fontSize.display, fontWeight: '700', color: c.text },
   subtitle: { fontSize: fontSize.body, color: c.textMuted, marginTop: 2 },
   back: { width: 44, height: 44, borderRadius: 22, backgroundColor: c.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  backCompact: { width: 36, height: 36, borderRadius: 18 },
   backOnBrand: { backgroundColor: 'rgba(255,255,255,0.18)' },
 }));
