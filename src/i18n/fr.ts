@@ -260,6 +260,7 @@ export const fr = {
     noUrl: 'La page de paiement n\'a pas pu s\'ouvrir. Réessayez : vous ne serez débité qu\'une seule fois.',
   },
   merchant: {
+    stallPhotoHint: 'Celle que les clients voient en premier.',
     productDescription: 'Description',
     productDescriptionPlaceholder: 'Ex. : 100 % coton, 6 yards, plusieurs couleurs disponibles',
     productDescriptionHint: 'Visible par les clients sur la fiche du produit.',

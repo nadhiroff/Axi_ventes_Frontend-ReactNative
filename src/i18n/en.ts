@@ -261,6 +261,7 @@ export const en: Dict = {
     noUrl: 'The payment page could not open. Try again: you will be charged only once.',
   },
   merchant: {
+    stallPhotoHint: 'The one customers see first.',
     productDescription: 'Description',
     productDescriptionPlaceholder: 'E.g. 100% cotton, 6 yards, several colours available',
     productDescriptionHint: 'Shown to customers on the product page.',
