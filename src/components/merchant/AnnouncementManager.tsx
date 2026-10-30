@@ -123,8 +123,8 @@ function EditSheet({ announcement, onClose, onImage }: { announcement: Announcem
   const busy = actions.setAnnouncementPhoto.isPending || actions.removeAnnouncementPhoto.isPending;
   // Fermer avec un texte modifié et non enregistré : confirmation
   const close = () => {
-    if (text.trim() === announcement.text.trim()) onClose();
-    else confirmAction(t('common.discardTitle'), t('common.discardText'), onClose, { destructive: true, confirmLabel: t('common.yes'), cancelLabel: t('common.no') });
+    const changed = text.trim() !== announcement.text.trim();
+    confirmAction(t('common.discardTitle'), changed ? t('common.discardText') : t('common.leaveText'), onClose, { destructive: changed, confirmLabel: t('common.yes'), cancelLabel: t('common.no') });
   };
 
   const pick = async (source: 'camera' | 'library') => {
