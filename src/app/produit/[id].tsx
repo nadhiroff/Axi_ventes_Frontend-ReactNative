@@ -114,12 +114,8 @@ export default function ProductScreen() {
             <Text style={styles.descriptionText}>{p.description}</Text>
           </View>
         ) : null}
-        {!own ? (
-          <>
-            <StallCard stall={p.stall} />
-            <Button label={t('product.seeStall')} variant="ghost" icon="shopping-bag" onPress={() => router.push(`/etal/${p.stall.id}`)} />
-          </>
-        ) : null}
+        {/* La carte de l'étal suffit : la toucher ouvre l'étal */}
+        {!own ? <StallCard stall={p.stall} /> : null}
       </Screen>
       <ImageViewer images={p.images} initialIndex={viewer ?? 0} visible={viewer !== null} onClose={() => setViewer(null)} title={p.name} />
     </>
