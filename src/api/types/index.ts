@@ -406,7 +406,7 @@ export type ConversationSummary = {
   kept: boolean;
   retention_note: string;
   unread_count: number;
-  last_message: { kind: MessageKind; preview: string; mine: boolean; created_at: string } | null;
+  last_message: { kind: MessageKind; preview: string; mine: boolean; status: MessageStatus | null; created_at: string } | null;
 };
 export type MessageKind = 'text' | 'photo' | 'voice';
 /** sent : ✓ reçu par Axi ; delivered : ✓✓ arrivé sur le téléphone de l'autre ; read : ✓✓ bleu, lu */

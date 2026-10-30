@@ -655,6 +655,7 @@ export const fr = {
     bioHint: 'Quelques mots visibles des commerçants et clients avec qui vous échangez (300 caractères).',
   },
   chat: {
+    searchByName: 'Rechercher par nom ou prénom',
     search: 'Rechercher',
     searchClient: 'Rechercher une discussion ou un étal',
     searchMerchant: 'Rechercher une discussion ou un client',

@@ -25,6 +25,7 @@ import { useT } from '../../i18n';
 import { confirmAction, notify, toast } from '../../lib/confirm';
 import { formatShortDate } from '../../lib/format';
 import { useDialogStore } from '../../components/ui/DialogHost';
+import { Ticks } from '../../components/chat/Ticks';
 import { useKeyboardToolbarStore } from '../../store/uiStore';
 import { fontSize, makeStyles, radius, spacing, useLayout, useTheme } from '../../theme';
 
@@ -271,22 +272,6 @@ function lastSeen(iso: string, t: ReturnType<typeof useT>): string {
   return d.toDateString() === new Date().toDateString() ? t('chat.seenToday', { time }) : t('chat.seenOn', { date: formatShortDate(iso), time });
 }
 
-/** Coches comme WhatsApp : ✓ envoyé, ✓✓ reçu, ✓✓ bleu lu */
-function Ticks({ status }: { status: ChatMessage['status'] }) {
-  if (!status) return null;
-  const color = status === 'read' ? '#7DD3FC' : 'rgba(255,255,255,0.75)';
-  return (
-    <View style={{ flexDirection: 'row' }} accessibilityLabel={status}>
-      <Icon name="check" size={14} color={color} />
-      {status !== 'sent' ? (
-        <View style={{ marginLeft: -9 }}>
-          <Icon name="check" size={14} color={color} />
-        </View>
-      ) : null}
-    </View>
-  );
-}
-
 /** Texte court d'un message (barre « Répondre à ») */
 function previewOf(m: ChatMessage, t: ReturnType<typeof useT>): string {
   if (m.kind === 'photo') return `📷 ${t('chat.photoLabel')}`;
@@ -380,7 +365,7 @@ function Bubble({ message, onImage, onLongPress, otherName }: { message: ChatMes
       <View style={styles.meta}>
         {message.edited ? <Text style={[styles.time, message.mine && styles.timeMine]}>{t('chat.editedLabel')}</Text> : null}
         <Text style={[styles.time, message.mine && styles.timeMine]}>{time}</Text>
-        {message.mine && !message.deleted ? <Ticks status={message.status} /> : null}
+        {message.mine && !message.deleted ? <Ticks status={message.status} onBrand /> : null}
       </View>
     </Pressable>
   );
