@@ -87,7 +87,6 @@ export default function TodayScreen() {
 
         <View style={[styles.quick, { flexDirection: tablet ? 'row' : 'column' }]}>
           <Button label={t('merchant.addPhoto')} icon="camera" onPress={() => router.push('/commercant/produit/nouveau')} style={{ flex: 1 }} />
-          <Button label={t('merchant.addVoice')} icon="mic" variant="ghost" onPress={() => router.push({ pathname: '/commercant/produit/nouveau', params: { mode: 'voice' } })} style={{ flex: 1 }} />
           <Button label={t('merchant.arrival')} icon="package" variant="ghost" onPress={() => setArrivalOpen(true)} style={{ flex: 1 }} />
         </View>
 

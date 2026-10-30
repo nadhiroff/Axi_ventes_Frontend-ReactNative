@@ -4,6 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { ApiError, errorMessage, type LocalFile } from '../../../api/client';
 import type { Product, ProductPatch } from '../../../api/types';
+import { PriceFields } from '../../../components/merchant/PriceFields';
 import { PhotoPicker } from '../../../components/merchant/PhotoPicker';
 import { AudioPlayerButton } from '../../../components/ui/AudioPlayerButton';
 import { Button } from '../../../components/ui/Button';
@@ -127,14 +128,7 @@ function EditProductForm({ product }: { product: Product }) {
           <Field label={t('merchant.productName')} value={form.name} onChangeText={(v) => setForm((f) => ({ ...f, name: v }))} error={errors.name} />
           <SwitchRow label={t('merchant.negotiable')} value={form.negotiable} onChange={(v) => setForm((f) => ({ ...f, negotiable: v }))} />
           {!form.negotiable ? (
-            <View style={{ flexDirection: 'row', gap: spacing.md }}>
-              <View style={{ flex: 1 }}>
-                <Field label={t('merchant.price')} value={form.price} onChangeText={(v) => setForm((f) => ({ ...f, price: v }))} keyboardType="number-pad" error={errors.price} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Field label={t('merchant.priceMax')} value={form.priceMax} onChangeText={(v) => setForm((f) => ({ ...f, priceMax: v }))} keyboardType="number-pad" error={errors.price_max} />
-              </View>
-            </View>
+            <PriceFields min={form.price} max={form.priceMax} onMin={(v) => setForm((f) => ({ ...f, price: v }))} onMax={(v) => setForm((f) => ({ ...f, priceMax: v }))} errors={errors} />
           ) : null}
           <SwitchRow label={t('merchant.inStock')} value={form.in_stock} onChange={(v) => setForm((f) => ({ ...f, in_stock: v }))} />
           <SwitchRow label={t('merchant.trackStock')} hint={t('merchant.trackStockHint')} value={form.trackStock} onChange={(v) => setForm((f) => ({ ...f, trackStock: v }))} />
