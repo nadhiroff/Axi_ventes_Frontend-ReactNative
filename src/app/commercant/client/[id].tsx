@@ -111,7 +111,7 @@ function NoteEditor({ initial, onSave }: { initial: string; onSave: (note: strin
   return (
     <>
       <Field label={t('merchant.note')} value={note} onChangeText={setNote} multiline />
-      <Button label={t('common.save')} variant="ghost" onPress={() => onSave(note)} />
+      <Button label={t('common.update')} variant="ghost" onPress={() => onSave(note)} />
     </>
   );
 }

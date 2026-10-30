@@ -117,7 +117,7 @@ export default function ProfileScreen() {
               hint={t('profile.bioHint')}
               error={errors.bio}
             />
-            <Button label={t('common.save')} onPress={save} loading={saving} />
+            <Button label={t('common.update')} onPress={save} loading={saving} />
           </Card>
         </View>
       </Screen>

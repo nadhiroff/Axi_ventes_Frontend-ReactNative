@@ -248,7 +248,7 @@ export default function ConversationScreen() {
           accessibilityLabel={t('chat.placeholder')}
         />
         {text.trim() || editing ? (
-          <Pressable onPress={sendText} style={[styles.sendButton, (send.isPending || actions.edit.isPending) && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel={editing ? t('common.save') : t('common.send')}>
+          <Pressable onPress={sendText} style={[styles.sendButton, (send.isPending || actions.edit.isPending) && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel={editing ? t('common.update') : t('common.send')}>
             <Icon name={editing ? 'check' : 'send'} size={20} color="#FFFFFF" />
           </Pressable>
         ) : (
