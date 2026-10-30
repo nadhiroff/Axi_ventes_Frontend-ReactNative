@@ -18,11 +18,18 @@ import { Tag } from '../ui/Tag';
 export function ProductRow({ product }: { product: Product }) {
   const styles = useStyles();
   const t = useT();
-  const { colors } = useTheme();
   const mutations = useProductMutations();
   const [viewer, setViewer] = useState(false);
   const toggle = (patch: { in_stock?: boolean; is_today?: boolean }) =>
-    mutations.update.mutate({ id: product.id, patch }, { onError: (e) => notify(product.name, errorMessage(e), 'error') });
+    new Promise<boolean>((resolve) =>
+      mutations.update.mutate({ id: product.id, patch }, {
+        onSuccess: () => resolve(true),
+        onError: (e) => {
+          notify(product.name, errorMessage(e), 'error');
+          resolve(false);
+        },
+      }),
+    );
   const draft = product.status === 'draft';
 
   return (
@@ -47,20 +54,38 @@ export function ProductRow({ product }: { product: Product }) {
       </View>
       {!draft ? (
         <View style={styles.toggles}>
-          <View style={styles.toggle}>
-            <Text style={styles.toggleLabel} numberOfLines={1}>{t('merchant.inStock')}</Text>
-            <Switch value={product.in_stock} onValueChange={(v) => toggle({ in_stock: v })} trackColor={{ true: colors.trust, false: colors.border }} thumbColor="#FFFFFF" accessibilityLabel={t('merchant.inStock')} />
-          </View>
-          <View style={styles.toggle}>
-            <Text style={styles.toggleLabel} numberOfLines={1}>{t('merchant.todayToggle')}</Text>
-            <Switch value={product.is_today} onValueChange={(v) => toggle({ is_today: v })} trackColor={{ true: colors.trust, false: colors.border }} thumbColor="#FFFFFF" accessibilityLabel={t('merchant.todayToggle')} />
-          </View>
+          <ToggleRow key={`stock-${product.in_stock}`} label={t('merchant.inStock')} initial={product.in_stock} onChange={(v) => toggle({ in_stock: v })} />
+          <ToggleRow key={`today-${product.is_today}`} label={t('merchant.todayToggle')} initial={product.is_today} onChange={(v) => toggle({ is_today: v })} />
         </View>
       ) : (
         <Text style={styles.muted}>{t('merchant.voiceDraft')}</Text>
       )}
       <ImageViewer images={product.images} visible={viewer} onClose={() => setViewer(false)} title={product.name} />
     </View>
+  );
+}
+
+/**
+ * Ligne « libellé — interrupteur » : toute la ligne se touche ; l'interrupteur bascule tout de suite
+ * (sans attendre le serveur) et ne revient en arrière qu'en cas d'échec.
+ */
+function ToggleRow({ label, initial, onChange }: { label: string; initial: boolean; onChange: (value: boolean) => Promise<boolean> }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
+  const [value, setValue] = useState(initial);
+  const change = (next: boolean) => {
+    setValue(next);
+    onChange(next).then((ok) => {
+      if (!ok) setValue(!next);
+    });
+  };
+  return (
+    <Pressable onPress={() => change(!value)} style={styles.toggle} accessibilityRole="switch" accessibilityState={{ checked: value }} accessibilityLabel={label}>
+      <Text style={styles.toggleLabel} numberOfLines={1}>
+        {label}
+      </Text>
+      <Switch value={value} onValueChange={change} trackColor={{ true: colors.trust, false: colors.border }} thumbColor="#FFFFFF" ios_backgroundColor={colors.border} style={styles.switch} />
+    </Pressable>
   );
 }
 
@@ -75,6 +100,7 @@ const useStyles = makeStyles((c) => ({
   edit: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   // Un interrupteur par ligne : libellé à gauche, interrupteur à droite, toujours alignés quelle que soit la langue
   toggles: {},
-  toggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, minHeight: 48, borderTopWidth: 1, borderTopColor: c.border },
-  toggleLabel: { flex: 1, fontSize: fontSize.body, color: c.text, fontWeight: '500' },
+  toggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, minHeight: 52, paddingVertical: 6, borderTopWidth: 1, borderTopColor: c.border },
+  toggleLabel: { flex: 1, fontSize: fontSize.body, lineHeight: 20, color: c.text, fontWeight: '500', includeFontPadding: false, textAlignVertical: 'center' },
+  switch: { marginVertical: 0, alignSelf: 'center' },
 }));
