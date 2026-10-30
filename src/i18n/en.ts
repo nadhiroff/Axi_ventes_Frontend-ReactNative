@@ -123,6 +123,7 @@ export const en: Dict = {
     empty: 'No results for “{q}”.',
   },
   stall: {
+    voiceShort: 'Voice',
     subscriberBadge: 'Axi subscribed merchant',
     announcement: 'New arrival',
     followers: '{count} follower|{count} followers',

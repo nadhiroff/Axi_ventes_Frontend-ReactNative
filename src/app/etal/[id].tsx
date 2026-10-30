@@ -9,6 +9,7 @@ import { ProductTile } from '../../components/client/ProductTile';
 import { useAddToCart } from '../../components/client/useAddToCart';
 import { Avatar } from '../../components/ui/Avatar';
 import { Button } from '../../components/ui/Button';
+import { Icon } from '../../components/ui/Icon';
 import { ImageViewer } from '../../components/ui/ImageViewer';
 import { PhotoCarousel } from '../../components/ui/PhotoCarousel';
 import { AnnouncementCard } from '../../components/client/AnnouncementCard';
@@ -26,7 +27,7 @@ import { confirmAction, notify, toast } from '../../lib/confirm';
 import { useAuthStore } from '../../store/authStore';
 import { formatCount, formatFcfa } from '../../lib/format';
 import { cartCount, useCartStore } from '../../store/cartStore';
-import { fontSize, makeStyles, radius, spacing, useLayout } from '../../theme';
+import { fontSize, makeStyles, radius, spacing, useLayout, useTheme } from '../../theme';
 import { callPhone, openWhatsapp, openLink } from '../../lib/contact';
 
 /** Page d'un étal. Aucune publicité n'y est affichée (règle du cahier des charges). */
@@ -92,16 +93,19 @@ export default function StallScreen() {
                 <Text style={styles.name}>{s.name}</Text>
                 {s.subscribed ? <SubscriberBadge size={20} onDark /> : null}
               </View>
-              {s.tagline ? <Text style={styles.tagline}>{s.tagline}</Text> : null}
-              <Text style={styles.location}>{s.location.label}</Text>
-              <Text style={styles.followers}>{t('stall.followers', { n: s.followers_count, count: formatCount(s.followers_count) })}</Text>
+              {s.tagline ? <Text style={styles.tagline} numberOfLines={1}>{s.tagline}</Text> : null}
+              {/* Emplacement et abonnés sur une seule ligne */}
+              <Text style={styles.location} numberOfLines={2}>
+                {s.location.label}
+                <Text style={styles.followers}>{`  ·  ${t('stall.followers', { n: s.followers_count, count: formatCount(s.followers_count) })}`}</Text>
+              </Text>
             </View>
           </View>
           <View style={styles.tags}>
-            {s.verification ? <Tag label={t('stall.verifiedBy')} tone="trustSolid" icon="check-circle" size="md" /> : <Tag label={t('stall.notVerified')} tone="outline" size="md" />}
-            {s.pay_on_delivery ? <Tag label={t('stall.payOnDelivery')} tone="trust" size="md" /> : null}
-            {s.location.moved_at ? <Tag label={t('stall.newLocation')} tone="brand" size="md" /> : null}
-            {s.delivery_note ? <Tag label={s.delivery_note} tone="neutral" size="md" /> : null}
+            {s.verification ? <Tag label={t('stall.verifiedBy')} tone="trustSolid" icon="check-circle" /> : <Tag label={t('stall.notVerified')} tone="outline" />}
+            {s.pay_on_delivery ? <Tag label={t('stall.payOnDelivery')} tone="trust" /> : null}
+            {s.location.moved_at ? <Tag label={t('stall.newLocation')} tone="brand" /> : null}
+            {s.delivery_note ? <Tag label={s.delivery_note} tone="neutral" /> : null}
           </View>
           </View>
         </View>
@@ -109,13 +113,16 @@ export default function StallScreen() {
 
       <Screen refreshing={stall.isRefetching} onRefresh={() => stall.refetch()}>
         {s.photos.length > 1 ? <PhotoCarousel images={s.photos} onOpen={setPhotoIndex} /> : null}
+        {/* Actions principales côte à côte, puis contacts en petits boutons ronds sur une seule ligne */}
         <View style={styles.actions}>
-          <Button label={s.is_followed ? t('stall.following') : t('stall.follow')} icon={s.is_followed ? 'check' : 'plus'} variant={s.is_followed ? 'ghost' : 'primary'} onPress={toggleFollow} loading={follow.isPending} style={{ flexGrow: 1 }} />
-          {ownStallId !== s.id ? <Button label={t('chat.write')} icon="message-square" variant="ghost" onPress={writeToStall} loading={opening} style={{ flexGrow: 1 }} /> : null}
-          {s.contacts.whatsapp ? <Button label={t('common.whatsapp')} icon="message-circle" variant="ghost" onPress={() => openWhatsapp(s.contacts.whatsapp!)} style={{ flexGrow: 1 }} /> : null}
-          {s.contacts.phone ? <Button label={t('common.call')} icon="phone" variant="ghost" onPress={() => callPhone(s.contacts.phone)} style={{ flexGrow: 1 }} /> : null}
-          {s.contacts.accepts_voice_messages ? <Button label={t('stall.voice')} icon="mic" variant="ghost" onPress={() => requireAuth(() => setVoiceOpen(true), t('auth.reasonVoice'))} style={{ flexGrow: 1 }} /> : null}
-          {s.location.map_url ? <Button label={t('stall.map')} icon="map" variant="ghost" onPress={() => openLink(s.location.map_url!)} style={{ flexGrow: 1 }} /> : null}
+          <Button label={s.is_followed ? t('stall.following') : t('stall.follow')} icon={s.is_followed ? 'check' : 'plus'} variant={s.is_followed ? 'ghost' : 'primary'} onPress={toggleFollow} loading={follow.isPending} style={{ flex: 1 }} />
+          {ownStallId !== s.id ? <Button label={t('chat.write')} icon="message-square" variant="ghost" onPress={writeToStall} loading={opening} style={{ flex: 1 }} /> : null}
+        </View>
+        <View style={styles.contacts}>
+          {s.contacts.whatsapp ? <ContactButton icon="message-circle" label={t('common.whatsapp')} onPress={() => openWhatsapp(s.contacts.whatsapp!)} /> : null}
+          {s.contacts.phone ? <ContactButton icon="phone" label={t('common.call')} onPress={() => callPhone(s.contacts.phone)} /> : null}
+          {s.contacts.accepts_voice_messages ? <ContactButton icon="mic" label={t('stall.voiceShort')} onPress={() => requireAuth(() => setVoiceOpen(true), t('auth.reasonVoice'))} /> : null}
+          {s.location.map_url ? <ContactButton icon="map" label={t('stall.map')} onPress={() => openLink(s.location.map_url!)} /> : null}
         </View>
 
         {s.announcements.map((a) => (
@@ -167,15 +174,35 @@ export default function StallScreen() {
   );
 }
 
+/** Petit bouton rond avec son libellé dessous (WhatsApp, Appeler, Vocal, Plan) */
+function ContactButton({ icon, label, onPress }: { icon: 'message-circle' | 'phone' | 'mic' | 'map'; label: string; onPress: () => void }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={({ pressed }) => [styles.contact, pressed && { opacity: 0.7 }]}>
+      <View style={styles.contactCircle}>
+        <Icon name={icon} size={20} color={colors.brand} />
+      </View>
+      <Text style={styles.contactLabel} numberOfLines={1}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 const useStyles = makeStyles((c) => ({
   header: { backgroundColor: c.brand, paddingBottom: spacing.lg, alignItems: 'center' },
   identity: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  followers: { color: '#FFFFFF', fontSize: fontSize.small, fontWeight: '700', marginTop: 2 },
+  followers: { color: '#FFFFFF', fontSize: fontSize.small, fontWeight: '700' },
   name: { fontSize: fontSize.heading, fontWeight: '800', color: '#FFFFFF', flexShrink: 1 },
   tagline: { fontSize: fontSize.body, color: '#FFEDD5' },
   location: { fontSize: fontSize.small, color: '#FED7AA', fontWeight: '600' },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  actions: { flexDirection: 'row', gap: spacing.sm },
+  contacts: { flexDirection: 'row', justifyContent: 'space-around', gap: spacing.sm },
+  contact: { alignItems: 'center', gap: 4, minWidth: 64 },
+  contactCircle: { width: 48, height: 48, borderRadius: 24, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' },
+  contactLabel: { fontSize: fontSize.caption, color: c.text, fontWeight: '600' },
   muted: { fontSize: fontSize.body, color: c.textMuted },
   cartBar: { backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border, padding: spacing.md, alignItems: 'center', borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg },
 }));

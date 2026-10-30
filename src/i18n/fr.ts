@@ -122,6 +122,7 @@ export const fr = {
     empty: 'Aucun résultat pour « {q} ».',
   },
   stall: {
+    voiceShort: 'Vocal',
     subscriberBadge: 'Commerçant abonné Axi',
     announcement: 'Arrivage',
     followers: '{count} abonné|{count} abonnés',
