@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { ApiError, errorMessage, type LocalFile } from '../../../api/client';
+import { PriceFields } from '../../../components/merchant/PriceFields';
 import { PhotoPicker } from '../../../components/merchant/PhotoPicker';
 import { Button } from '../../../components/ui/Button';
 import { Card } from '../../../components/ui/Card';
@@ -71,14 +72,7 @@ export default function NewProductScreen() {
               <Field label={t('merchant.productName')} value={name} onChangeText={setName} error={errors.name} />
               <SwitchRow label={t('merchant.negotiable')} value={negotiable} onChange={setNegotiable} />
               {!negotiable ? (
-                <View style={{ flexDirection: 'row', gap: spacing.md }}>
-                  <View style={{ flex: 1 }}>
-                    <Field label={t('merchant.price')} value={price} onChangeText={setPrice} keyboardType="number-pad" error={errors.price} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Field label={t('merchant.priceMax')} value={priceMax} onChangeText={setPriceMax} keyboardType="number-pad" error={errors.price_max} />
-                  </View>
-                </View>
+                <PriceFields min={price} max={priceMax} onMin={setPrice} onMax={setPriceMax} errors={errors} />
               ) : null}
               <SwitchRow label={t('merchant.trackStock')} hint={t('merchant.trackStockHint')} value={trackStock} onChange={setTrackStock} />
               {trackStock ? <Field label={t('merchant.stockQuantity')} value={stock} onChangeText={setStock} keyboardType="number-pad" error={errors.stock_quantity} /> : null}

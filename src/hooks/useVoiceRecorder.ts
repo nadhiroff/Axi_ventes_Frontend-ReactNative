@@ -54,7 +54,7 @@ export function useVoiceRecorder() {
       recorder.record({ forDuration: MAX_VOICE_SECONDS });
       return 'ok';
     } catch {
-      await setAudioModeAsync({ allowsRecording: false }).catch(() => undefined);
+      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => undefined);
       notify(
         en ? 'Microphone unavailable' : 'Micro indisponible',
         en ? 'You cannot record a voice message during a call. Hang up, then try again.' : 'Impossible d’enregistrer un message vocal pendant un appel. Raccrochez, puis réessayez.',
@@ -67,7 +67,7 @@ export function useVoiceRecorder() {
   /** Arrête l'enregistrement et renvoie le fichier prêt à envoyer. */
   const stop = useCallback(async (): Promise<LocalFile | null> => {
     await recorder.stop().catch(() => undefined);
-    await setAudioModeAsync({ allowsRecording: false }).catch(() => undefined);
+    await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => undefined);
     const uri = recorder.uri;
     return uri ? { uri, name: `vocal-${Date.now()}.m4a`, type: 'audio/mp4' } : null;
   }, [recorder]);
