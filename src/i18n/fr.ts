@@ -160,6 +160,7 @@ export const fr = {
     negotiate: 'Pour un prix à débattre, contactez le commerçant par WhatsApp ou par téléphone.',
   },
   product: {
+    description: 'Description',
     negotiable: 'Prix à débattre',
     soldOut: 'Épuisé',
     today: 'Aujourd\'hui',
@@ -257,6 +258,9 @@ export const fr = {
     noUrl: 'La page de paiement n\'a pas pu s\'ouvrir. Réessayez : vous ne serez débité qu\'une seule fois.',
   },
   merchant: {
+    productDescription: 'Description',
+    productDescriptionPlaceholder: 'Ex. : 100 % coton, 6 yards, plusieurs couleurs disponibles',
+    productDescriptionHint: 'Visible par les clients sur la fiche du produit.',
     announcementView: 'Voir',
     announcementImage: 'Photo de l\'annonce',
     announcementPreview: 'Aperçu de l\'annonce',

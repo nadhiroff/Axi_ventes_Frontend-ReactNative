@@ -38,6 +38,7 @@ function EditProductForm({ product }: { product: Product }) {
   const mutations = useProductMutations();
   const [form, setForm] = useState({
     name: product.name,
+    description: product.description ?? '',
     price: product.price ? String(product.price.amount) : '',
     priceMax: product.price?.amount_max ? String(product.price.amount_max) : '',
     negotiable: product.price === null && product.status !== 'draft',
@@ -59,6 +60,7 @@ function EditProductForm({ product }: { product: Product }) {
     }
     const patch: ProductPatch = {
       name: form.name.trim(),
+      description: form.description.trim() || null,
       price: form.negotiable || !form.price ? null : Number(form.price.replace(/\D/g, '')),
       price_max: form.negotiable || !form.priceMax ? null : Number(form.priceMax.replace(/\D/g, '')),
       in_stock: form.in_stock,
@@ -126,6 +128,16 @@ function EditProductForm({ product }: { product: Product }) {
           ) : null}
           <PhotoPicker photos={newPhotos} onChange={setNewPhotos} max={Math.max(0, 5 - product.images.length)} />
           <Field label={t('merchant.productName')} value={form.name} onChangeText={(v) => setForm((f) => ({ ...f, name: v }))} error={errors.name} />
+          <Field
+            label={`${t('merchant.productDescription')} (${t('common.optional')})`}
+            value={form.description}
+            onChangeText={(v) => setForm((f) => ({ ...f, description: v }))}
+            placeholder={t('merchant.productDescriptionPlaceholder')}
+            multiline
+            maxLength={1000}
+            style={{ minHeight: 90, textAlignVertical: 'top' }}
+            error={errors.description}
+          />
           <SwitchRow label={t('merchant.negotiable')} value={form.negotiable} onChange={(v) => setForm((f) => ({ ...f, negotiable: v }))} />
           {!form.negotiable ? (
             <PriceFields min={form.price} max={form.priceMax} onMin={(v) => setForm((f) => ({ ...f, price: v }))} onMax={(v) => setForm((f) => ({ ...f, priceMax: v }))} errors={errors} />
