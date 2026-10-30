@@ -129,6 +129,7 @@ export const api = {
   product: (productId: string) => apiGet<ProductDetail>(`/v1/products/${id(productId)}`),
   promotionClick: (promotionId: string) => apiSend<{ counted: true }>('POST', `/v1/promotions/${id(promotionId)}/click`),
   setFollow: (stallId: string, follow: boolean) => apiSend<{ is_followed: boolean }>(follow ? 'POST' : 'DELETE', `/v1/stalls/${id(stallId)}/follow`),
+  emailStall: (stallId: string, subject: string, message: string) => apiSend<{ message: string }>('POST', `/v1/stalls/${id(stallId)}/email`, { subject, message }),
   sendVoiceMessage: (stallId: string, audio: LocalFile) => apiUpload<{ message: string }>(`/v1/stalls/${id(stallId)}/voice-messages`, {}, { audio }),
   quote: (body: QuoteRequest) => apiSend<Quote>('POST', '/v1/orders/quote', body),
   /** idempotencyKey : la même clé renvoie toujours la même commande (jamais deux débits) */

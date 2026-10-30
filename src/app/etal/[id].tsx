@@ -19,7 +19,7 @@ import { BackButton } from '../../components/ui/ScreenHeader';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { ErrorView, LoadingView } from '../../components/ui/StateViews';
 import { Tag } from '../../components/ui/Tag';
-import { VoiceRecordModal } from '../../components/ui/VoiceRecordModal';
+import { EmailSheet } from '../../components/client/EmailSheet';
 import { useFollow, useStall } from '../../hooks/api/client';
 import { useRequireAuth } from '../../hooks/useRequireAuth';
 import { useT } from '../../i18n';
@@ -40,8 +40,7 @@ export default function StallScreen() {
   const stall = useStall(id);
   const follow = useFollow(id);
   const requireAuth = useRequireAuth();
-  const [voiceOpen, setVoiceOpen] = useState(false);
-  const [sending, setSending] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
   const [photoIndex, setPhotoIndex] = useState<number | null>(null);
   const [opening, setOpening] = useState(false);
   const ownStallId = useAuthStore((st) => st.user?.merchant?.stall_id ?? null);
@@ -97,7 +96,7 @@ export default function StallScreen() {
               {/* Emplacement et abonnés sur une seule ligne */}
               <Text style={styles.location} numberOfLines={2}>
                 {s.location.label}
-                <Text style={styles.followers}>{`  ·  ${t('stall.followers', { n: s.followers_count, count: formatCount(s.followers_count) })}`}</Text>
+                <Text style={styles.followers}>{`  ·  ${t('stall.followers', { n: s.followers_count, count: formatCount(s.followers_count) }).replace(/ /g, '\u00A0')}`}</Text>
               </Text>
             </View>
           </View>
@@ -121,7 +120,7 @@ export default function StallScreen() {
         <View style={styles.contacts}>
           {s.contacts.whatsapp ? <ContactButton icon="message-circle" label={t('common.whatsapp')} onPress={() => openWhatsapp(s.contacts.whatsapp!)} /> : null}
           {s.contacts.phone ? <ContactButton icon="phone" label={t('common.call')} onPress={() => callPhone(s.contacts.phone)} /> : null}
-          {s.contacts.accepts_voice_messages ? <ContactButton icon="mic" label={t('stall.voiceShort')} onPress={() => requireAuth(() => setVoiceOpen(true), t('auth.reasonVoice'))} /> : null}
+          {ownStallId !== s.id ? <ContactButton icon="mail" label={t('stall.emailShort')} onPress={() => requireAuth(() => setEmailOpen(true), t('auth.reasonEmail'))} /> : null}
           {s.location.map_url ? <ContactButton icon="map" label={t('stall.map')} onPress={() => openLink(s.location.map_url!)} /> : null}
         </View>
 
@@ -151,31 +150,13 @@ export default function StallScreen() {
       ) : null}
 
       <ImageViewer images={s.photos} initialIndex={photoIndex ?? 0} visible={photoIndex !== null} onClose={() => setPhotoIndex(null)} title={s.name} />
-      <VoiceRecordModal
-        visible={voiceOpen}
-        title={t('stall.voiceTitle')}
-        hint={t('stall.voiceHint')}
-        sending={sending}
-        onClose={() => setVoiceOpen(false)}
-        onSend={async (audio) => {
-          setSending(true);
-          try {
-            const result = await api.sendVoiceMessage(s.id, audio);
-            setVoiceOpen(false);
-            notify(t('stall.voiceSent'), result.message, 'success');
-          } catch (e) {
-            notify(t('stall.voiceTitle'), errorMessage(e), 'error');
-          } finally {
-            setSending(false);
-          }
-        }}
-      />
+      <EmailSheet stallId={s.id} stallName={s.name} visible={emailOpen} onClose={() => setEmailOpen(false)} />
     </View>
   );
 }
 
 /** Petit bouton rond avec son libellé dessous (WhatsApp, Appeler, Vocal, Plan) */
-function ContactButton({ icon, label, onPress }: { icon: 'message-circle' | 'phone' | 'mic' | 'map'; label: string; onPress: () => void }) {
+function ContactButton({ icon, label, onPress }: { icon: 'message-circle' | 'phone' | 'mail' | 'map'; label: string; onPress: () => void }) {
   const styles = useStyles();
   const { colors } = useTheme();
   return (
