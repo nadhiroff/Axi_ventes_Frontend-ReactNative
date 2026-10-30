@@ -124,7 +124,7 @@ function EditSheet({ announcement, onClose, onImage }: { announcement: Announcem
   // Fermer avec un texte modifié et non enregistré : confirmation
   const close = () => {
     if (text.trim() === announcement.text.trim()) onClose();
-    else confirmAction(t('common.discardTitle'), t('common.discardText'), onClose, { destructive: true, confirmLabel: t('common.discardConfirm') });
+    else confirmAction(t('common.discardTitle'), t('common.discardText'), onClose, { destructive: true, confirmLabel: t('common.yes'), cancelLabel: t('common.no') });
   };
 
   const pick = async (source: 'camera' | 'library') => {

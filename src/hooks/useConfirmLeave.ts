@@ -18,9 +18,11 @@ export function useConfirmLeave(dirty: boolean) {
       navigation.dispatch(data.action);
       return;
     }
+    // Choix simple : Non (rester) / Oui (quitter sans enregistrer)
     confirmAction(t('common.discardTitle'), t('common.discardText'), () => navigation.dispatch(data.action), {
       destructive: true,
-      confirmLabel: t('common.discardConfirm'),
+      confirmLabel: t('common.yes'),
+      cancelLabel: t('common.no'),
     });
   });
 

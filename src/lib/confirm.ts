@@ -5,13 +5,13 @@ import { t } from '../i18n';
  * Confirmation obligatoire avant toute action sensible ou destructive (déconnexion, suppression,
  * annulation, réception, litige…) : « Êtes-vous sûr… ? » Annuler / Confirmer, dans une fenêtre aux couleurs d'Axi.
  */
-export function confirmAction(title: string, message: string, onConfirm: () => void, options: { destructive?: boolean; confirmLabel?: string } = {}) {
+export function confirmAction(title: string, message: string, onConfirm: () => void, options: { destructive?: boolean; confirmLabel?: string; cancelLabel?: string } = {}) {
   useDialogStore.getState().showDialog({
     title,
     message,
     tone: options.destructive ? 'danger' : 'info',
     buttons: [
-      { label: t('common.cancel'), variant: 'ghost' },
+      { label: options.cancelLabel ?? t('common.cancel'), variant: 'ghost' },
       { label: options.confirmLabel ?? t('common.confirm'), variant: options.destructive ? 'destructive' : 'primary', onPress: onConfirm },
     ],
   });
