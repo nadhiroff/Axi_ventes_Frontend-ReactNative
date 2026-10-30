@@ -104,6 +104,7 @@ export const api = {
   sendMedia: (conversationId: string, file: { photo: LocalFile } | { audio: LocalFile } | { video: LocalFile }, replyTo?: string, body?: string) =>
     apiUpload<ChatMessage>(`/v1/conversations/${id(conversationId)}/messages`, { ...(replyTo ? { reply_to: replyTo } : {}), ...(body ? { body } : {}) }, file),
   rates: () => apiGet<Rates>('/v1/rates'),
+  live: () => apiGet<{ v: string }>('/v1/live'),
   clearConversation: (conversationId: string) => apiSend<{ cleared: true }>('DELETE', `/v1/conversations/${id(conversationId)}`),
   conversationSettings: (conversationId: string, retention_hours: number) =>
     apiSend<{ conversation: ConversationSummary }>('PATCH', `/v1/conversations/${id(conversationId)}/settings`, { retention_hours }),
@@ -139,6 +140,7 @@ export const api = {
   stall: (stallId: string, cursor?: string | null) => apiGet<StallPayload>(`/v1/stalls/${id(stallId)}${q({ cursor })}`),
   product: (productId: string) => apiGet<ProductDetail>(`/v1/products/${id(productId)}`),
   promotionClick: (promotionId: string) => apiSend<{ counted: true }>('POST', `/v1/promotions/${id(promotionId)}/click`),
+  promotionView: (promotionId: string) => apiSend<{ counted: true }>('POST', `/v1/promotions/${id(promotionId)}/view`),
   setFollow: (stallId: string, follow: boolean) => apiSend<{ is_followed: boolean }>(follow ? 'POST' : 'DELETE', `/v1/stalls/${id(stallId)}/follow`),
   emailStall: (stallId: string, subject: string, message: string) => apiSend<{ message: string }>('POST', `/v1/stalls/${id(stallId)}/email`, { subject, message }),
   sendVoiceMessage: (stallId: string, audio: LocalFile) => apiUpload<{ message: string }>(`/v1/stalls/${id(stallId)}/voice-messages`, {}, { audio }),
@@ -152,6 +154,7 @@ export const api = {
   confirmReceipt: (orderId: string) => apiSend<Order>('POST', `/v1/orders/${id(orderId)}/confirm-receipt`),
   openDispute: (orderId: string, reason: string, stallId?: string) => apiSend<Order>('POST', `/v1/orders/${id(orderId)}/dispute`, stallId ? { reason, stall_id: stallId } : { reason }),
   sales: (f: SalesFilters) => apiGet<SalesPayload>(`/v1/sales${q({ from: f.from, to: f.to, status: f.status, q: f.q })}`),
+  salesHide: (target: ({ order_id: string } | { all: true }) & { side?: 'buyer' }) => apiSend<{ hidden: number }>('POST', '/v1/sales/hide', target),
   salesExport: (f: SalesFilters) => apiSend<{ url: string }>('POST', '/v1/sales/export', f),
 
   // Commerçant
@@ -164,7 +167,6 @@ export const api = {
   requestVerification: () => apiSend<{ message: string }>('POST', '/v1/merchant/verification-request'),
   createProduct: (fields: { name: string; description: string; price: string; price_max: string; is_today: string; stock_quantity: string }, photos: LocalFile[]) =>
     apiUpload<Product>('/v1/merchant/products', fields, photos.length ? { photos } : {}),
-  createVoiceProduct: (audio: LocalFile, photos: LocalFile[]) => apiUpload<Product>('/v1/merchant/products/voice', {}, photos.length ? { audio, photos } : { audio }),
   updateProduct: (productId: string, patch: ProductPatch) => apiSend<Product>('PATCH', `/v1/merchant/products/${id(productId)}`, patch),
   addProductPhotos: (productId: string, photos: LocalFile[]) => apiUpload<Product>(`/v1/merchant/products/${id(productId)}/photos`, {}, { photos }),
   removeProductPhoto: (productId: string, index: number) => apiSend<Product>('DELETE', `/v1/merchant/products/${id(productId)}/photos/${index}`),
@@ -192,6 +194,7 @@ export const api = {
   paySubscription: (period: SubscriptionPeriod) => apiSend<SubscriptionPayment>('POST', '/v1/merchant/subscription/pay', { period }),
   verifySubscription: (reference: string, transactionId?: string) =>
     apiSend<SubscriptionPayment>('POST', '/v1/merchant/subscription/verify', transactionId ? { reference, transaction_id: transactionId } : { reference }),
+  answerCreditOffer: (accept: boolean) => apiSend<{ status: string; message: string }>('POST', '/v1/merchant/credit-offer', { accept }),
   requestCredit: (amount?: number) => apiSend<{ message: string }>('POST', '/v1/merchant/credit-requests', amount ? { amount } : {}),
   setDataSharing: (enabled: boolean) => apiSend<{ enabled: boolean }>('PUT', '/v1/merchant/data-sharing', { enabled }),
 };

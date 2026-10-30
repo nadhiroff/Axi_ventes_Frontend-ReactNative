@@ -32,7 +32,7 @@ export default function PublicProfileScreen() {
   const styles = useStyles();
   const t = useT();
   const { colors } = useTheme();
-  const profile = useQuery({ queryKey: ['profile', id, contact ?? ''], queryFn: () => api.profile(id, contact) });
+  const profile = useQuery({ queryKey: ['profile', id, contact ?? ''], queryFn: () => api.profile(id, contact), staleTime: 0 });
   const [reporting, setReporting] = useState(false);
   // Photo de profil touchée : en grand
   const [viewing, setViewing] = useState(false);

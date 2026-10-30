@@ -106,7 +106,7 @@ function PreviewSheet({ announcement, stall, onClose }: { announcement: Announce
               <Icon name="x" size={22} color={colors.text} />
             </Pressable>
           </View>
-          <ScrollView contentContainerStyle={{ gap: spacing.md }}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: spacing.md }}>
             <Text style={styles.label}>{t('merchant.previewOnStall')}</Text>
             <AnnouncementCard a={announcement} />
             <Text style={styles.label}>{t('merchant.previewOnHome')}</Text>
@@ -167,7 +167,7 @@ function EditSheet({ announcement, limits, onClose }: { announcement: Announceme
               <Icon name="x" size={22} color={colors.text} />
             </Pressable>
           </View>
-          <ScrollView contentContainerStyle={{ gap: spacing.md }} keyboardShouldPersistTaps="handled">
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: spacing.md }} keyboardShouldPersistTaps="handled">
             <TextInput value={text} onChangeText={setText} multiline maxLength={500} style={styles.input} placeholderTextColor={colors.textMuted} />
             <EndDatePicker value={endsOn} onChange={setEndsOn} maxDays={limits.days} />
             <Text style={styles.label}>

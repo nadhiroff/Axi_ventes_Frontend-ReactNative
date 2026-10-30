@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
-import { QueryClient, onlineManager } from '@tanstack/react-query';
+import { QueryClient, focusManager, onlineManager } from '@tanstack/react-query';
+import { AppState, Platform } from 'react-native';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -9,6 +10,14 @@ const DAY = 24 * 60 * 60 * 1000;
 onlineManager.setEventListener((setOnline) =>
   NetInfo.addEventListener((state) => setOnline(!!state.isConnected)),
 );
+
+// Retour dans l'application : les données périmées sont relues ; en arrière-plan, plus aucune relecture.
+if (Platform.OS !== 'web') {
+  focusManager.setEventListener((setFocused) => {
+    const sub = AppState.addEventListener('change', (state) => setFocused(state === 'active'));
+    return () => sub.remove();
+  });
+}
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,4 +43,4 @@ export const queryPersister = createAsyncStoragePersister({
 export const PERSIST_MAX_AGE = 7 * DAY;
 
 // À augmenter quand la forme d'une réponse change : l'ancienne copie gardée sur le téléphone est jetée
-export const PERSIST_VERSION = '2';
+export const PERSIST_VERSION = '3';

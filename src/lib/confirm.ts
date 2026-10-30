@@ -30,6 +30,6 @@ export function notify(title: string, message?: string, tone: Tone = message ===
 }
 
 /** Notification courte qui disparaît seule (« Enregistré », « Message envoyé »…) */
-export function toast(message: string, tone: Tone = 'success') {
-  useDialogStore.getState().showToast(message, tone);
+export function toast(message: string, tone: Tone = 'success', action?: { label: string; onPress: () => void }) {
+  useDialogStore.getState().showToast(message, tone, action);
 }

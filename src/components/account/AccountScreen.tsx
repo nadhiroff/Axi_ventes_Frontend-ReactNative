@@ -17,13 +17,18 @@ import { leaveSession } from '../../lib/authFlow';
 import { useAuthStore } from '../../store/authStore';
 import { fontSize, makeStyles, spacing } from '../../theme';
 
-/** « Mon compte » : menu commun au client et au commerçant ; déconnexion avec confirmation. */
-export function AccountScreen() {
+/**
+ * « Mon compte » : menu commun au client et au commerçant ; déconnexion avec confirmation.
+ * space : l'espace où cet écran est affiché. Le bouton de bascule en dépend, pas du mode en mémoire : son texte
+ * ne change pas pendant le passage d'un espace à l'autre, et un deuxième appui mène au même endroit.
+ */
+export function AccountScreen({ space }: { space: 'client' | 'merchant' }) {
   const styles = useStyles();
   const t = useT();
-  const { status, user, mode, setMode } = useAuthStore();
+  const { status, user, setMode } = useAuthStore();
   const unread = useNotifications().data?.unread ?? 0;
-  const unreadMessages = useBadges().data?.unread_messages ?? 0;
+  const badges = useBadges().data;
+  const unreadMessages = (space === 'merchant' ? badges?.unread_as_merchant : badges?.unread_as_client) ?? 0;
   // Toucher ma photo : elle s'affiche en grand
   const [viewing, setViewing] = useState(false);
 
@@ -35,8 +40,8 @@ export function AccountScreen() {
           <Card style={{ gap: spacing.md }}>
             <Text style={styles.title}>{t('account.visitorTitle')}</Text>
             <Text style={styles.muted}>{t('account.visitorText')}</Text>
-            <Button label={t('auth.createAccount')} onPress={() => router.push('/auth/inscription')} />
-            <Button label={t('auth.signIn')} variant="ghost" onPress={() => router.push('/auth/connexion')} />
+            <Button label={t('auth.signIn')} onPress={() => router.push('/auth/connexion')} />
+            <Button label={t('auth.createAccount')} variant="ghost" onPress={() => router.push('/auth/inscription')} />
             <Button label={t('account.backHome')} icon="home" variant="ghost" onPress={() => router.replace('/bienvenue')} />
           </Card>
           <MenuRow icon="settings" label={t('account.settings')} onPress={() => router.push('/parametres')} />
@@ -64,18 +69,22 @@ export function AccountScreen() {
         <View>
           {merchant ? (
             <MenuRow
-              icon={mode === 'merchant' ? 'shopping-bag' : 'briefcase'}
-              label={mode === 'merchant' ? t('account.clientSpace') : t('account.merchantSpace')}
+              icon={space === 'merchant' ? 'shopping-bag' : 'briefcase'}
+              label={space === 'merchant' ? t('account.clientSpace') : t('account.merchantSpace')}
               onPress={() => {
-                const next = mode === 'merchant' ? 'client' : 'merchant';
-                setMode(next);
-                router.replace(next === 'merchant' ? '/commercant' : '/');
+                if (space === 'merchant') {
+                  setMode('client');
+                  router.replace('/');
+                } else {
+                  // L'espace client redirige seul vers l'espace commerçant dès que le mode change
+                  setMode('merchant');
+                }
               }}
             />
           ) : null}
           <MenuRow icon="message-circle" label={t('chat.title')} value={unreadMessages > 0 ? String(unreadMessages) : undefined} onPress={() => router.push('/messages')} />
           <MenuRow icon="package" label={t('account.orders')} onPress={() => router.push('/commandes')} />
-          <MenuRow icon="bar-chart-2" label={merchant && mode === 'merchant' ? t('merchant.sales') : t('account.sales')} onPress={() => router.push('/ventes')} />
+          <MenuRow icon="bar-chart-2" label={merchant && space === 'merchant' ? t('merchant.sales') : t('account.sales')} onPress={() => router.push('/ventes')} />
           <MenuRow icon="heart" label={t('account.favorites')} onPress={() => router.push('/favoris')} />
           <MenuRow icon="bell" label={t('account.notifications')} value={unread > 0 ? String(unread) : undefined} onPress={() => router.push('/notifications')} />
           <MenuRow icon="user" label={t('account.profile')} onPress={() => router.push('/parametres/profil')} />

@@ -22,11 +22,11 @@ import { SubscriberBadge } from '../ui/VerifiedIcon';
 import { EmptyView, ErrorView, LoadingView } from '../ui/StateViews';
 
 /**
- * Mes conversations (comme client et, pour un commerçant, avec ses clients), la plus récente en haut.
+ * Mes conversations de l'espace où je suis (comme client, ou avec les clients de mon commerce), la plus récente en haut.
  * Barre de recherche : filtre les discussions, et propose de nouvelles personnes à qui écrire
  * (étals pour un client, clients ayant un compte pour un commerçant). Appui long : supprimer la discussion pour moi.
  */
-export function ConversationList({ role }: { role?: 'client' | 'merchant' }) {
+export function ConversationList({ role }: { role: 'client' | 'merchant' }) {
   const t = useT();
   const styles = useStyles();
   const { colors } = useTheme();
@@ -42,7 +42,7 @@ export function ConversationList({ role }: { role?: 'client' | 'merchant' }) {
 
   if (query.isPending) return <LoadingView />;
   if (!query.data) return <ErrorView error={query.error} onRetry={() => query.refetch()} />;
-  const all = query.data.conversations.filter((c) => !role || c.my_role === role);
+  const all = query.data.conversations.filter((c) => c.my_role === role);
   const needle = search.toLowerCase();
   // Recherche par nom et prénom, parmi les personnes avec qui je discute déjà
   const list = needle ? all.filter((c) => c.other.name.toLowerCase().includes(needle)) : all;
@@ -118,7 +118,7 @@ function ConversationRow({ c, onLongPress }: { c: ConversationSummary; onLongPre
             {c.other.name}
           </Text>
           {/* L'autre personne est un commerçant (je lui écris en tant que client) */}
-          {c.my_role === 'client' ? <Tag label={t('chat.merchantBadge')} tone="brand" icon="shopping-bag" /> : null}
+          {c.my_role === 'client' && !c.other_unavailable ? <Tag label={t('chat.merchantBadge')} tone="brand" icon="shopping-bag" /> : null}
           {c.my_role === 'client' && c.stall.subscribed ? <SubscriberBadge size={16} /> : null}
           {c.last_message ? <Text style={styles.date}>{formatChatTime(c.last_message.created_at, lang, dateFormat)}</Text> : null}
         </View>

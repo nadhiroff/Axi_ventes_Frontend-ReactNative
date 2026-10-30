@@ -46,6 +46,13 @@ export function setUnauthorizedHandler(handler: () => void) {
   onUnauthorized = handler;
 }
 
+let onSuspended: ((message: string) => void) | null = null;
+
+/** Compte bloqué pendant que l'application est ouverte : prévenir au lieu de déconnecter sans rien dire */
+export function setSuspendedHandler(handler: (message: string) => void) {
+  onSuspended = handler;
+}
+
 function baseHeaders(extra: Record<string, string> = {}): Record<string, string> {
   const headers: Record<string, string> = { Accept: 'application/json', 'Accept-Language': useLangStore.getState().lang, ...extra };
   if (authToken) headers.Authorization = `Bearer ${authToken}`;
@@ -107,6 +114,7 @@ function unwrap<T>(body: ApiResponse<T>, status: number): T {
   if (status === 401 && authToken) onUnauthorized?.();
   if (!body.ok) {
     const { code, message, fields, ...extra } = body.error;
+    if (code === 'ACCOUNT_SUSPENDED' && authToken) onSuspended?.(message);
     throw new ApiError(code, message, status, fields ?? {}, extra);
   }
   return body.data;

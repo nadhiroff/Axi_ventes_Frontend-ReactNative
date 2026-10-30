@@ -54,6 +54,7 @@ export default function ClientScreen() {
               {c.phone ? <Text style={styles.text}>{c.phone}</Text> : null}
             </View>
           </View>
+          {c.unavailable ? <Tag label={t('merchant.unavailable')} tone="outline" icon="slash" /> : null}
           {/* Ajouté à la main : pas de discussion tant qu'il n'a pas accepté l'invitation */}
           {c.invite_status === 'pending' || c.invite_status === 'declined' ? (
             <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }}>
@@ -67,7 +68,7 @@ export default function ClientScreen() {
             {c.user_id ? (
               <Button label={t('profile.title')} icon="user" size="sm" variant="ghost" onPress={() => router.push({ pathname: '/profil/[id]', params: { id: c.user_id!, cli: c.id } })} />
             ) : null}
-            {c.has_axi_account && (c.invite_status ?? 'accepted') === 'accepted' ? (
+            {c.has_axi_account && !c.unavailable && (c.invite_status ?? 'accepted') === 'accepted' ? (
               <Button
                 label={t('chat.write')}
                 icon="message-square"

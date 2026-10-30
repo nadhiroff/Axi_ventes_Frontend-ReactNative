@@ -52,11 +52,14 @@ export type ApplicationInput = {
   row: string;
   stand: string;
 };
-export type Badges = { unread_messages: number; unread_notifications: number; role: Role; merchant_welcome: boolean };
+export type Badges = { unread_messages: number; unread_as_client: number; unread_as_merchant: number; unread_notifications: number; role: Role; merchant_welcome: boolean };
 
 export type Session = { token: string; user: User };
 export type RegisterInput = { first_name: string; last_name: string; email: string; password: string; password_confirmation: string; phone?: string; lang: Lang };
 export type CodePurpose = 'verify_email' | 'reset_password';
+
+/** Annonce d'un annonceur : s'ouvre dans une petite fenêtre (image ou vidéo, texte, lien facultatif) */
+export type Ad = { id: string; label: string; title: string; text: string; image: ApiImage | null; video_url: string | null; link_url: string | null; target: { type: 'stall' | 'aisle'; id: string } | null };
 
 export type Currency = 'XOF' | 'EUR' | 'USD';
 export type Rates = { base: 'XOF'; rates: Record<Currency, number>; updated_at: string | null };
@@ -68,6 +71,8 @@ export type UserSettings = {
   lang: Lang;
   currency: Currency;
   date_format: 'dd/mm/yyyy' | 'yyyy-mm-dd';
+  /** Mes achats et paiements : disparition après 3, 6 ou 12 mois (0 = jamais) */
+  history_months: 0 | 3 | 6 | 12;
   notifications: NotificationPrefs;
   default_address: string | null;
   preferred_point_id: string | null;
@@ -168,7 +173,7 @@ export type Aisle = { id: string; name: string; icon: AisleIcon; stall_count: nu
 export type HomePayload = {
   city: { id: string; name: string };
   market_notice: { text: string; partner: string | null } | null;
-  sponsored: { id: string; label: string; title: string; text: string; image: ApiImage | null; target: { type: 'stall' | 'aisle'; id: string } } | null;
+  ads: Ad[];
   aisles: Aisle[];
   followed_stalls: StallSummary[];
   featured_stalls: StallSummary[];
@@ -223,6 +228,8 @@ export type PaymentInfo = {
 };
 
 export type Order = {
+  /** Liste : commande terminée, peut être retirée de l'historique */
+  hideable?: boolean;
   id: string;
   status: OrderStatus;
   status_label: string;
@@ -269,6 +276,8 @@ export type SalesRow = {
   status_label: string;
   payment_method: string;
   gateway_ref: string | null;
+  /** Commande terminée : peut être retirée de l'historique */
+  hideable: boolean;
 };
 export type SalesPayload = { rows: SalesRow[]; totals: { count: number; amount: number; commission: number; net_amount: number } };
 export type SalesFilters = { from?: string; to?: string; status?: SalesStatus; q?: string };
@@ -315,6 +324,7 @@ export type MerchantToday = {
   orders_to_prepare: number;
   connection: { active: boolean; included_until: string | null };
   relocation: { title: string; text: string; already_sent: boolean; client_count: number } | null;
+  ads: Ad[];
   orders: MerchantOrder[];
 };
 
@@ -331,6 +341,8 @@ export type MerchantClient = {
   follows: boolean;
   /** Ajouté à la main : en attente de sa réponse, accepté ou refusé (pas de discussion avant d'accepter) */
   invite_status?: 'accepted' | 'pending' | 'declined';
+  /** Compte bloqué par Axi */
+  unavailable?: boolean;
   /** Dernier message échangé avec ce client (liste seulement) */
   last_message?: { preview: string; mine: boolean; created_at: string } | null;
 };
@@ -382,7 +394,26 @@ export type MerchantMoney = {
   commission_rate_pct: number;
   subscription: SubscriptionInfo;
   supplier_offer: { id: string; label: string; title: string; text: string; url: string | null } | null;
-  credit: { title: string; text: string; can_request: boolean; request_pending: boolean };
+  credit: {
+    title: string;
+    text: string;
+    can_request: boolean;
+    request_pending: boolean;
+    /** Dernière demande et sa réponse */
+    last_request: {
+      status: 'new' | 'in_review' | 'offered' | 'accepted' | 'granted' | 'declined' | 'repaid';
+      status_label: string;
+      amount: number | null;
+      amount_requested: number | null;
+      note: string | null;
+      decided_at: string | null;
+      repay_total: number | null;
+      term_months: number | null;
+      withhold_pct: number;
+      repaid_amount: number;
+      remaining: number | null;
+    } | null;
+  };
   data_sharing: { partner_name: string; enabled: boolean; scope: string; granted_at: string | null; text: string };
   payouts: { id: string; amount: number; status: string; status_label: string; created_at: string }[];
 };
@@ -414,6 +445,8 @@ export type ConversationSummary = {
   retention_hours: number;
   /** Le client doit suivre l'étal pour écrire */
   can_write: boolean;
+  /** Compte bloqué par Axi : ni profil, ni message, comme un compte banni */
+  other_unavailable: boolean;
   retention_note: string;
   /** Commerçant seulement : durées proposées (locked = réservée aux abonnés) */
   retention_options: { hours: number; label: string; locked: boolean }[] | null;

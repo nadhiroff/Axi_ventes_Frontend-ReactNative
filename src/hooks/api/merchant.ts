@@ -7,13 +7,15 @@ import { queryKeys } from './queryKeys';
 
 export const useStallOptions = () => useQuery({ queryKey: queryKeys.stallOptions, queryFn: api.stallOptions, staleTime: 3600_000 });
 export const useMerchantToday = () => useQuery({ queryKey: queryKeys.merchantToday, queryFn: api.merchantToday, refetchInterval: 60_000 });
-export const useMerchantStall = () => useQuery({ queryKey: queryKeys.merchantStall, queryFn: api.merchantStall });
+// Relu à chaque ouverture ; visible : toutes les 30 s sur Mon étal (vérification par un agent, nouvelle adresse)
+export const useMerchantStall = (visible = false) => useQuery({ queryKey: queryKeys.merchantStall, queryFn: api.merchantStall, staleTime: 0, refetchInterval: visible ? 30_000 : false });
 // Relue toutes les 30 s, SEULEMENT quand l'onglet est affiché (réponse 304 sans corps si rien n'a changé)
 export const useMerchantClients = (segment: ClientSegment, search: string, visible = true) =>
   useQuery({ queryKey: queryKeys.merchantClients(segment, search), queryFn: () => api.merchantClients(segment, search || undefined), staleTime: 15_000, refetchInterval: visible ? 30_000 : false });
 // Fiche relue à chaque ouverture : jamais une ancienne copie (compteurs, commandes) gardée sur le téléphone
 export const useMerchantClient = (clientId: string) => useQuery({ queryKey: queryKeys.merchantClient(clientId), queryFn: () => api.merchantClient(clientId), staleTime: 0 });
-export const useMerchantMoney = () => useQuery({ queryKey: queryKeys.merchantMoney, queryFn: api.merchantMoney });
+// Relu à chaque ouverture, et toutes les 20 s quand l'écran est affiché : la réponse à un crédit ou un versement apparaît seule
+export const useMerchantMoney = (visible = true) => useQuery({ queryKey: queryKeys.merchantMoney, queryFn: api.merchantMoney, staleTime: 0, refetchInterval: visible ? 20_000 : false });
 export const useVoiceMessages = () => useQuery({ queryKey: queryKeys.voiceMessages, queryFn: api.voiceMessages });
 
 /** Invalide tout l'espace commerçant après une modification */
@@ -45,7 +47,6 @@ export function useProductMutations() {
       mutationFn: (v: { fields: { name: string; description: string; price: string; price_max: string; is_today: string; stock_quantity: string }; photos: LocalFile[] }) => api.createProduct(v.fields, v.photos),
       onSuccess,
     }),
-    createVoice: useMutation({ mutationFn: (v: { audio: LocalFile; photos: LocalFile[] }) => api.createVoiceProduct(v.audio, v.photos), onSuccess }),
     update: useMutation({ mutationFn: (v: { id: string; patch: ProductPatch }) => api.updateProduct(v.id, v.patch), onSuccess }),
     addPhotos: useMutation({ mutationFn: (v: { id: string; photos: LocalFile[] }) => api.addProductPhotos(v.id, v.photos), onSuccess }),
     removePhoto: useMutation({ mutationFn: (v: { id: string; index: number }) => api.removeProductPhoto(v.id, v.index), onSuccess }),
@@ -71,6 +72,7 @@ export function useMerchantActions() {
     broadcast: useMutation({ mutationFn: (v: { segment: ClientSegment; text?: string }) => api.broadcastToSegment(v.segment, v.text), onSuccess }),
     listened: useMutation({ mutationFn: (messageId: string) => api.markListened(messageId), onSuccess }),
     requestCredit: useMutation({ mutationFn: (amount?: number) => api.requestCredit(amount), onSuccess }),
+    answerCreditOffer: useMutation({ mutationFn: (accept: boolean) => api.answerCreditOffer(accept), onSuccess }),
     dataSharing: useMutation({ mutationFn: (enabled: boolean) => api.setDataSharing(enabled), onSuccess }),
   };
 }
