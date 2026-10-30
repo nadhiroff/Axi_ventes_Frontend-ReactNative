@@ -48,11 +48,11 @@ export function ProductRow({ product }: { product: Product }) {
       {!draft ? (
         <View style={styles.toggles}>
           <View style={styles.toggle}>
-            <Text style={styles.toggleLabel}>{t('merchant.inStock')}</Text>
+            <Text style={styles.toggleLabel} numberOfLines={1}>{t('merchant.inStock')}</Text>
             <Switch value={product.in_stock} onValueChange={(v) => toggle({ in_stock: v })} trackColor={{ true: colors.trust, false: colors.border }} thumbColor="#FFFFFF" accessibilityLabel={t('merchant.inStock')} />
           </View>
           <View style={styles.toggle}>
-            <Text style={styles.toggleLabel}>{t('merchant.todayToggle')}</Text>
+            <Text style={styles.toggleLabel} numberOfLines={1}>{t('merchant.todayToggle')}</Text>
             <Switch value={product.is_today} onValueChange={(v) => toggle({ is_today: v })} trackColor={{ true: colors.trust, false: colors.border }} thumbColor="#FFFFFF" accessibilityLabel={t('merchant.todayToggle')} />
           </View>
         </View>
@@ -73,7 +73,8 @@ const useStyles = makeStyles((c) => ({
   price: { fontSize: fontSize.body, fontWeight: '700', color: c.brand },
   muted: { fontSize: fontSize.caption, color: c.textMuted },
   edit: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
-  toggles: { flexDirection: 'row', gap: spacing.md, flexWrap: 'wrap' },
-  toggle: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1, justifyContent: 'space-between', minWidth: 150 },
-  toggleLabel: { fontSize: fontSize.small, color: c.text, fontWeight: '500' },
+  // Un interrupteur par ligne : libellé à gauche, interrupteur à droite, toujours alignés quelle que soit la langue
+  toggles: {},
+  toggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, minHeight: 48, borderTopWidth: 1, borderTopColor: c.border },
+  toggleLabel: { flex: 1, fontSize: fontSize.body, color: c.text, fontWeight: '500' },
 }));
