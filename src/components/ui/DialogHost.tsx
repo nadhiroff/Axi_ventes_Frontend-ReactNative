@@ -40,8 +40,8 @@ export function DialogHost() {
   const insets = useSafeAreaInsets();
   return (
     <>
-      {/* En bas, au-dessus des onglets : ne cache jamais le bouton retour en haut de l'écran */}
-      <View pointerEvents="box-none" style={{ position: 'absolute', bottom: insets.bottom + 76, left: spacing.lg, right: spacing.lg, gap: spacing.sm, alignItems: 'center' }}>
+      {/* En haut à droite, étroites et semi-transparentes : le bouton retour, à gauche, reste toujours visible */}
+      <View pointerEvents="box-none" style={{ position: 'absolute', top: insets.top + spacing.sm, right: spacing.md, width: '68%', maxWidth: 360, gap: spacing.sm, alignItems: 'flex-end' }}>
         {toasts.map((t) => (
           <ToastView key={t.id} toast={t} />
         ))}
@@ -85,7 +85,7 @@ function DialogView({ dialog }: { dialog: Dialog }) {
 
 function ToastView({ toast }: { toast: Toast }) {
   const styles = useStyles();
-  const { colors } = useTheme();
+  const { colors, dark } = useTheme();
   const hide = useDialogStore((s) => s.hideToast);
   const [opacity] = useState(() => new Animated.Value(0));
   useEffect(() => {
@@ -95,12 +95,12 @@ function ToastView({ toast }: { toast: Toast }) {
   }, [hide, opacity, toast.id]);
   const tint = toast.tone === 'success' ? colors.trust : toast.tone === 'error' ? colors.danger : colors.brand;
   return (
-    <Animated.View style={[styles.toast, { opacity, borderLeftColor: tint, transform: [{ translateY: opacity.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }] }]}>
+    <Animated.View style={[styles.toast, { opacity, backgroundColor: dark ? 'rgba(245,245,244,0.88)' : 'rgba(28,25,23,0.82)', transform: [{ translateY: opacity.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] }) }] }]}>
       <Pressable onPress={() => hide(toast.id)} style={styles.toastRow} accessibilityRole="alert" accessibilityLiveRegion="polite">
         <View style={[styles.toastIcon, { backgroundColor: tint }]}>
-          <Icon name={ICONS[toast.tone]} size={14} color="#FFFFFF" />
+          <Icon name={ICONS[toast.tone]} size={12} color="#FFFFFF" />
         </View>
-        <Text style={styles.toastText}>{toast.message}</Text>
+        <Text style={[styles.toastText, { color: dark ? '#1C1917' : '#FFFFFF' }]}>{toast.message}</Text>
       </Pressable>
     </Animated.View>
   );
@@ -113,8 +113,8 @@ const useStyles = makeStyles((c) => ({
   title: { fontSize: fontSize.title + 2, fontWeight: '700', color: c.text },
   message: { fontSize: fontSize.body, color: c.textMuted, lineHeight: 21 },
   buttons: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
-  toast: { width: '100%', maxWidth: 460, backgroundColor: c.surface, borderRadius: radius.lg, borderLeftWidth: 5, borderWidth: 1, borderColor: c.border, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
-  toastRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md, paddingHorizontal: spacing.lg },
-  toastIcon: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  toastText: { flex: 1, fontSize: fontSize.body, color: c.text, fontWeight: '600' },
+  toast: { borderRadius: radius.lg, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
+  toastRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
+  toastIcon: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  toastText: { flexShrink: 1, fontSize: fontSize.small, fontWeight: '600' },
 }));
