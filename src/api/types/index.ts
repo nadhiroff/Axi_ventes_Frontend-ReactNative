@@ -335,7 +335,15 @@ export type MerchantClientDetail = MerchantClient & {
   has_axi_account: boolean;
   orders: { id: string; date: string; amount: number; summary: string; status: string; escrow_state: EscrowState }[];
 };
-export type ClientInput = { display_name: string; phone?: string; email?: string; kind: 'individual' | 'reseller'; note?: string };
+export type ClientInput = { display_name?: string; contact?: string; phone?: string; email?: string; kind?: 'individual' | 'reseller'; note?: string };
+/** Compte Axi trouvé par email ou téléphone exact (présentation minimale) et type détecté */
+export type ClientLookup = {
+  found: boolean;
+  valid: boolean;
+  user?: { id: string; display_name: string; avatar: ApiImage | null; role: Role; stall_name: string | null };
+  kind_detected?: 'individual' | 'reseller';
+  existing_client_id?: string | null;
+};
 export type BroadcastResult = { recipients: number; notified: number; emailed: number; message: string; whatsapp_url: string | null; share_text: string };
 export type VoiceMessage = { id: string; client_name: string; client_phone: string | null; audio_url: string; listened: boolean; created_at: string };
 
