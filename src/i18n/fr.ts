@@ -2,6 +2,9 @@
 // l'être dans en.ts (le typage l'impose). « singulier|pluriel » : forme choisie selon {n}.
 export const fr = {
   common: {
+    discardTitle: 'Abandonner les modifications ?',
+    discardText: 'Vos changements ne sont pas enregistrés. Si vous quittez maintenant, ils seront perdus.',
+    discardConfirm: 'Quitter sans enregistrer',
     update: 'Mettre à jour',
     done: 'OK',
     later: 'Plus tard',

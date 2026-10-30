@@ -12,6 +12,7 @@ import { Field } from '../../components/ui/Field';
 import { Screen } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { takeProductPhoto } from '../../hooks/useProductPhoto';
+import { useConfirmLeave } from '../../hooks/useConfirmLeave';
 import { useT } from '../../i18n';
 import { confirmAction, notify, toast } from '../../lib/confirm';
 import { useAuthStore } from '../../store/authStore';
@@ -31,6 +32,9 @@ export default function ProfileScreen() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
+  // Différent du profil enregistré = modification en cours
+  const dirty = !!user && (form.first_name !== user.first_name || form.last_name !== user.last_name || form.phone !== (user.phone ?? '') || form.bio !== (user.bio ?? ''));
+  const { cancel } = useConfirmLeave(dirty);
 
   const save = async () => {
     setSaving(true);
@@ -117,7 +121,10 @@ export default function ProfileScreen() {
               hint={t('profile.bioHint')}
               error={errors.bio}
             />
-            <Button label={t('common.update')} onPress={save} loading={saving} />
+            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+              <Button label={t('common.cancel')} variant="ghost" onPress={cancel} style={{ flex: 1 }} />
+              <Button label={t('common.update')} onPress={save} loading={saving} style={{ flex: 2 }} />
+            </View>
           </Card>
         </View>
       </Screen>

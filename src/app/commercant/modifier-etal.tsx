@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
 import { errorMessage } from '../../api/client';
@@ -90,7 +89,6 @@ export default function EditStallScreen() {
           onSubmit={async (input) => {
             await mutations.update.mutateAsync(input);
             toast(t('merchant.stallSaved'));
-            router.back();
           }}
         />
       </Screen>
