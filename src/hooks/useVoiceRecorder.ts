@@ -1,0 +1,81 @@
+import {
+  AudioQuality,
+  IOSOutputFormat,
+  type RecordingOptions,
+  requestRecordingPermissionsAsync,
+  setAudioModeAsync,
+  useAudioRecorder,
+  useAudioRecorderState,
+} from 'expo-audio';
+import { useCallback } from 'react';
+
+import type { LocalFile } from '../api/client';
+import { useLangStore } from '../i18n';
+import { notify } from '../lib/confirm';
+
+// Voix seulement : AAC mono 16 kHz à 24 kbit/s, soit environ 3 Ko par seconde.
+// Un message de 30 secondes pèse moins de 100 Ko.
+const VOICE_OPTIONS: RecordingOptions = {
+  extension: '.m4a',
+  sampleRate: 16000,
+  numberOfChannels: 1,
+  bitRate: 24000,
+  android: { outputFormat: 'mpeg4', audioEncoder: 'aac' },
+  ios: {
+    outputFormat: IOSOutputFormat.MPEG4AAC,
+    audioQuality: AudioQuality.LOW,
+    linearPCMBitDepth: 16,
+    linearPCMIsBigEndian: false,
+    linearPCMIsFloat: false,
+  },
+  web: { mimeType: 'audio/webm', bitsPerSecond: 24000 },
+};
+
+export const MAX_VOICE_SECONDS = 60;
+
+export function useVoiceRecorder() {
+  const recorder = useAudioRecorder(VOICE_OPTIONS);
+  const state = useAudioRecorderState(recorder, 250);
+
+  /**
+   * Démarre l'enregistrement. « denied » : micro non autorisé ; « busy » : micro déjà utilisé
+   * (appel téléphonique ou WhatsApp en cours, autre application) : refus expliqué, sans erreur.
+   */
+  const start = useCallback(async (): Promise<'ok' | 'denied' | 'busy'> => {
+    const en = useLangStore.getState().lang === 'en';
+    const permission = await requestRecordingPermissionsAsync().catch(() => ({ granted: false }));
+    if (!permission.granted) {
+      notify(en ? 'Microphone disabled' : 'Micro désactivé', en ? 'Allow the microphone in the phone settings to record a voice message.' : 'Autorisez le micro dans les réglages du téléphone pour enregistrer un message vocal.', 'error');
+      return 'denied';
+    }
+    try {
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      await recorder.prepareToRecordAsync();
+      recorder.record({ forDuration: MAX_VOICE_SECONDS });
+      return 'ok';
+    } catch {
+      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => undefined);
+      notify(
+        en ? 'Microphone unavailable' : 'Micro indisponible',
+        en ? 'You cannot record a voice message during a call. Hang up, then try again.' : 'Impossible d’enregistrer un message vocal pendant un appel. Raccrochez, puis réessayez.',
+        'error',
+      );
+      return 'busy';
+    }
+  }, [recorder]);
+
+  /** Arrête l'enregistrement et renvoie le fichier prêt à envoyer. */
+  const stop = useCallback(async (): Promise<LocalFile | null> => {
+    await recorder.stop().catch(() => undefined);
+    await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => undefined);
+    const uri = recorder.uri;
+    return uri ? { uri, name: `vocal-${Date.now()}.m4a`, type: 'audio/mp4' } : null;
+  }, [recorder]);
+
+  return {
+    start,
+    stop,
+    isRecording: state.isRecording,
+    seconds: Math.floor((state.durationMillis ?? 0) / 1000),
+  };
+}
