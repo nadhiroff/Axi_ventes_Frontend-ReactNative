@@ -15,7 +15,7 @@ import { useOrder, useOrderAction } from '../../hooks/api/client';
 import { useSettings } from '../../hooks/api/account';
 import { useT } from '../../i18n';
 import { confirmAction, notify } from '../../lib/confirm';
-import { formatFcfa, formatShortDate } from '../../lib/format';
+import { formatFcfa, formatShortDate, orderNumber } from '../../lib/format';
 import { useCartStore } from '../../store/cartStore';
 import { fontSize, makeStyles, radius, spacing, useTheme } from '../../theme';
 import { callPhone, openWhatsapp } from '../../lib/contact';
@@ -49,7 +49,7 @@ export default function OrderScreen() {
 
   return (
     <>
-      <ScreenHeader title={t('orders.order', { id: o.id })} subtitle={formatShortDate(o.created_at, dateFormat, true)} />
+      <ScreenHeader title={t('orders.order', { id: orderNumber(o.id) })} subtitle={formatShortDate(o.created_at, dateFormat, true)} />
       <Screen refreshing={order.isRefetching} onRefresh={() => order.refetch()}>
         <Card style={{ gap: spacing.sm }}>
           <Tag label={o.status_label} tone={tone} size="md" />

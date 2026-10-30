@@ -1,5 +1,6 @@
 import { apiGet, apiSend, apiUpload, type LocalFile } from './client';
 import type {
+  ClientInvite,
   AislePayload,
   Announcement,
   ApplicationInput,
@@ -84,7 +85,8 @@ export const api = {
   applyMerchant: (fields: ApplicationInput, files: { id_front: LocalFile; id_back: LocalFile | null; selfie: LocalFile; stall_photo: LocalFile }) =>
     apiUpload<{ application: MerchantApplication; user: User; message: string }>(
       '/v1/me/merchant-application',
-      Object.fromEntries(Object.entries(fields).filter(([, v]) => v !== '')),
+      // Autres numéros envoyés comme other_phones[0], other_phones[1] (lus en tableau par le serveur)
+      Object.fromEntries(Object.entries({ ...fields, other_phones: undefined, ...Object.fromEntries((fields.other_phones ?? []).map((p, i) => [`other_phones[${i}]`, p])) }).filter(([, v]) => typeof v === 'string' && v !== '')) as Record<string, string>,
       Object.fromEntries(Object.entries(files).filter(([, v]) => v !== null)) as Record<string, LocalFile>,
     ),
   merchantWelcomeSeen: () => apiSend<{ seen: true }>('POST', '/v1/me/merchant-welcome/seen'),
@@ -98,10 +100,13 @@ export const api = {
     apiSend<ChatMessage>('POST', `/v1/conversations/${id(conversationId)}/messages`, replyTo ? { body, reply_to: replyTo } : { body }),
   editMessage: (conversationId: string, messageId: string, body: string) => apiSend<ChatMessage>('PATCH', `/v1/conversations/${id(conversationId)}/messages/${id(messageId)}`, { body }),
   deleteMessage: (conversationId: string, messageId: string) => apiSend<ChatMessage>('DELETE', `/v1/conversations/${id(conversationId)}/messages/${id(messageId)}`),
-  sendMedia: (conversationId: string, file: { photo: LocalFile } | { audio: LocalFile }, replyTo?: string) =>
-    apiUpload<ChatMessage>(`/v1/conversations/${id(conversationId)}/messages`, replyTo ? { reply_to: replyTo } : {}, file),
+  /** Photo, vocal ou vidéo ; body : légende facultative sous la photo ou la vidéo */
+  sendMedia: (conversationId: string, file: { photo: LocalFile } | { audio: LocalFile } | { video: LocalFile }, replyTo?: string, body?: string) =>
+    apiUpload<ChatMessage>(`/v1/conversations/${id(conversationId)}/messages`, { ...(replyTo ? { reply_to: replyTo } : {}), ...(body ? { body } : {}) }, file),
   rates: () => apiGet<Rates>('/v1/rates'),
   clearConversation: (conversationId: string) => apiSend<{ cleared: true }>('DELETE', `/v1/conversations/${id(conversationId)}`),
+  conversationSettings: (conversationId: string, retention_hours: number) =>
+    apiSend<{ conversation: ConversationSummary }>('PATCH', `/v1/conversations/${id(conversationId)}/settings`, { retention_hours }),
   hideMessage: (conversationId: string, messageId: string) => apiSend<{ hidden: true; id: string }>('POST', `/v1/conversations/${id(conversationId)}/messages/${id(messageId)}/hide`),
   profile: (userId: string, contact?: string) => apiGet<PublicProfile>(`/v1/users/${id(userId)}/profile${q({ contact })}`),
   report: (userId: string, reason: ReportReason, details: string, conversationId?: string) =>
@@ -110,6 +115,10 @@ export const api = {
   updateSettings: (patch: Partial<Omit<UserSettings, 'data' | 'lang' | 'notifications' | 'axi_points'>> & { data_cap_mb?: number; notifications?: Partial<UserSettings['notifications']> }) =>
     apiSend<UserSettings>('PATCH', '/v1/me/settings', patch),
   dataUsage: (bytes: number) => apiSend<UserSettings['data']>('POST', '/v1/me/data-usage', { bytes }),
+  resetDataUsage: () => apiSend<UserSettings>('DELETE', '/v1/me/data-usage'),
+  clientInvites: () => apiGet<{ invites: ClientInvite[] }>('/v1/me/client-invites'),
+  answerClientInvite: (inviteId: string, accept: boolean) => apiSend<{ status: 'accepted' | 'declined' }>('POST', `/v1/me/client-invites/${id(inviteId)}/${accept ? 'accept' : 'decline'}`),
+  savePushToken: (token: string, platform: 'ios' | 'android') => apiSend<{ saved: true }>('POST', '/v1/me/push-token', { token, platform }),
   sessions: () => apiGet<{ sessions: SessionInfo[] }>('/v1/me/sessions'),
   revokeSession: (sessionId: string) => apiSend<{ revoked: true }>('DELETE', `/v1/me/sessions/${id(sessionId)}`),
   loginHistory: () => apiGet<{ events: LoginEvent[] }>('/v1/me/login-history'),

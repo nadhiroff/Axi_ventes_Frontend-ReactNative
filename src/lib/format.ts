@@ -76,6 +76,33 @@ export function formatShortDate(iso: string, format: 'dd/mm/yyyy' | 'yyyy-mm-dd'
   return withTime ? `${date} ${p(d.getHours())}:${p(d.getMinutes())}` : date;
 }
 
+/** « cmd_2 » → « 2 » : le numéro lisible d'une commande (le préfixe ne sert qu'à l'API) */
+export function orderNumber(id: string): string {
+  return id.replace(/^cmd_/, '');
+}
+
+const WEEKDAYS: Record<'fr' | 'en', string[]> = {
+  fr: ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'],
+  en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+};
+
+/**
+ * Heure d'un message dans une liste (discussions, clients) : « 14:05 » aujourd'hui, « Hier 14:05 »,
+ * « lun. 14:05 » dans la semaine ; au-delà d'une semaine sans échange, la date seule.
+ */
+export function formatChatTime(iso: string, lang: string = 'fr', format: 'dd/mm/yyyy' | 'yyyy-mm-dd' = 'dd/mm/yyyy'): string {
+  const d = new Date(iso);
+  const p = (n: number) => String(n).padStart(2, '0');
+  const time = `${p(d.getHours())}:${p(d.getMinutes())}`;
+  const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const days = Math.round((startOf(new Date()) - startOf(d)) / 86_400_000);
+  const en = lang === 'en';
+  if (days <= 0) return time;
+  if (days === 1) return `${en ? 'Yesterday' : 'Hier'} ${time}`;
+  if (days < 7) return `${WEEKDAYS[en ? 'en' : 'fr'][d.getDay()]} ${time}`;
+  return formatShortDate(iso, format);
+}
+
 /** Octets → « 12,5 Mo » */
 export function formatBytes(bytes: number): string {
   const mb = bytes / 1048576;

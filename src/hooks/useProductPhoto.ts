@@ -59,3 +59,45 @@ export async function pickPhotos(limit: number): Promise<LocalFile[]> {
   if (result.canceled) return [];
   return Promise.all(result.assets.slice(0, limit).map((asset, i) => compress(asset, i)));
 }
+
+/** Pièce jointe du chat, prête à l'envoi : photo compressée, ou vidéo d'une minute au plus */
+export type ChatAttachment = { kind: 'photo' | 'video'; file: LocalFile; durationMs?: number | null };
+
+const VIDEO_MAX_SECONDS = 60;
+const VIDEO_MAX_BYTES = 30 * 1024 * 1024; // même limite que le serveur
+
+async function toAttachment(asset: ImagePicker.ImagePickerAsset, index: number): Promise<ChatAttachment | null> {
+  if (asset.type !== 'video') return { kind: 'photo', file: await compress(asset, index) };
+  if ((asset.duration ?? 0) > VIDEO_MAX_SECONDS * 1000 + 500 || (asset.fileSize ?? 0) > VIDEO_MAX_BYTES) return null;
+  const ext = asset.mimeType === 'video/quicktime' || asset.uri.toLowerCase().endsWith('.mov') ? 'mov' : 'mp4';
+  return { kind: 'video', durationMs: asset.duration, file: { uri: asset.uri, name: `video-${Date.now()}-${index}.${ext}`, type: ext === 'mov' ? 'video/quicktime' : 'video/mp4' } };
+}
+
+/**
+ * Chat : photos ET vidéos, plusieurs d'un coup depuis la galerie (au plus « limit »), ou une prise
+ * avec l'appareil (photo ou vidéo). Les vidéos de plus d'une minute ou trop lourdes sont écartées (message).
+ */
+export async function pickChatMedia(source: 'camera' | 'library', limit: number): Promise<ChatAttachment[]> {
+  const en = useLangStore.getState().lang === 'en';
+  const permission = source === 'camera' ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!permission.granted) {
+    notify(en ? 'Access disabled' : 'Accès désactivé', en ? 'Allow access in the phone settings to send photos and videos.' : 'Autorisez l’accès dans les réglages du téléphone pour envoyer photos et vidéos.', 'error');
+    return [];
+  }
+  const options: ImagePicker.ImagePickerOptions = {
+    mediaTypes: ['images', 'videos'],
+    quality: 1,
+    videoMaxDuration: VIDEO_MAX_SECONDS,
+    // iPhone : vidéo réencodée en qualité moyenne (beaucoup plus légère à envoyer)
+    videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
+    ...(source === 'library' ? { allowsMultipleSelection: true, selectionLimit: limit, orderedSelection: true } : {}),
+  };
+  const result = source === 'camera' ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options);
+  if (result.canceled) return [];
+  const all = await Promise.all(result.assets.slice(0, limit).map((asset, i) => toAttachment(asset, i)));
+  const kept = all.filter((a): a is ChatAttachment => a !== null);
+  if (kept.length < all.length) {
+    notify(en ? 'Video too long' : 'Vidéo trop longue', en ? 'Videos are limited to 1 minute (30 MB).' : 'Les vidéos sont limitées à 1 minute (30 Mo).', 'error');
+  }
+  return kept;
+}

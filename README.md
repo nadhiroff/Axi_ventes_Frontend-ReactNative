@@ -16,7 +16,8 @@ npx expo start --clear
 
 L'adresse de l'API est trouvée **automatiquement** en développement : c'est l'IP du PC qui lance `npx expo start`
 (la même qu'Expo Go utilise), avec le port `EXPO_PUBLIC_API_PORT` (8000). Changer de Wi-Fi ne demande rien :
-relancer `npx expo start`. Le backend doit écouter sur toutes les interfaces : `php -S 0.0.0.0:8000 -t public public/index.php`.
+relancer. Le plus simple : `npm run dev` lance l'API PHP (sur `0.0.0.0`, donc valable pour toutes les IP) **et** Expo d'un coup
+(dossier du backend : `AXI_BACKEND_DIR`, par défaut `/var/www/html/Axi_ventes_backend-php`).
 Pour un serveur en ligne : `EXPO_PUBLIC_API_URL=https://…` dans `.env.local`.
 Tous les modules utilisés sont inclus dans Expo Go (WebView du paiement, photo, micro).
 

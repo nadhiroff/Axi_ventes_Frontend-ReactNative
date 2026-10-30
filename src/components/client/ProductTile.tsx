@@ -6,6 +6,7 @@ import type { Product } from '../../api/types';
 import { useT } from '../../i18n';
 import { formatPrice } from '../../lib/format';
 import { fontSize, makeStyles, pickColor, productTilePalette, radius, spacing, useTheme } from '../../theme';
+import { useReduceMotion, useSlideIndex } from '../../hooks/useSlideshow';
 import { CachedImage } from '../ui/CachedImage';
 import { Icon } from '../ui/Icon';
 import { ImageViewer } from '../ui/ImageViewer';
@@ -31,6 +32,9 @@ export function ProductTile({ product, onAdd, inCart = 0, subtitle, openDetail =
   const [viewer, setViewer] = useState(false);
   const priceLabel = product.in_stock ? formatPrice(product.price, t('product.negotiable')) : t('product.soldOut');
   const images = product.images.length ? product.images : product.image ? [product.image] : [];
+  // Plusieurs photos : elles se succèdent en fondu dans la vignette (attire l'œil sans rien ouvrir)
+  const slide = useSlideIndex(images.length, product.id);
+  const reduceMotion = useReduceMotion();
 
   return (
     <View style={[styles.tile, !product.in_stock && styles.out]}>
@@ -40,7 +44,7 @@ export function ProductTile({ product, onAdd, inCart = 0, subtitle, openDetail =
         onPress={() => (images.length ? setViewer(true) : openDetail && router.push(`/produit/${product.id}`))}
         style={[styles.media, { backgroundColor: pickColor(productTilePalette, product.id) }]}
       >
-        {images.length ? <CachedImage image={images[0]} style={styles.fill} contentFit="cover" /> : <Icon name="package" size={28} color="rgba(255,255,255,0.85)" />}
+        {images.length ? <CachedImage image={images[slide]} style={styles.fill} contentFit="cover" transition={reduceMotion ? 0 : 450} /> : <Icon name="package" size={28} color="rgba(255,255,255,0.85)" />}
         {images.length > 1 ? (
           <View style={styles.count}>
             <Icon name="image" size={12} color="#FFFFFF" />

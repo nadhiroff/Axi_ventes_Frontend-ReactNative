@@ -39,6 +39,8 @@ export type MerchantApplication = { id: string; status: ApplicationStatus; statu
 export type IdType = 'cni' | 'cip' | 'passport' | 'other';
 export type ApplicationInput = {
   phone: string;
+  /** Jusqu'à 2 autres numéros (un par opérateur : MTN, Moov, Celtiis) */
+  other_phones?: string[];
   id_type: IdType;
   id_number: string;
   stall_name: string;
@@ -322,13 +324,18 @@ export type MerchantClient = {
   display_name: string;
   description: string;
   phone: string | null;
-  email: string | null;
   badge: { kind: 'loyal' | 'new' | 'follow_up' | 'follower'; label: string } | null;
   /** Compte Axi : profil et discussion dans l'application */
   user_id: string | null;
   avatar: ApiImage | null;
   follows: boolean;
+  /** Ajouté à la main : en attente de sa réponse, accepté ou refusé (pas de discussion avant d'accepter) */
+  invite_status?: 'accepted' | 'pending' | 'declined';
+  /** Dernier message échangé avec ce client (liste seulement) */
+  last_message?: { preview: string; mine: boolean; created_at: string } | null;
 };
+/** Un commerçant veut m'ajouter à ses clients */
+export type ClientInvite = { id: string; stall: StallSummary; invited_at: string };
 export type MerchantClients = { arrival_prompt: { title: string; text: string; button_label: string } | null; followers_count: number; clients: MerchantClient[] };
 export type MerchantClientDetail = MerchantClient & {
   kind: 'individual' | 'reseller';
@@ -336,7 +343,7 @@ export type MerchantClientDetail = MerchantClient & {
   orders_count: number;
   total_spent: number;
   has_axi_account: boolean;
-  orders: { id: string; date: string; amount: number; summary: string; status: string; escrow_state: EscrowState }[];
+  orders: { id: string; date: string; amount: number; summary: string; status: string; status_label?: string; escrow_state: EscrowState }[];
 };
 export type ClientInput = { display_name?: string; contact?: string; phone?: string; email?: string; kind?: 'individual' | 'reseller'; note?: string };
 /** Compte Axi trouvé par email ou téléphone exact (présentation minimale) et type détecté */
@@ -397,21 +404,25 @@ export type SubscriptionPayment = {
 export type ConversationSummary = {
   id: string;
   my_role: 'client' | 'merchant';
-  stall: { id: string; name: string; avatar: ApiImage | null };
+  stall: { id: string; name: string; avatar: ApiImage | null; subscribed?: boolean };
   other: { name: string; avatar: ApiImage | null };
   other_user_id: string;
   /** Application de l'autre ouverte il y a moins d'une minute */
   other_online: boolean;
   other_last_seen_at: string | null;
-  /** Messages gardés (le client suit l'étal) ; sinon effacés 24 h après leur envoi */
-  kept: boolean;
+  /** Durée des messages en heures (24, 48 ; 720 ou 2160 si le commerçant est abonné), réglée par le commerçant */
+  retention_hours: number;
+  /** Le client doit suivre l'étal pour écrire */
+  can_write: boolean;
   retention_note: string;
+  /** Commerçant seulement : durées proposées (locked = réservée aux abonnés) */
+  retention_options: { hours: number; label: string; locked: boolean }[] | null;
   unread_count: number;
   last_message: { kind: MessageKind; preview: string; mine: boolean; status: MessageStatus | null; created_at: string } | null;
 };
-export type MessageKind = 'text' | 'photo' | 'voice';
+export type MessageKind = 'text' | 'photo' | 'voice' | 'video';
 /** sent : ✓ reçu par Axi ; delivered : ✓✓ arrivé sur le téléphone de l'autre ; read : ✓✓ bleu, lu */
 export type MessageStatus = 'sent' | 'delivered' | 'read';
 export type ReplyPreview = { id: string; mine: boolean; kind: MessageKind; preview: string };
-export type ChatMessage = { id: string; mine: boolean; status: MessageStatus | null; edited: boolean; deleted: boolean; reply: ReplyPreview | null; kind: MessageKind; body: string | null; image: ApiImage | null; audio_url: string | null; created_at: string; expires_at: string | null };
+export type ChatMessage = { id: string; mine: boolean; status: MessageStatus | null; edited: boolean; deleted: boolean; reply: ReplyPreview | null; kind: MessageKind; body: string | null; image: ApiImage | null; audio_url: string | null; video_url?: string | null; created_at: string; expires_at: string | null };
 export type ConversationPayload = { conversation: ConversationSummary; messages: ChatMessage[] };

@@ -15,7 +15,7 @@ import { useSettings } from '../hooks/api/account';
 import { useSales } from '../hooks/api/client';
 import { useT } from '../i18n';
 import { notify } from '../lib/confirm';
-import { formatFcfa, formatShortDate } from '../lib/format';
+import { formatFcfa, formatShortDate, orderNumber } from '../lib/format';
 import { useAuthStore } from '../store/authStore';
 import { fontSize, makeStyles, radius, spacing, useLayout, useTheme } from '../theme';
 
@@ -93,8 +93,8 @@ export default function SalesScreen() {
             {data.rows.map((r) => (
               <Pressable key={`${r.order_id}-${r.counterpart}`} onPress={() => !merchant && router.push(`/commande/${r.order_id}`)} style={styles.row} accessibilityRole={merchant ? undefined : 'button'}>
                 <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={styles.title}>{r.counterpart || r.order_id}</Text>
-                  <Text style={styles.muted}>{`${formatShortDate(r.date, dateFormat, true)} · ${r.order_id}`}</Text>
+                  <Text style={styles.title}>{r.counterpart || t('orders.order', { id: orderNumber(r.order_id) })}</Text>
+                  <Text style={styles.muted}>{`${formatShortDate(r.date, dateFormat, true)} · ${t('orders.order', { id: orderNumber(r.order_id) })}`}</Text>
                   <Text style={styles.status}>{r.status_label}</Text>
                   <Text style={styles.muted}>{r.payment_method}{r.gateway_ref ? ` · ${t('sales.ref', { ref: r.gateway_ref })}` : ''}</Text>
                 </View>

@@ -1,9 +1,11 @@
 import { router } from 'expo-router';
-import { Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
 
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
+import { ImageViewer } from '../ui/ImageViewer';
 import { MenuRow } from '../ui/Field';
 import { Screen } from '../ui/Screen';
 import { ScreenHeader } from '../ui/ScreenHeader';
@@ -22,6 +24,8 @@ export function AccountScreen() {
   const { status, user, mode, setMode } = useAuthStore();
   const unread = useNotifications().data?.unread ?? 0;
   const unreadMessages = useBadges().data?.unread_messages ?? 0;
+  // Toucher ma photo : elle s'affiche en grand
+  const [viewing, setViewing] = useState(false);
 
   if (status !== 'signedIn' || !user) {
     return (
@@ -48,7 +52,9 @@ export function AccountScreen() {
       <ScreenHeader title={t('account.title')} showBack={false} />
       <Screen>
         <Card style={styles.profile}>
-          <Avatar name={user.name} image={user.avatar} size={56} variant="soft" />
+          <Pressable onPress={() => user.avatar && setViewing(true)} disabled={!user.avatar} accessibilityRole="imagebutton" accessibilityLabel={user.name}>
+            <Avatar name={user.name} image={user.avatar} size={56} variant="soft" />
+          </Pressable>
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>{user.name}</Text>
             <Text style={styles.muted}>{user.email}</Text>
@@ -86,6 +92,7 @@ export function AccountScreen() {
         <Button label={t('account.logout')} variant="danger" icon="log-out" onPress={() => confirmAction(t('account.logoutConfirm'), t('account.logoutText'), () => leaveSession(), { destructive: true })} />
         <Text style={styles.muted}>{t('account.partnerInfo')}</Text>
       </Screen>
+      <ImageViewer images={user.avatar ? [user.avatar] : []} visible={viewing} onClose={() => setViewing(false)} title={user.name} />
     </>
   );
 }

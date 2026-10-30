@@ -40,6 +40,7 @@ export function SessionWatcher() {
     }
     if (lastNotifications.current !== null && badges.unread_notifications !== lastNotifications.current) {
       qc.invalidateQueries({ queryKey: queryKeys.notifications });
+      qc.invalidateQueries({ queryKey: queryKeys.clientInvites });
     }
     lastNotifications.current = badges.unread_notifications;
   }, [badges, user, setUser, qc]);

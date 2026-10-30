@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
+import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 
 import { ApiError, errorMessage } from '../../../api/client';
 import { api } from '../../../api/endpoints';
@@ -38,6 +38,13 @@ export default function NewClientScreen() {
     return () => clearTimeout(timer);
   }, [contact]);
 
+  // Clavier ouvert APRÈS l'animation d'arrivée de l'écran : ouvert pendant, il faisait trembler l'écran
+  const input = useRef<ComponentRef<typeof TextInput>>(null);
+  useEffect(() => {
+    const timer = setTimeout(() => input.current?.focus(), 400);
+    return () => clearTimeout(timer);
+  }, []);
+
   const lookup = useQuery({ queryKey: ['client-lookup', debounced], queryFn: () => api.lookupClient(debounced), enabled: debounced.length >= 6, staleTime: 60_000 });
   const found = lookup.data?.found ? lookup.data : null;
   const searching = debounced.length >= 6 && (lookup.isFetching || contact.trim() !== debounced);
@@ -51,7 +58,7 @@ export default function NewClientScreen() {
       { contact: contact.trim(), ...(found ? {} : { display_name: name.trim() }) },
       {
         onSuccess: (c) => {
-          toast(t('merchant.clientAdded', { name: c.display_name }));
+          toast(c.invite_status === 'pending' ? t('invites.sent', { name: c.display_name }) : t('merchant.clientAdded', { name: c.display_name }));
           router.replace(`/commercant/client/${c.id}`);
         },
         onError: (e) => {
@@ -83,13 +90,14 @@ export default function NewClientScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="email-address"
-            autoFocus
+            ref={input}
             hint={t('merchant.contactHint')}
             error={errors.contact ?? (invalid ? t('merchant.contactInvalid') : null)}
           />
 
-          {searching ? (
-            <View style={styles.row}>
+          {/* Hauteur réservée : la ligne « Recherche… » n'apparaît plus à chaque lettre en poussant l'écran */}
+          {searching && !found ? (
+            <View style={[styles.row, { minHeight: 24 }]}>
               <ActivityIndicator color={colors.brand} />
               <Text style={styles.muted}>{t('merchant.searching')}</Text>
             </View>

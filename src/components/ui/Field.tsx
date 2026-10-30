@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, type ComponentRef, type Ref } from 'react';
 import { Pressable, Switch, Text, TextInput, View, type TextInputProps } from 'react-native';
 
 import { useT } from '../../i18n';
 import { fontSize, makeStyles, radius, spacing, useTheme } from '../../theme';
 import { Icon, type IconName } from './Icon';
 
-type Props = TextInputProps & { label: string; error?: string | null; hint?: string; secret?: boolean };
+// ref transmis au champ (React 19 : ref est une prop ordinaire), pour lui donner le focus
+type Props = TextInputProps & { label: string; error?: string | null; hint?: string; secret?: boolean; ref?: Ref<ComponentRef<typeof TextInput>> };
 
 /** Champ de formulaire : libellé, saisie, message d'erreur clair sous le champ */
 export function Field({ label, error, hint, secret, style, ...rest }: Props) {

@@ -1,6 +1,7 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, FlatList, PanResponder, Pressable, Text, TextInput, View } from 'react-native';
+import { Image } from 'expo-image';
+import { Animated, FlatList, PanResponder, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -14,13 +15,16 @@ import { AudioPlayerButton } from '../../components/ui/AudioPlayerButton';
 import { Avatar } from '../../components/ui/Avatar';
 import { CachedImage } from '../../components/ui/CachedImage';
 import { Icon } from '../../components/ui/Icon';
+import { Tag } from '../../components/ui/Tag';
+import { SubscriberTag } from '../../components/ui/VerifiedIcon';
 import { ImageViewer } from '../../components/ui/ImageViewer';
 import { BackButton } from '../../components/ui/ScreenHeader';
 import { ErrorView, LoadingView } from '../../components/ui/StateViews';
 import { VoiceRecordModal } from '../../components/ui/VoiceRecordModal';
 import { useConversation, useMessageActions, useSendMessage } from '../../hooks/api/chat';
 import { useFollow } from '../../hooks/api/client';
-import { takeProductPhoto } from '../../hooks/useProductPhoto';
+import { pickChatMedia, type ChatAttachment } from '../../hooks/useProductPhoto';
+import { VideoMessage } from '../../components/chat/VideoMessage';
 import { useT } from '../../i18n';
 import { confirmAction, notify, toast } from '../../lib/confirm';
 import { formatShortDate } from '../../lib/format';
@@ -28,6 +32,9 @@ import { useDialogStore } from '../../components/ui/DialogHost';
 import { Ticks } from '../../components/chat/Ticks';
 import { useKeyboardToolbarStore } from '../../store/uiStore';
 import { fontSize, makeStyles, radius, spacing, useLayout, useTheme } from '../../theme';
+
+// Photos et vidéos envoyées d'un coup (chacune devient un message)
+const MAX_ATTACHMENTS = 10;
 
 /**
  * Conversation client ↔ commerçant : texte, photo, message vocal. Nouveaux messages toutes les 4 s.
@@ -51,6 +58,9 @@ export default function ConversationScreen() {
   const conv = query.data?.conversation;
   const follow = useFollow(conv?.stall.id ?? '');
   const [text, setText] = useState('');
+  // Photos et vidéos choisies, montrées au-dessus de la saisie avant l'envoi (on peut en retirer)
+  const [tray, setTray] = useState<ChatAttachment[]>([]);
+  const [sendingTray, setSendingTray] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [viewer, setViewer] = useState<ApiImage | null>(null);
   const setToolbar = useKeyboardToolbarStore((s) => s.setEnabled);
@@ -119,7 +129,7 @@ export default function ConversationScreen() {
     if (!m.mine || m.deleted) {
       useDialogStore.getState().showDialog({
         title: t('chat.menuTitleOther'),
-        message: m.deleted ? t('chat.deletedText') : (m.body ?? (m.kind === 'photo' ? t('chat.photo') : t('chat.voice'))),
+        message: m.deleted ? t('chat.deletedText') : (m.body ?? (m.kind === 'photo' ? t('chat.photo') : m.kind === 'video' ? t('chat.video') : t('chat.voice'))),
         tone: 'info',
         buttons: [
           { label: t('common.cancel'), variant: 'ghost' },
@@ -134,7 +144,7 @@ export default function ConversationScreen() {
       { destructive: true, confirmLabel: t('common.delete') });
     useDialogStore.getState().showDialog({
       title: t('chat.menuTitle'),
-      message: m.body ?? (m.kind === 'photo' ? t('chat.photo') : t('chat.voice')),
+      message: m.body ?? (m.kind === 'photo' ? t('chat.photo') : m.kind === 'video' ? t('chat.video') : t('chat.voice')),
       tone: 'info',
       buttons: [
         { label: t('common.cancel'), variant: 'ghost' },
@@ -147,9 +157,92 @@ export default function ConversationScreen() {
     });
   };
 
-  const pickPhoto = async (source: 'camera' | 'library') => {
-    const photo = await takeProductPhoto(source, false);
-    if (photo) sendFile({ photo });
+  // Bouton en haut à droite : réglages et actions de la discussion (commerçant et client)
+  const dialog = useDialogStore.getState().showDialog;
+  const chooseRetention = () => {
+    if (!conv?.retention_options) return;
+    dialog({
+      title: t('chat.retentionTitle'),
+      message: t('chat.retentionText'),
+      tone: 'info',
+      buttons: [
+        ...conv.retention_options.map((o) => ({
+          label: `${o.hours === conv.retention_hours ? '✓ ' : ''}${o.label}${o.locked ? ` · ${t('chat.subscribersOnly')}` : ''}`,
+          variant: (o.hours === conv.retention_hours ? 'primary' : 'ghost') as 'primary' | 'ghost',
+          onPress: () => {
+            if (o.locked) return router.push('/commercant/abonnement');
+            if (o.hours === conv.retention_hours) return;
+            api
+              .conversationSettings(id, o.hours)
+              .then(({ conversation }) => {
+                qc.setQueryData<ConversationPayload>(queryKeys.conversation(id), (old) => (old ? { ...old, conversation } : old));
+                qc.invalidateQueries({ queryKey: queryKeys.conversations });
+                toast(t('chat.retentionSaved', { label: o.label }));
+              })
+              .catch((e) => notify(t('chat.retentionTitle'), errorMessage(e), 'error'));
+          },
+        })),
+        { label: t('common.cancel'), variant: 'ghost' as const },
+      ],
+    });
+  };
+  const clearChat = () =>
+    confirmAction(t('chat.clearConfirm', { name: conv?.other.name ?? '' }), t('chat.clearText'), () =>
+      api
+        .clearConversation(id)
+        .then(() => {
+          qc.invalidateQueries({ queryKey: queryKeys.conversations });
+          qc.invalidateQueries({ queryKey: queryKeys.badges });
+          toast(t('chat.cleared'), 'info');
+          router.back();
+        })
+        .catch((e) => notify(t('chat.title'), errorMessage(e), 'error')),
+      { destructive: true, confirmLabel: t('common.delete') },
+    );
+  const openSettings = () => {
+    if (!conv) return;
+    const merchant = conv.my_role === 'merchant';
+    dialog({
+      title: conv.other.name,
+      message: conv.retention_note,
+      tone: 'info',
+      buttons: [
+        ...(merchant ? [{ label: t('chat.retentionTitle'), onPress: chooseRetention }] : [{ label: t('chat.seeStall'), onPress: () => router.push(`/etal/${conv.stall.id}`) }]),
+        { label: merchant ? t('chat.seeClient') : t('chat.seeMerchant'), variant: 'ghost' as const, onPress: () => router.push({ pathname: '/profil/[id]', params: { id: conv.other_user_id, conv: conv.id } }) },
+        { label: t('chat.clearAction'), variant: 'destructive' as const, onPress: clearChat },
+        { label: t('common.cancel'), variant: 'ghost' as const },
+      ],
+    });
+  };
+
+  const addMedia = async (source: 'camera' | 'library') => {
+    const left = MAX_ATTACHMENTS - tray.length;
+    if (left <= 0) return;
+    const picked = await pickChatMedia(source, left);
+    if (picked.length) setTray((current) => [...current, ...picked].slice(0, MAX_ATTACHMENTS));
+  };
+  // Envoi dans l'ordre choisi ; le texte tapé devient la légende de la première
+  const sendTray = async () => {
+    if (!tray.length || sendingTray) return;
+    setSendingTray(true);
+    const caption = text.trim();
+    const reply = replyTo?.id;
+    const items = tray;
+    let sent = 0;
+    try {
+      for (const [i, a] of items.entries()) {
+        await send.mutateAsync({ ...(a.kind === 'photo' ? { photo: a.file } : { video: a.file }), replyTo: i === 0 ? reply : undefined, caption: i === 0 && caption ? caption : undefined });
+        sent++;
+      }
+      setText('');
+      setReplyTo(null);
+    } catch (e) {
+      notify(t('chat.notSent'), errorMessage(e), 'error');
+    } finally {
+      // Ce qui n'est pas parti reste prêt à renvoyer
+      setTray(items.slice(sent));
+      setSendingTray(false);
+    }
   };
 
   return (
@@ -164,30 +257,30 @@ export default function ConversationScreen() {
         >
           <Avatar name={conv.other.name} image={conv.other.avatar} size={40} variant={conv.my_role === 'client' ? 'brand' : 'soft'} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.headerName} numberOfLines={1}>
-              {conv.other.name}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+              <Text style={[styles.headerName, { flexShrink: 1 }]} numberOfLines={1}>
+                {conv.other.name}
+              </Text>
+              {conv.my_role === 'client' ? <Tag label={t('chat.merchantBadge')} tone="brand" icon="shopping-bag" /> : null}
+              {conv.my_role === 'client' && conv.stall.subscribed ? <SubscriberTag /> : null}
+            </View>
             <Text style={[styles.headerSub, conv.other_online && { color: colors.trustText, fontWeight: '600' }]} numberOfLines={1}>
               {conv.other_online ? t('chat.online') : conv.other_last_seen_at ? lastSeen(conv.other_last_seen_at, t) : conv.my_role === 'merchant' ? conv.stall.name : ''}
             </Text>
           </View>
         </Pressable>
+        <Pressable onPress={openSettings} style={styles.more} hitSlop={6} accessibilityRole="button" accessibilityLabel={t('chat.settings')}>
+          <Icon name="more-vertical" size={22} color={colors.text} />
+        </Pressable>
       </View>
 
-      <View style={[styles.notice, conv.kept && { backgroundColor: colors.trustSoft }]}>
-        <Icon name={conv.kept ? 'bookmark' : 'clock'} size={16} color={conv.kept ? colors.trustText : colors.brandDark} />
-        <Text style={[styles.noticeText, conv.kept && { color: colors.trustText }]}>{conv.retention_note}</Text>
-        {conv.my_role === 'client' && !conv.kept ? (
-          <Pressable
-            onPress={() => follow.mutate(true, { onSuccess: () => { toast(t('chat.kept')); query.refetch(); } })}
-            style={styles.keepButton}
-            accessibilityRole="button"
-          >
-            <Text style={styles.keepText}>{t('stall.follow')}</Text>
-          </Pressable>
-        ) : null}
-      </View>
 
+      {/* Discussion vide : texte HORS de la liste inversée (dedans, il s'affichait à l'envers selon la version de React Native) */}
+      {!messages.length ? (
+        <View style={styles.empty}>
+          <Text style={styles.emptyText}>{conv.my_role === 'client' ? t('chat.startClient') : t('chat.startMerchant')}</Text>
+        </View>
+      ) : (
       <FlatList
         inverted
         data={messages}
@@ -200,12 +293,8 @@ export default function ConversationScreen() {
             <Bubble message={item} onImage={setViewer} onLongPress={() => openMenu(item)} otherName={conv.other.name} />
           </SwipeToReply>
         )}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>{conv.my_role === 'client' ? t('chat.startClient') : t('chat.startMerchant')}</Text>
-          </View>
-        }
       />
+      )}
 
       {replyTo && !editing ? (
         <View style={styles.editBar}>
@@ -231,11 +320,50 @@ export default function ConversationScreen() {
           </Pressable>
         </View>
       ) : null}
+      {tray.length && !editing ? (
+        <View style={styles.tray}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, paddingHorizontal: spacing.md }}>
+            {tray.map((a, i) => (
+              <View key={a.file.uri} style={styles.trayItem}>
+                {a.kind === 'photo' ? (
+                  <Image source={{ uri: a.file.uri }} style={styles.trayImage} contentFit="cover" />
+                ) : (
+                  <View style={[styles.trayImage, styles.trayVideo]}>
+                    <Icon name="video" size={22} color="#FFFFFF" />
+                    {a.durationMs ? <Text style={styles.trayDuration}>{`0:${String(Math.round(a.durationMs / 1000)).padStart(2, '0')}`}</Text> : null}
+                  </View>
+                )}
+                {sendingTray ? null : (
+                  <Pressable onPress={() => setTray((current) => current.filter((_, k) => k !== i))} style={styles.trayRemove} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('cart.remove')}>
+                    <Icon name="x" size={14} color="#FFFFFF" />
+                  </Pressable>
+                )}
+              </View>
+            ))}
+          </ScrollView>
+          <Text style={styles.trayHint}>{sendingTray ? t('chat.sending') : t('chat.trayHint', { n: tray.length, max: MAX_ATTACHMENTS })}</Text>
+        </View>
+      ) : null}
+      {!conv.can_write ? (
+        // Le client écrit seulement aux étals qu'il suit : un geste pour suivre, puis la saisie apparaît
+        <View style={[styles.followBar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
+          <Text style={styles.followText}>{t('chat.followToWrite', { name: conv.stall.name })}</Text>
+          <Pressable
+            onPress={() => follow.mutate(true, { onSuccess: () => query.refetch(), onError: (e) => notify(t('stall.follow'), errorMessage(e), 'error') })}
+            disabled={follow.isPending}
+            style={[styles.followButton, follow.isPending && { opacity: 0.6 }]}
+            accessibilityRole="button"
+          >
+            <Icon name="user-plus" size={18} color="#FFFFFF" />
+            <Text style={styles.followButtonText}>{t('stall.follow')}</Text>
+          </Pressable>
+        </View>
+      ) : (
       <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
-        <Pressable onPress={() => pickPhoto('library')} onLongPress={() => pickPhoto('camera')} style={styles.iconButton} accessibilityRole="button" accessibilityLabel={t('chat.photo')} hitSlop={6}>
+        <Pressable onPress={() => addMedia('library')} style={styles.iconButton} accessibilityRole="button" accessibilityLabel={t('chat.photosVideos')} hitSlop={6}>
           <Icon name="image" size={22} color={colors.text} />
         </Pressable>
-        <Pressable onPress={() => pickPhoto('camera')} style={styles.iconButton} accessibilityRole="button" accessibilityLabel={t('common.camera')} hitSlop={6}>
+        <Pressable onPress={() => addMedia('camera')} style={styles.iconButton} accessibilityRole="button" accessibilityLabel={t('common.camera')} hitSlop={6}>
           <Icon name="camera" size={22} color={colors.text} />
         </Pressable>
         <TextInput
@@ -248,7 +376,11 @@ export default function ConversationScreen() {
           maxLength={2000}
           accessibilityLabel={t('chat.placeholder')}
         />
-        {text.trim() || editing ? (
+        {tray.length && !editing ? (
+          <Pressable onPress={sendTray} disabled={sendingTray} style={[styles.sendButton, sendingTray && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel={t('chat.sendCount', { n: tray.length })}>
+            <Icon name="send" size={20} color="#FFFFFF" />
+          </Pressable>
+        ) : text.trim() || editing ? (
           <Pressable onPress={sendText} style={[styles.sendButton, (send.isPending || actions.edit.isPending) && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel={editing ? t('common.update') : t('common.send')}>
             <Icon name={editing ? 'check' : 'send'} size={20} color="#FFFFFF" />
           </Pressable>
@@ -258,6 +390,8 @@ export default function ConversationScreen() {
           </Pressable>
         )}
       </View>
+
+      )}
 
       <VoiceRecordModal visible={voiceOpen} title={t('chat.voice')} hint={t('chat.voiceHint')} sending={send.isPending} onClose={() => setVoiceOpen(false)} onSend={(audio) => sendFile({ audio })} />
       <ImageViewer images={viewer ? [viewer] : []} visible={!!viewer} onClose={() => setViewer(null)} />
@@ -276,6 +410,7 @@ function lastSeen(iso: string, t: ReturnType<typeof useT>): string {
 function previewOf(m: ChatMessage, t: ReturnType<typeof useT>): string {
   if (m.kind === 'photo') return `📷 ${t('chat.photoLabel')}`;
   if (m.kind === 'voice') return `🎤 ${t('chat.voice')}`;
+  if (m.kind === 'video') return `🎥 ${t('chat.video')}`;
   return m.body ?? '';
 }
 
@@ -359,6 +494,7 @@ function Bubble({ message, onImage, onLongPress, otherName }: { message: ChatMes
             </Pressable>
           ) : null}
           {message.kind === 'voice' && message.audio_url ? <AudioPlayerButton url={message.audio_url} /> : null}
+          {message.kind === 'video' && message.video_url ? <VideoMessage url={message.video_url} onLongPress={onLongPress} /> : null}
           {message.body ? <Text style={[styles.body, message.mine && styles.bodyMine]}>{message.body}</Text> : null}
         </>
       )}
@@ -376,11 +512,12 @@ const useStyles = makeStyles((c) => ({
   headerMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   headerName: { fontSize: fontSize.title, fontWeight: '700', color: c.text },
   headerSub: { fontSize: fontSize.caption, color: c.textMuted },
-  notice: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, backgroundColor: c.brandSoft },
-  noticeText: { flex: 1, fontSize: fontSize.small, color: c.brandDark },
-  keepButton: { paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radius.pill, backgroundColor: c.brand },
-  keepText: { color: '#FFFFFF', fontWeight: '700', fontSize: fontSize.small },
-  empty: { padding: spacing.xl, transform: [{ scaleY: -1 }] },
+  followBar: { alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.md, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border },
+  followText: { fontSize: fontSize.small, color: c.textMuted, textAlign: 'center' },
+  followButton: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.xl, minHeight: 44, borderRadius: radius.pill, backgroundColor: c.brand },
+  followButtonText: { color: '#FFFFFF', fontWeight: '700', fontSize: fontSize.body },
+  more: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  empty: { flex: 1, justifyContent: 'center', padding: spacing.xl },
   emptyText: { textAlign: 'center', color: c.textMuted, fontSize: fontSize.body },
   quote: { borderLeftWidth: 3, borderLeftColor: c.brand, backgroundColor: c.surfaceAlt, borderRadius: 8, paddingHorizontal: spacing.sm, paddingVertical: 4, marginBottom: 2 },
   quoteMine: { borderLeftColor: '#FFFFFF', backgroundColor: 'rgba(0,0,0,0.15)' },
@@ -401,6 +538,13 @@ const useStyles = makeStyles((c) => ({
   photo: { width: 220, height: 220, borderRadius: radius.md },
   bar: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm, paddingHorizontal: spacing.md, paddingTop: spacing.sm, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border },
   iconButton: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center' },
+  tray: { backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border, paddingTop: spacing.sm, gap: 4 },
+  trayItem: { width: 72, height: 72 },
+  trayImage: { width: 72, height: 72, borderRadius: radius.md, backgroundColor: c.surfaceAlt },
+  trayVideo: { backgroundColor: '#1C1917', alignItems: 'center', justifyContent: 'center', gap: 2 },
+  trayDuration: { color: '#FFFFFF', fontSize: 11, fontWeight: '600' },
+  trayRemove: { position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
+  trayHint: { fontSize: fontSize.caption, color: c.textMuted, paddingHorizontal: spacing.md },
   input: { flex: 1, minHeight: 44, maxHeight: 120, borderRadius: radius.lg, borderWidth: 1, borderColor: c.border, backgroundColor: c.background, paddingHorizontal: spacing.md, paddingTop: 11, paddingBottom: 11, fontSize: fontSize.body, color: c.text },
   sendButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: c.brand, alignItems: 'center', justifyContent: 'center' },
 }));

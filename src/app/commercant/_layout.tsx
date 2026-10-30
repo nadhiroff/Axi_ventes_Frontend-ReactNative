@@ -17,7 +17,8 @@ export default function MerchantLayout() {
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="produit/nouveau" options={{ presentation: 'modal' }} />
+      {/* Plein écran, sans les bandes noires de la présentation « modal » d'iOS */}
+      <Stack.Screen name="produit/nouveau" options={{ presentation: 'fullScreenModal' }} />
     </Stack>
   );
 }

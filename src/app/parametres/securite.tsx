@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 
-import { errorMessage } from '../../api/client';
+import { ApiError, errorMessage } from '../../api/client';
 import { api } from '../../api/endpoints';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -33,7 +33,7 @@ export default function SecurityScreen() {
       setErrors({ new_password: t('auth.shortPassword') });
       return;
     }
-    confirmAction(t('settings.changePassword'), t('settings.passwordChanged'), () =>
+    confirmAction(t('settings.changePassword'), t('settings.passwordConfirm'), () =>
       actions.changePassword.mutate(
         { current, next },
         {
@@ -44,7 +44,8 @@ export default function SecurityScreen() {
             notify(t('settings.passwordChanged'));
             sessions.refetch();
           },
-          onError: (e) => setErrors({ current_password: errorMessage(e) }),
+          // Chaque erreur sous son champ (mot de passe actuel faux, nouveau trop long…)
+          onError: (e) => setErrors(e instanceof ApiError && Object.keys(e.fields).length ? e.fields : { current_password: errorMessage(e) }),
         },
       ),
     );
@@ -71,7 +72,7 @@ export default function SecurityScreen() {
             {s.current ? (
               <Tag label={t('settings.thisDevice')} tone="trust" />
             ) : (
-              <Button label={t('account.logout')} size="sm" variant="danger" onPress={() => confirmAction(t('settings.revokeSession'), s.device, () => actions.revokeSession.mutate(s.id), { destructive: true })} />
+              <Button label={t('account.logout')} size="sm" variant="danger" onPress={() => confirmAction(t('settings.revokeSession'), s.device, () => actions.revokeSession.mutate(s.id, { onError: (e) => notify(t('settings.revokeSession'), errorMessage(e), 'error') }), { destructive: true })} />
             )}
           </Card>
         ))}
@@ -91,7 +92,7 @@ export default function SecurityScreen() {
         {(history.data?.events ?? []).map((e, i) => (
           <View key={i} style={styles.event}>
             <Tag label={e.label} tone={e.success ? 'trust' : 'danger'} />
-            <Text style={styles.muted}>{`${formatShortDate(e.created_at, dateFormat, true)} · ${e.channel === 'web' ? 'Web' : (e.device ?? '')} · ${e.ip}`}</Text>
+            <Text style={styles.muted}>{[formatShortDate(e.created_at, dateFormat, true), e.channel === 'web' ? 'Web' : e.device, e.ip].filter(Boolean).join(' · ')}</Text>
           </View>
         ))}
       </Screen>

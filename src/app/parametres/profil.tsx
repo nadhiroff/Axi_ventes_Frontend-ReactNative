@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { ApiError, errorMessage } from '../../api/client';
 import { api } from '../../api/endpoints';
@@ -9,6 +9,7 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { OptionTile } from '../../components/ui/Chip';
 import { Field } from '../../components/ui/Field';
+import { ImageViewer } from '../../components/ui/ImageViewer';
 import { Screen } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { takeProductPhoto } from '../../hooks/useProductPhoto';
@@ -32,9 +33,11 @@ export default function ProfileScreen() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
+  // Toucher ma photo : elle s'affiche en grand
+  const [viewing, setViewing] = useState(false);
   // Différent du profil enregistré = modification en cours
   const dirty = !!user && (form.first_name !== user.first_name || form.last_name !== user.last_name || form.phone !== (user.phone ?? '') || form.bio !== (user.bio ?? ''));
-  const { cancel } = useConfirmLeave(dirty);
+  const { leave, cancel } = useConfirmLeave(dirty);
 
   const save = async () => {
     setSaving(true);
@@ -42,6 +45,8 @@ export default function ProfileScreen() {
       setUser(await api.updateMe({ first_name: form.first_name.trim(), last_name: form.last_name.trim(), phone: form.phone.trim() || null, bio: form.bio.trim() || null }));
       setErrors({});
       toast(t('settings.profileSaved'));
+      // Enregistré : retour automatique à l'écran précédent, sans question
+      leave();
     } catch (e) {
       setErrors(e instanceof ApiError ? e.fields : {});
       notify(t('settings.profile'), errorMessage(e), 'error');
@@ -91,7 +96,9 @@ export default function ProfileScreen() {
       <Screen>
         <View style={styles.column}>
           <Card style={{ gap: spacing.md, alignItems: 'center' }}>
-            <Avatar name={user.name} image={user.avatar} size={104} variant="soft" />
+            <Pressable onPress={() => user.avatar && setViewing(true)} disabled={!user.avatar} accessibilityRole="imagebutton" accessibilityLabel={t('settings.photo')}>
+              <Avatar name={user.name} image={user.avatar} size={104} variant="soft" />
+            </Pressable>
             <Text style={styles.muted}>{t('settings.photoHint')}</Text>
             <View style={styles.row}>
               <Button label={t('common.camera')} icon="camera" variant="ghost" size="sm" onPress={() => pickPhoto('camera')} loading={photoBusy} style={{ flex: 1 }} />
@@ -128,6 +135,7 @@ export default function ProfileScreen() {
           </Card>
         </View>
       </Screen>
+      <ImageViewer images={user.avatar ? [user.avatar] : []} visible={viewing} onClose={() => setViewing(false)} title={user.name} />
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useIsFocused } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
@@ -16,8 +16,9 @@ import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { LoadingView } from '../../../components/ui/StateViews';
 import { Tag } from '../../../components/ui/Tag';
 import { useMerchantActions, useMerchantClients } from '../../../hooks/api/merchant';
-import { useT } from '../../../i18n';
-import { formatCount } from '../../../lib/format';
+import { useLangStore, useT } from '../../../i18n';
+import { formatChatTime, formatCount } from '../../../lib/format';
+import { useSettings } from '../../../hooks/api/account';
 import { confirmAction, notify } from '../../../lib/confirm';
 import { fontSize, makeStyles, radius, spacing, useLayout, useTheme } from '../../../theme';
 
@@ -27,12 +28,14 @@ const SEGMENTS: ClientSegment[] = ['all', 'followers', 'resellers', 'loyal', 'to
 export default function ClientsScreen() {
   const styles = useStyles();
   const t = useT();
+  const lang = useLangStore((st) => st.lang);
+  const dateFormat = useSettings().data?.date_format;
   const { colors } = useTheme();
   const { listColumns } = useLayout();
   const [segment, setSegment] = useState<ClientSegment>('all');
   const [text, setText] = useState('');
   const [search, setSearch] = useState('');
-  const clients = useMerchantClients(segment, search);
+  const clients = useMerchantClients(segment, search, useIsFocused());
   const actions = useMerchantActions();
   const data = clients.data;
 
@@ -83,10 +86,19 @@ export default function ClientsScreen() {
               <Pressable key={c.id} onPress={() => router.push(`/commercant/client/${c.id}`)} style={({ pressed }) => [styles.card, pressed && { opacity: 0.85 }]} accessibilityRole="button">
                 <Avatar name={c.display_name} image={c.avatar} size={48} variant="soft" />
                 <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={styles.title}>{c.display_name}</Text>
-                  <Text style={styles.muted}>{c.description}</Text>
-                  {c.badge ? <Tag label={c.badge.label} tone={c.badge.kind === 'follow_up' ? 'brand' : c.badge.kind === 'loyal' || c.badge.kind === 'follower' ? 'trust' : 'neutral'} /> : null}
+                  {/* Nom puis badge (Abonné, Fidèle, Nouveau…) sur la même ligne */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                    <Text style={[styles.title, { flexShrink: 1 }]} numberOfLines={1}>{c.display_name}</Text>
+                    {c.invite_status === 'pending' ? <Tag label={t('invites.pending')} tone="outline" icon="clock" /> : c.invite_status === 'declined' ? <Tag label={t('invites.refused')} tone="outline" /> : null}
+                    {c.badge ? <Tag label={c.badge.label} tone={c.badge.kind === 'follow_up' ? 'brand' : c.badge.kind === 'loyal' || c.badge.kind === 'follower' ? 'trust' : 'neutral'} /> : null}
+                  </View>
+                  {/* Comme WhatsApp : le dernier message envoyé ou reçu, sinon le type de client */}
+                  <Text style={styles.muted} numberOfLines={1}>
+                    {c.last_message ? `${c.last_message.mine ? `${t('chat.yourself')} : ` : ''}${c.last_message.preview}` : c.description}
+                  </Text>
                 </View>
+                {/* Heure du dernier message, centrée verticalement à droite */}
+                {c.last_message ? <Text style={styles.time}>{formatChatTime(c.last_message.created_at, lang, dateFormat)}</Text> : null}
                 {c.badge?.kind === 'follow_up' ? (
                   <Button
                     label={t('merchant.followUp')}
@@ -97,7 +109,7 @@ export default function ClientsScreen() {
                       )
                     }
                   />
-                ) : c.user_id ? (
+                ) : c.user_id && (c.invite_status ?? 'accepted') === 'accepted' ? (
                   <IconButton icon="message-circle" label={t('chat.write')} onPress={() => write(c.id)} />
                 ) : (
                   <Icon name="chevron-right" size={18} color={colors.textMuted} />
@@ -117,4 +129,5 @@ const useStyles = makeStyles((c) => ({
   card: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: c.surface, borderRadius: radius.lg, padding: spacing.md },
   title: { fontSize: fontSize.body, fontWeight: '700', color: c.text },
   muted: { fontSize: fontSize.small, color: c.textMuted },
+  time: { fontSize: fontSize.caption, color: c.textMuted },
 }));

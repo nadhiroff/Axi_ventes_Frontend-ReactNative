@@ -69,7 +69,8 @@ export function useLayout() {
     tablet,
     wide,
     contentWidth,
-    gutter: tablet ? spacing.xxl : spacing.xl,
+    // Petit téléphone : marges fines, le contenu prend presque toute la largeur
+    gutter: tablet ? spacing.xxl : width < 380 ? spacing.md : spacing.lg,
     productColumns: wide ? 4 : tablet ? 3 : 2,
     aisleColumns: wide ? 6 : tablet ? 4 : 3,
     listColumns: tablet ? 2 : 1,
