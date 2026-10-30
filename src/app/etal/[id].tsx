@@ -35,7 +35,7 @@ export default function StallScreen() {
   const styles = useStyles();
   const t = useT();
   const insets = useSafeAreaInsets();
-  const { contentWidth, gutter, productColumns } = useLayout();
+  const { contentWidth, gutter, productColumns, tablet } = useLayout();
   const stall = useStall(id);
   const follow = useFollow(id);
   const requireAuth = useRequireAuth();
@@ -78,12 +78,14 @@ export default function StallScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
-        <View style={{ width: '100%', maxWidth: contentWidth, paddingHorizontal: gutter, gap: spacing.md }}>
-          <BackButton tone="onBrand" />
+      {/* En-tête compact : retour à gauche, identité de l'étal juste à côté, sur la même ligne */}
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
+        <View style={{ width: '100%', maxWidth: contentWidth, paddingHorizontal: gutter, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md }}>
+          <BackButton tone="onBrand" compact />
+          <View style={{ flex: 1, gap: spacing.md }}>
           <View style={styles.identity}>
             <Pressable onPress={() => s.photos.length > 0 && setPhotoIndex(0)} accessibilityRole="imagebutton" accessibilityLabel={s.name}>
-              <Avatar name={s.name} image={s.avatar} size={76} variant="inverse" />
+              <Avatar name={s.name} image={s.avatar} size={tablet ? 80 : 60} variant="inverse" />
             </Pressable>
             <View style={{ flex: 1, gap: 4 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -100,6 +102,7 @@ export default function StallScreen() {
             {s.pay_on_delivery ? <Tag label={t('stall.payOnDelivery')} tone="trust" size="md" /> : null}
             {s.location.moved_at ? <Tag label={t('stall.newLocation')} tone="brand" size="md" /> : null}
             {s.delivery_note ? <Tag label={s.delivery_note} tone="neutral" size="md" /> : null}
+          </View>
           </View>
         </View>
       </View>
@@ -165,10 +168,10 @@ export default function StallScreen() {
 }
 
 const useStyles = makeStyles((c) => ({
-  header: { backgroundColor: c.brand, paddingBottom: spacing.xl, alignItems: 'center' },
-  identity: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
+  header: { backgroundColor: c.brand, paddingBottom: spacing.lg, alignItems: 'center' },
+  identity: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   followers: { color: '#FFFFFF', fontSize: fontSize.small, fontWeight: '700', marginTop: 2 },
-  name: { fontSize: fontSize.display, fontWeight: '800', color: '#FFFFFF' },
+  name: { fontSize: fontSize.heading, fontWeight: '800', color: '#FFFFFF', flexShrink: 1 },
   tagline: { fontSize: fontSize.body, color: '#FFEDD5' },
   location: { fontSize: fontSize.small, color: '#FED7AA', fontWeight: '600' },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
