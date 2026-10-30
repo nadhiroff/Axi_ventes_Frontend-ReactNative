@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
@@ -17,6 +17,7 @@ import { Screen } from '../../../components/ui/Screen';
 import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { EmptyView, LoadingView } from '../../../components/ui/StateViews';
 import { useMerchantStall, useProductMutations } from '../../../hooks/api/merchant';
+import { useConfirmLeave } from '../../../hooks/useConfirmLeave';
 import { useT } from '../../../i18n';
 import { confirmAction, notify, toast } from '../../../lib/confirm';
 import { fontSize, makeStyles, radius, spacing } from '../../../theme';
@@ -36,7 +37,8 @@ function EditProductForm({ product }: { product: Product }) {
   const styles = useStyles();
   const t = useT();
   const mutations = useProductMutations();
-  const [form, setForm] = useState({
+  // Valeurs de départ : toute différence = modification non enregistrée
+  const [initial] = useState(() => ({
     name: product.name,
     description: product.description ?? '',
     price: product.price ? String(product.price.amount) : '',
@@ -46,8 +48,10 @@ function EditProductForm({ product }: { product: Product }) {
     is_today: product.is_today,
     trackStock: product.stock_quantity !== null,
     stock: product.stock_quantity !== null ? String(product.stock_quantity) : '',
-  });
+  }));
+  const [form, setForm] = useState(initial);
   const [newPhotos, setNewPhotos] = useState<LocalFile[]>([]);
+  const { leave, cancel } = useConfirmLeave(JSON.stringify(form) !== JSON.stringify(initial) || newPhotos.length > 0);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [viewer, setViewer] = useState<number | null>(null);
   const draft = product.status === 'draft';
@@ -74,7 +78,7 @@ function EditProductForm({ product }: { product: Product }) {
         onSuccess: async () => {
           if (newPhotos.length) await mutations.addPhotos.mutateAsync({ id: product.id, photos: newPhotos }).catch((e) => notify(t('merchant.photos'), errorMessage(e), 'error'));
           toast(publish ? t('merchant.productPublished') : t('merchant.productSaved'));
-          router.back();
+          leave();
         },
         onError: (e) => {
           setErrors(e instanceof ApiError ? e.fields : {});
@@ -90,6 +94,7 @@ function EditProductForm({ product }: { product: Product }) {
       <Screen
         footer={
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            <Button label={t('common.cancel')} variant="ghost" onPress={cancel} style={{ flex: 1 }} />
             {paused ? <Button label={t('merchant.resume')} onPress={() => save(true)} loading={mutations.update.isPending} style={{ flex: 1 }} /> : null}
             {draft ? <Button label={t('merchant.publishDraft')} onPress={() => save(true)} loading={mutations.update.isPending} style={{ flex: 1 }} /> : null}
             <Button label={t('common.update')} variant={draft || paused ? 'ghost' : 'primary'} onPress={() => save(false)} loading={mutations.update.isPending} style={{ flex: 1 }} />
@@ -152,7 +157,7 @@ function EditProductForm({ product }: { product: Product }) {
             label={t('common.delete')}
             variant="danger"
             icon="trash-2"
-            onPress={() => confirmAction(t('merchant.deleteProduct'), t('merchant.deleteProductText'), () => mutations.remove.mutate(product.id, { onSuccess: () => router.back() }), { destructive: true })}
+            onPress={() => confirmAction(t('merchant.deleteProduct'), t('merchant.deleteProductText'), () => mutations.remove.mutate(product.id, { onSuccess: leave }), { destructive: true })}
           />
         </View>
       </Screen>

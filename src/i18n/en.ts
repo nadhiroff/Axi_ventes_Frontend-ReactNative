@@ -3,6 +3,9 @@ import type { Dict } from './fr';
 // English texts. The Dict type forces every French key to be translated here.
 export const en: Dict = {
   common: {
+    discardTitle: 'Discard your changes?',
+    discardText: 'Your changes are not saved. If you leave now, they will be lost.',
+    discardConfirm: 'Leave without saving',
     update: 'Update',
     done: 'Done',
     later: 'Later',

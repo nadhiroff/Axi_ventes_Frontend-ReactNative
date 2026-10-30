@@ -12,6 +12,7 @@ import { Screen } from '../../../components/ui/Screen';
 import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { VoiceRecordModal } from '../../../components/ui/VoiceRecordModal';
 import { useProductMutations } from '../../../hooks/api/merchant';
+import { useConfirmLeave } from '../../../hooks/useConfirmLeave';
 import { useT } from '../../../i18n';
 import { notify, toast } from '../../../lib/confirm';
 import { fontSize, spacing, useTheme } from '../../../theme';
@@ -34,6 +35,8 @@ export default function NewProductScreen() {
   const [stock, setStock] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [recording, setRecording] = useState(false);
+  // Quelque chose de saisi : quitter demande confirmation
+  const { leave, cancel } = useConfirmLeave(!voice && (photos.length > 0 || !!name.trim() || !!description.trim() || !!price || !!priceMax || !!stock));
 
   const create = () => {
     const local: Record<string, string> = {};
@@ -46,7 +49,7 @@ export default function NewProductScreen() {
       {
         onSuccess: () => {
           toast(t('merchant.productPublished'));
-          router.back();
+          leave();
         },
         onError: (e) => {
           setErrors(e instanceof ApiError ? e.fields : {});
@@ -59,7 +62,16 @@ export default function NewProductScreen() {
   return (
     <>
       <ScreenHeader title={voice ? t('merchant.addVoice') : t('merchant.productTitle')} />
-      <Screen footer={voice ? undefined : <Button label={t('merchant.publish')} size="lg" onPress={create} loading={mutations.create.isPending} />}>
+      <Screen
+        footer={
+          voice ? undefined : (
+            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+              <Button label={t('common.cancel')} variant="ghost" size="lg" onPress={cancel} style={{ flex: 1 }} />
+              <Button label={t('merchant.publish')} size="lg" onPress={create} loading={mutations.create.isPending} style={{ flex: 2 }} />
+            </View>
+          )
+        }
+      >
         <View style={{ gap: spacing.lg, width: '100%', maxWidth: 640, alignSelf: 'center' }}>
           {voice ? (
             <Card tone="brandSoft" style={{ gap: spacing.md }}>

@@ -121,6 +121,11 @@ function EditSheet({ announcement, onClose, onImage }: { announcement: Announcem
   const actions = useMerchantActions();
   const [text, setText] = useState(announcement.text);
   const busy = actions.setAnnouncementPhoto.isPending || actions.removeAnnouncementPhoto.isPending;
+  // Fermer avec un texte modifié et non enregistré : confirmation
+  const close = () => {
+    if (text.trim() === announcement.text.trim()) onClose();
+    else confirmAction(t('common.discardTitle'), t('common.discardText'), onClose, { destructive: true, confirmLabel: t('common.discardConfirm') });
+  };
 
   const pick = async (source: 'camera' | 'library') => {
     const photo = await takeProductPhoto(source, false);
@@ -144,12 +149,12 @@ function EditSheet({ announcement, onClose, onImage }: { announcement: Announcem
     });
 
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible transparent animationType="slide" onRequestClose={close}>
       <KeyboardAvoidingView behavior="padding" style={styles.backdrop}>
         <View style={styles.sheet}>
           <View style={styles.header}>
             <Text style={styles.title}>{t('merchant.announcementEdit')}</Text>
-            <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel={t('common.close')}>
+            <Pressable onPress={close} hitSlop={10} accessibilityRole="button" accessibilityLabel={t('common.close')}>
               <Icon name="x" size={22} color={colors.text} />
             </Pressable>
           </View>
@@ -171,7 +176,10 @@ function EditSheet({ announcement, onClose, onImage }: { announcement: Announcem
               <Button label={t('common.gallery')} icon="image" size="sm" variant="ghost" onPress={() => pick('library')} disabled={busy} style={{ flex: 1 }} />
             </View>
           )}
-          <Button label={t('common.update')} icon="check" size="lg" loading={actions.updateAnnouncement.isPending} disabled={text.trim().length < 3} onPress={save} />
+          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            <Button label={t('common.cancel')} variant="ghost" size="lg" onPress={close} style={{ flex: 1 }} />
+            <Button label={t('common.update')} icon="check" size="lg" loading={actions.updateAnnouncement.isPending} disabled={text.trim().length < 3} onPress={save} style={{ flex: 2 }} />
+          </View>
         </View>
       </KeyboardAvoidingView>
     </Modal>

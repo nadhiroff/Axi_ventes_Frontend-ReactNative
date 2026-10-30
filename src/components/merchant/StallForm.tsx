@@ -11,6 +11,7 @@ import { Button } from '../ui/Button';
 import { OptionTile } from '../ui/Chip';
 import { Field, SwitchRow } from '../ui/Field';
 import { PlacePicker } from './PlacePicker';
+import { useConfirmLeave } from '../../hooks/useConfirmLeave';
 
 type Props = { initial: MerchantStallDetail; submitLabel: string; onSubmit: (input: StallInput) => Promise<unknown> };
 
@@ -19,7 +20,7 @@ export function StallForm({ initial, submitLabel, onSubmit }: Props) {
   const styles = useStyles();
   const t = useT();
   const options = useStallOptions().data;
-  const [form, setForm] = useState({
+  const [initialForm] = useState(() => ({
     name: initial.name ?? '',
     tagline: initial.tagline ?? '',
     site: { id: initial.location.site_id, other: initial.site_other ?? '' },
@@ -34,7 +35,9 @@ export function StallForm({ initial, submitLabel, onSubmit }: Props) {
     pay_on_delivery: initial.pay_on_delivery ?? true,
     accepts_voice_messages: initial.contacts.accepts_voice_messages ?? true,
     is_open: initial.is_open ?? true,
-  });
+  }));
+  const [form, setForm] = useState(initialForm);
+  const { leave, cancel } = useConfirmLeave(JSON.stringify(form) !== JSON.stringify(initialForm));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const set = <K extends keyof typeof form>(key: K) => (value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }));
@@ -56,6 +59,8 @@ export function StallForm({ initial, submitLabel, onSubmit }: Props) {
       try {
         const { site, aisle, ...rest } = form;
         await onSubmit({ ...rest, site_id: site.id, site_other: site.other.trim(), aisle_id: aisle.id, aisle_other: aisle.other.trim(), row: form.has_physical_place ? form.row : '', stand: form.has_physical_place ? form.stand : '' });
+        // Enregistré : on quitte l'écran sans demander
+        leave();
       } catch (e) {
         setErrors(e instanceof ApiError ? { ...e.fields, ...(e.fields.site_other ? { site_id: e.fields.site_other } : {}), ...(e.fields.aisle_other ? { aisle_id: e.fields.aisle_other } : {}) } : {});
         notify(submitLabel, errorMessage(e), 'error');
@@ -96,7 +101,10 @@ export function StallForm({ initial, submitLabel, onSubmit }: Props) {
       <SwitchRow label={t('merchant.payOnDelivery')} value={form.pay_on_delivery} onChange={set('pay_on_delivery')} />
       <SwitchRow label={t('merchant.voiceMessages')} value={form.accepts_voice_messages} onChange={set('accepts_voice_messages')} />
       <SwitchRow label={t('merchant.isOpen')} value={form.is_open} onChange={set('is_open')} />
-      <Button label={submitLabel} size="lg" onPress={submit} loading={saving} />
+      <View style={styles.row}>
+        <Button label={t('common.cancel')} variant="ghost" size="lg" onPress={cancel} style={{ flex: 1 }} />
+        <Button label={submitLabel} size="lg" onPress={submit} loading={saving} style={{ flex: 2 }} />
+      </View>
     </View>
   );
 }
