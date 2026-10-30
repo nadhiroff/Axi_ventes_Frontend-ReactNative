@@ -139,7 +139,7 @@ function StallBlock({ stall }: { stall: Order['stalls'][number] }) {
           <Text style={styles.stallName}>{stall.name}</Text>
           <Text style={styles.muted}>{stall.status_label}</Text>
         </View>
-        {stall.whatsapp ? <IconButton icon="message-circle" label={t('common.whatsapp')} onPress={() => openWhatsapp(stall.whatsapp!)} /> : null}
+        {stall.whatsapp ? <IconButton icon="whatsapp" label={t('common.whatsapp')} onPress={() => openWhatsapp(stall.whatsapp!)} /> : null}
         {stall.phone ? <IconButton icon="phone" label={t('common.call')} onPress={() => callPhone(stall.phone)} /> : null}
       </View>
       {stall.items.map((i, k) => (

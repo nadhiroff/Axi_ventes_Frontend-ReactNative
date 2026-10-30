@@ -118,7 +118,7 @@ export default function StallScreen() {
           {ownStallId !== s.id ? <Button label={t('chat.write')} icon="message-square" variant="ghost" onPress={writeToStall} loading={opening} style={{ flex: 1 }} /> : null}
         </View>
         <View style={styles.contacts}>
-          {s.contacts.whatsapp ? <ContactButton icon="message-circle" label={t('common.whatsapp')} onPress={() => openWhatsapp(s.contacts.whatsapp!)} /> : null}
+          {s.contacts.whatsapp ? <ContactButton icon="whatsapp" label={t('common.whatsapp')} onPress={() => openWhatsapp(s.contacts.whatsapp!)} /> : null}
           {s.contacts.phone ? <ContactButton icon="phone" label={t('common.call')} onPress={() => callPhone(s.contacts.phone)} /> : null}
           {ownStallId !== s.id ? <ContactButton icon="mail" label={t('stall.emailShort')} onPress={() => requireAuth(() => setEmailOpen(true), t('auth.reasonEmail'))} /> : null}
           {s.location.map_url ? <ContactButton icon="map" label={t('stall.map')} onPress={() => openLink(s.location.map_url!)} /> : null}
@@ -156,13 +156,14 @@ export default function StallScreen() {
 }
 
 /** Petit bouton rond avec son libellé dessous (WhatsApp, Appeler, Vocal, Plan) */
-function ContactButton({ icon, label, onPress }: { icon: 'message-circle' | 'phone' | 'mail' | 'map'; label: string; onPress: () => void }) {
+function ContactButton({ icon, label, onPress }: { icon: 'whatsapp' | 'phone' | 'mail' | 'map'; label: string; onPress: () => void }) {
   const styles = useStyles();
   const { colors } = useTheme();
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={({ pressed }) => [styles.contact, pressed && { opacity: 0.7 }]}>
       <View style={styles.contactCircle}>
-        <Icon name={icon} size={20} color={colors.brand} />
+        {/* Le logo WhatsApp garde sa couleur verte, les autres sont orange */}
+        <Icon name={icon} size={20} color={icon === 'whatsapp' ? undefined : colors.brand} />
       </View>
       <Text style={styles.contactLabel} numberOfLines={1}>
         {label}

@@ -41,7 +41,7 @@ export default function VoiceMessagesScreen() {
               <Text style={{ color: colors.textMuted, fontSize: fontSize.small }}>{formatShortDate(m.created_at, dateFormat, true)}</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
                 <AudioPlayerButton url={m.audio_url} onPlayed={() => !m.listened && actions.listened.mutate(m.id)} />
-                {m.client_phone ? <Button label={t('common.whatsapp')} icon="message-circle" size="sm" variant="ghost" onPress={() => openWhatsapp(m.client_phone!)} /> : null}
+                {m.client_phone ? <Button label={t('common.whatsapp')} icon="whatsapp" size="sm" variant="ghost" onPress={() => openWhatsapp(m.client_phone!)} /> : null}
                 {m.client_phone ? <Button label={t('common.call')} icon="phone" size="sm" variant="ghost" onPress={() => callPhone(m.client_phone)} /> : null}
                 <Button
                   label={t('common.delete')}

@@ -53,7 +53,7 @@ export function Button({ label, onPress, variant = 'primary', icon, loading, dis
         <ActivityIndicator color={v.fg} />
       ) : (
         <>
-          {icon ? <Icon name={icon} size={size === 'sm' ? 16 : 18} color={v.fg} /> : null}
+          {icon ? <Icon name={icon} size={size === 'sm' ? 16 : 18} color={icon === 'whatsapp' && (variant === 'ghost' || variant === 'outline') ? undefined : v.fg} /> : null}
           <Text style={[styles.label, size === 'lg' && styles.labelLg, size === 'sm' && styles.labelSm, { color: v.fg }]} numberOfLines={1}>
             {label}
           </Text>
