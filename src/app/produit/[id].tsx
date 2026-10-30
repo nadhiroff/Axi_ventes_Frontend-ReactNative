@@ -70,7 +70,11 @@ export default function ProductScreen() {
           own ? (
             <Button label={t('product.editOwn')} icon="edit-2" size="lg" onPress={() => router.push(`/commercant/produit/${p.id}`)} />
           ) : p.in_stock && p.price ? (
-            <Button label={inCart ? t('product.inCart', { n: inCart }) : `${t('product.add')} · ${formatPrice(p.price)}`} icon={inCart ? 'check' : 'shopping-bag'} size="lg" variant={inCart ? 'trust' : 'primary'} onPress={() => addToCart.add(p)} />
+            // Ajouter : on reste ici pour continuer ses achats. Acheter maintenant : directement au panier.
+            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+              <Button label={inCart ? t('product.inCart', { n: inCart }) : t('product.add')} icon={inCart ? 'check' : 'shopping-bag'} size="lg" variant={inCart ? 'trust' : 'ghost'} onPress={() => addToCart.add(p)} style={{ flex: 1 }} />
+              <Button label={t('product.buyNow')} size="lg" onPress={() => addToCart.buy(p)} style={{ flex: 1.3 }} />
+            </View>
           ) : undefined
         }
       >

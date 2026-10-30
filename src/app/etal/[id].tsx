@@ -79,28 +79,26 @@ export default function StallScreen() {
   return (
     <View style={{ flex: 1 }}>
       {/* En-tête compact : retour à gauche, identité de l'étal juste à côté, sur la même ligne */}
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <View style={{ width: '100%', maxWidth: contentWidth, paddingHorizontal: gutter, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md }}>
-          <BackButton tone="onBrand" compact />
-          <View style={{ flex: 1, gap: spacing.sm }}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.xs }]}>
+        <View style={{ width: '100%', maxWidth: contentWidth, paddingHorizontal: gutter, gap: spacing.sm }}>
           <View style={styles.identity}>
+            <BackButton tone="onBrand" compact />
             <Pressable onPress={() => s.photos.length > 0 && setPhotoIndex(0)} accessibilityRole="imagebutton" accessibilityLabel={s.name}>
-              <Avatar name={s.name} image={s.avatar} size={tablet ? 80 : 60} variant="inverse" />
+              <Avatar name={s.name} image={s.avatar} size={tablet ? 72 : 52} variant="inverse" />
             </Pressable>
-            <View style={{ flex: 1, gap: 4 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                <Text style={styles.name}>{s.name}</Text>
-                {s.subscribed ? <SubscriberBadge size={20} onDark /> : null}
+            <View style={{ flex: 1, gap: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.name} numberOfLines={1}>{s.name}</Text>
+                {s.subscribed ? <SubscriberBadge size={18} onDark /> : null}
               </View>
-              {s.tagline ? <Text style={styles.tagline} numberOfLines={1}>{s.tagline}</Text> : null}
-              {/* Emplacement et abonnés sur une seule ligne */}
-              <Text style={styles.location} numberOfLines={2}>
-                {s.location.label}
-                <Text style={styles.followers}>{`  ·  ${t('stall.followers', { n: s.followers_count, count: formatCount(s.followers_count) }).replace(/ /g, '\u00A0')}`}</Text>
+              {/* Trois lignes au plus : le bandeau reste bas, l'emplacement ne passe plus à la ligne */}
+              <Text style={styles.tagline} numberOfLines={1}>
+                {[s.tagline, t('stall.followers', { n: s.followers_count, count: formatCount(s.followers_count) })].filter(Boolean).join('  ·  ')}
               </Text>
+              <Text style={styles.location} numberOfLines={1}>{s.location.label}</Text>
             </View>
           </View>
-          {/* Deux lignes de badges alignés : confiance (vérifié, paiement à la réception), puis emplacement et livraison */}
+          {/* Badges sur toute la largeur, depuis le bord gauche : plus de vide sous le bouton retour */}
           <View style={styles.tagRows}>
             <View style={styles.tags}>
               {s.verification ? <Tag label={t('stall.verifiedBy')} tone="trustSolid" icon="check-circle" style={styles.tag} /> : <Tag label={t('stall.notVerified')} tone="outline" style={styles.tag} />}
@@ -113,7 +111,6 @@ export default function StallScreen() {
                 {s.delivery_note ? <Tag label={s.delivery_note} tone="neutral" icon="truck" style={styles.tag} /> : null}
               </View>
             ) : null}
-          </View>
           </View>
         </View>
       </View>
@@ -180,11 +177,10 @@ function ContactButton({ icon, label, onPress }: { icon: 'whatsapp' | 'phone' | 
 }
 
 const useStyles = makeStyles((c) => ({
-  header: { backgroundColor: c.brand, paddingBottom: spacing.md, alignItems: 'center' },
-  identity: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  followers: { color: '#FFFFFF', fontSize: fontSize.small, fontWeight: '700' },
-  name: { fontSize: fontSize.heading, fontWeight: '800', color: '#FFFFFF', flexShrink: 1 },
-  tagline: { fontSize: fontSize.body, color: '#FFEDD5' },
+  header: { backgroundColor: c.brand, paddingBottom: spacing.sm, alignItems: 'center' },
+  identity: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  name: { fontSize: fontSize.title + 2, fontWeight: '800', color: '#FFFFFF', flexShrink: 1 },
+  tagline: { fontSize: fontSize.small, color: '#FFEDD5' },
   location: { fontSize: fontSize.small, color: '#FED7AA', fontWeight: '600' },
   tagRows: { gap: spacing.xs },
   tags: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.xs },

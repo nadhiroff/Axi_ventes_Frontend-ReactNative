@@ -2,11 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { create } from 'zustand';
 
-import { ApiError, setAuthToken, setUnauthorizedHandler } from '../api/client';
+import { ApiError, setAuthToken, setSuspendedHandler, setUnauthorizedHandler } from '../api/client';
 import { api } from '../api/endpoints';
 import { clearEtagCache } from '../api/etagCache';
 import type { User } from '../api/types';
-import { useLangStore } from '../i18n';
+import { t, useLangStore } from '../i18n';
+import { notify } from '../lib/confirm';
 import { setDataUsageSender } from '../lib/dataUsage';
 import { queryClient } from '../lib/queryClient';
 import { deleteToken, readToken, writeToken } from '../lib/tokenStorage';
@@ -106,7 +107,10 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     setAuthToken(token);
     set({ status: 'signedIn', user: saved, mode: saved?.role === 'merchant' ? 'merchant' : 'client' });
     try {
-      get().setUser(await api.me());
+      const me = await api.me();
+      get().setUser(me);
+      // Profil gardé absent ou dépassé (demande commerçant acceptée entre-temps) : le bon espace s'ouvre quand même
+      if (me.role !== saved?.role) set({ mode: me.role === 'merchant' ? 'merchant' : 'client' });
       applyServerSettings();
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) await get().signOut(false);
@@ -146,6 +150,13 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
 
 setUnauthorizedHandler(() => {
   useAuthStore.getState().signOut(false);
+});
+
+// Bloqué pendant que l'application est ouverte : une seule alerte avec le motif, puis retour à l'accueil
+setSuspendedHandler((message) => {
+  if (useAuthStore.getState().status !== 'signedIn') return;
+  useAuthStore.getState().signOut(false);
+  notify(t('auth.suspendedTitle'), message, 'error');
 });
 
 // Consommation de données : envoyée au serveur pour l'indicateur « Paramètres > Données »

@@ -51,6 +51,7 @@ export default function NotificationsScreen() {
     if (n.data.order_id) router.push(`/commande/${n.data.order_id}`);
     else if (n.data.stall_id && !n.data.audio_url) router.push(`/etal/${n.data.stall_id}`);
     else if (n.data.voice_messages) router.push('/commercant/messages');
+    else if (n.data.url?.startsWith('/')) router.push(n.data.url as never);
   };
 
   return (

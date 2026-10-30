@@ -24,11 +24,12 @@ type Props = {
 export function Screen({ children, footer, contentStyle, scroll = true }: Props) {
   const { colors } = useTheme();
   const { contentWidth, gutter } = useLayout();
-  const inner = <View style={[{ width: '100%', maxWidth: contentWidth, alignSelf: 'center', paddingHorizontal: gutter, paddingTop: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.md }, contentStyle]}>{children}</View>;
+  const inner = <View style={[{ width: '100%', maxWidth: contentWidth, alignSelf: 'center', paddingHorizontal: gutter, paddingTop: spacing.md, paddingBottom: spacing.xxl, gap: spacing.sm }, contentStyle]}>{children}</View>;
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       {scroll ? (
         <KeyboardAwareScrollView
+          showsVerticalScrollIndicator={false}
           bounces={false}
           overScrollMode="never"
           bottomOffset={64}

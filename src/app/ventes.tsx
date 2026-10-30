@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
@@ -8,13 +9,16 @@ import type { SalesStatus } from '../api/types';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Chip } from '../components/ui/Chip';
+import { useDialogStore } from '../components/ui/DialogHost';
+import { Icon } from '../components/ui/Icon';
 import { Grid, Screen } from '../components/ui/Screen';
 import { ScreenHeader } from '../components/ui/ScreenHeader';
 import { EmptyView, LoadingView } from '../components/ui/StateViews';
 import { useSettings } from '../hooks/api/account';
 import { useSales } from '../hooks/api/client';
+import { queryKeys } from '../hooks/api/queryKeys';
 import { useT } from '../i18n';
-import { notify } from '../lib/confirm';
+import { confirmAction, notify, toast } from '../lib/confirm';
 import { formatFcfa, formatShortDate, orderNumber } from '../lib/format';
 import { useAuthStore } from '../store/authStore';
 import { fontSize, makeStyles, radius, spacing, useLayout, useTheme } from '../theme';
@@ -33,6 +37,7 @@ export default function SalesScreen() {
   const t = useT();
   const { colors } = useTheme();
   const { listColumns } = useLayout();
+  const qc = useQueryClient();
   const merchant = useAuthStore((s) => s.user?.role === 'merchant' && s.mode === 'merchant');
   const dateFormat = useSettings().data?.date_format;
   const [period, setPeriod] = useState<Period>('30');
@@ -62,6 +67,31 @@ export default function SalesScreen() {
     }
   };
 
+  const hide = (target: { order_id: string } | { all: true }) =>
+    api
+      .salesHide(target)
+      .then(({ hidden }) => {
+        qc.invalidateQueries({ queryKey: ['sales'] });
+        qc.invalidateQueries({ queryKey: queryKeys.orders });
+        if ('all' in target) toast(t('sales.cleared', { n: hidden }), 'info');
+      })
+      .catch((e) => notify(t('sales.clear'), errorMessage(e), 'error'));
+  const hideOne = (orderId: string) => confirmAction(t('sales.removeConfirm'), t('sales.removeText'), () => hide({ order_id: orderId }), { destructive: true, confirmLabel: t('sales.remove') });
+  // Vider : proposer d'exporter d'abord (le CSV du client ne contient plus ce qui a été retiré)
+  const clearAll = () => {
+    if (!data?.rows.some((r) => r.hideable)) return notify(t('sales.clear'), t('sales.nothingToClear'), 'info');
+    useDialogStore.getState().showDialog({
+      title: t('sales.clearConfirm'),
+      message: t(merchant ? 'sales.clearTextMerchant' : 'sales.clearText'),
+      tone: 'info',
+      buttons: [
+        { label: t('sales.clearNow'), variant: 'destructive', onPress: () => hide({ all: true }) },
+        { label: t('sales.exportFirst'), onPress: exportCsv },
+        { label: t('common.cancel'), variant: 'ghost' },
+      ],
+    });
+  };
+
   return (
     <>
       <ScreenHeader title={merchant ? t('sales.title') : t('sales.buyTitle')} right={<Button label="CSV" icon="download" size="sm" variant="ghost" onPress={exportCsv} loading={exporting} />} />
@@ -84,6 +114,8 @@ export default function SalesScreen() {
             {merchant ? <Text style={styles.totalsLabel}>{`${t('sales.net')} : ${formatFcfa(data.totals.net_amount)} · ${t('sales.commission')} : ${formatFcfa(data.totals.commission)}`}</Text> : null}
           </Card>
         ) : null}
+        {/* Seules les commandes terminées se retirent : le reste (en cours, litige, remboursement) reste affiché */}
+        {data?.rows.length ? <Button label={t('sales.clear')} icon="trash-2" variant="ghost" size="sm" onPress={clearAll} style={{ alignSelf: 'flex-start' }} /> : null}
         {sales.isPending ? (
           <LoadingView />
         ) : !data?.rows.length ? (
@@ -101,6 +133,11 @@ export default function SalesScreen() {
                 <View style={{ alignItems: 'flex-end' }}>
                   <Text style={styles.amount}>{formatFcfa(r.amount)}</Text>
                   {merchant ? <Text style={styles.muted}>{`${t('sales.net')} ${formatFcfa(r.net_amount)}`}</Text> : null}
+                  {r.hideable ? (
+                    <Pressable onPress={() => hideOne(r.order_id)} hitSlop={10} style={styles.hide} accessibilityRole="button" accessibilityLabel={t('sales.remove')}>
+                      <Icon name="x" size={16} color={colors.textMuted} />
+                    </Pressable>
+                  ) : null}
                 </View>
               </Pressable>
             ))}
@@ -122,4 +159,5 @@ const useStyles = makeStyles((c) => ({
   status: { fontSize: fontSize.small, color: c.brandDark, fontWeight: '600' },
   muted: { fontSize: fontSize.caption, color: c.textMuted },
   amount: { fontSize: fontSize.title, fontWeight: '800', color: c.text },
+  hide: { marginTop: spacing.sm, padding: 2 },
 }));

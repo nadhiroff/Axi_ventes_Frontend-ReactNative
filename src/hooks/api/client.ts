@@ -7,21 +7,22 @@ import { queryKeys } from './queryKeys';
 
 const useSignedIn = () => useAuthStore((s) => s.status === 'signedIn');
 
-export const useHome = () => useQuery({ queryKey: queryKeys.home, queryFn: api.home });
+// Relu à chaque retour sur l'accueil et toutes les 2 minutes quand il est affiché (304 sans corps si rien n'a changé) : bannières et arrivages restent à jour
+export const useHome = (visible = true) => useQuery({ queryKey: queryKeys.home, queryFn: api.home, staleTime: 0, refetchInterval: visible ? 120_000 : false });
 
 export const useAisle = (aisleId: string) => useQuery({ queryKey: queryKeys.aisle(aisleId), queryFn: () => api.aisle(aisleId) });
 
 export const useSearch = (query: string) =>
   useQuery({ queryKey: queryKeys.search(query), queryFn: () => api.search(query), enabled: query.trim().length >= 2, placeholderData: keepPreviousData });
 
-export const useStall = (stallId: string) => useQuery({ queryKey: queryKeys.stall(stallId), queryFn: () => api.stall(stallId) });
+export const useStall = (stallId: string) => useQuery({ queryKey: queryKeys.stall(stallId), queryFn: () => api.stall(stallId), staleTime: 0 });
 
 export const useProduct = (productId: string) => useQuery({ queryKey: queryKeys.product(productId), queryFn: () => api.product(productId) });
 
 export const useQuote = (body: QuoteRequest, enabled: boolean) =>
   useQuery({ queryKey: queryKeys.quote(body), queryFn: () => api.quote(body), enabled, placeholderData: keepPreviousData, staleTime: 30_000 });
 
-export const useOrders = () => useQuery({ queryKey: queryKeys.orders, queryFn: api.orders, enabled: useSignedIn() });
+export const useOrders = () => useQuery({ queryKey: queryKeys.orders, queryFn: api.orders, enabled: useSignedIn(), staleTime: 0 });
 
 /** Suivi de commande : rafraîchi toutes les 5 s tant que le paiement est attendu */
 export const useOrder = (orderId: string) =>
@@ -33,7 +34,7 @@ export const useOrder = (orderId: string) =>
   });
 
 export const useSales = (filters: SalesFilters) =>
-  useQuery({ queryKey: queryKeys.sales(filters), queryFn: () => api.sales(filters), enabled: useSignedIn(), placeholderData: keepPreviousData });
+  useQuery({ queryKey: queryKeys.sales(filters), queryFn: () => api.sales(filters), enabled: useSignedIn(), placeholderData: keepPreviousData, staleTime: 0 });
 
 export const useFavorites = () => useQuery({ queryKey: queryKeys.favorites, queryFn: api.favorites, enabled: useSignedIn() });
 export const useRecentlyViewed = () => useQuery({ queryKey: queryKeys.recent, queryFn: api.recentlyViewed, enabled: useSignedIn() });

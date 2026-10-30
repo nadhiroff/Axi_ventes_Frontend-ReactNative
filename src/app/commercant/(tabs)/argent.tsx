@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useIsFocused } from 'expo-router';
 import { useState } from 'react';
 import { Linking, Text, TextInput, View } from 'react-native';
 
@@ -24,7 +24,7 @@ export default function MoneyScreen() {
   const lang = useLangStore((s) => s.lang);
   const { colors } = useTheme();
   const { tablet } = useLayout();
-  const money = useMerchantMoney();
+  const money = useMerchantMoney(useIsFocused());
   const actions = useMerchantActions();
   const dateFormat = useSettings().data?.date_format;
   const [creditAmount, setCreditAmount] = useState('');
@@ -32,6 +32,9 @@ export default function MoneyScreen() {
 
   if (money.isPending) return <LoadingView />;
   if (!m) return <ErrorView error={money.error} onRetry={() => money.refetch()} />;
+  const last = m.credit.last_request;
+  const answerOffer = (accept: boolean) =>
+    actions.answerCreditOffer.mutate(accept, { onSuccess: (r) => notify(t('merchant.credit'), r.message), onError: (e) => notify(t('merchant.credit'), errorMessage(e), 'error') });
 
   const toggleSharing = (enabled: boolean) =>
     confirmAction(
@@ -96,9 +99,41 @@ export default function MoneyScreen() {
         <Card tone="dark" style={{ gap: spacing.sm }}>
           <Text style={styles.darkTitle}>{m.credit.title}</Text>
           <Text style={styles.darkText}>{m.credit.text}</Text>
-          {m.credit.request_pending ? (
-            <Tag label={t('merchant.creditPending')} tone="brand" size="md" />
-          ) : m.credit.can_request ? (
+          {/* Suivi de la dernière demande : change seul dès que l'IMF ou Axi répond */}
+          {last ? (
+            <View style={{ gap: 4 }}>
+              <Tag label={`${last.status_label}${last.amount ? ` · ${formatFcfa(last.amount)}` : ''}`} tone={last.status === 'granted' || last.status === 'repaid' ? 'trust' : last.status === 'declined' ? 'danger' : 'brand'} size="md" />
+              {last.note ? <Text style={styles.darkText}>{last.note}</Text> : null}
+              {/* Offre : les conditions sont lues avant d'accepter, retenue sur les ventes comprise */}
+              {last.status === 'offered' && last.repay_total !== null ? (
+                <View style={{ gap: spacing.sm, marginTop: spacing.xs }}>
+                  <Text style={styles.darkText}>{t('merchant.creditOfferTerms', { amount: formatFcfa(last.amount ?? 0), total: formatFcfa(last.repay_total), months: last.term_months ?? 0 })}</Text>
+                  {last.withhold_pct > 0 ? <Text style={styles.darkText}>{t('merchant.creditOfferWithhold', { pct: last.withhold_pct })}</Text> : null}
+                  <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                    <Button
+                      label={t('invites.decline')}
+                      variant="ghost"
+                      disabled={actions.answerCreditOffer.isPending}
+                      onPress={() => confirmAction(t('merchant.creditDeclineConfirm'), '', () => answerOffer(false), { destructive: true })}
+                      style={{ flex: 1 }}
+                    />
+                    <Button label={t('invites.accept')} variant="accent" loading={actions.answerCreditOffer.isPending} onPress={() => confirmAction(t('merchant.creditAcceptConfirm'), t('merchant.creditAcceptText'), () => answerOffer(true))} style={{ flex: 1 }} />
+                  </View>
+                </View>
+              ) : null}
+              {/* Remboursement en cours : ce qui est payé, ce qui reste */}
+              {(last.status === 'granted' || last.status === 'repaid') && last.repay_total ? (
+                <View style={{ gap: 4, marginTop: spacing.xs }}>
+                  <View style={styles.creditBar}>
+                    <View style={[styles.creditBarFill, { width: `${Math.min(100, Math.round((100 * last.repaid_amount) / last.repay_total))}%` }]} />
+                  </View>
+                  <Text style={styles.darkText}>{t('merchant.creditProgress', { paid: formatFcfa(last.repaid_amount), total: formatFcfa(last.repay_total) })}</Text>
+                  {last.status === 'granted' && last.withhold_pct > 0 ? <Text style={styles.darkText}>{t('merchant.creditWithholdOn', { pct: last.withhold_pct })}</Text> : null}
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+          {m.credit.can_request ? (
             <>
               <TextInput value={creditAmount} onChangeText={(v) => setCreditAmount(v.replace(/\D/g, ''))} keyboardType="number-pad" placeholder={t('merchant.creditAmount')} placeholderTextColor="#A8A29E" style={styles.darkInput} accessibilityLabel={t('merchant.creditAmount')} />
               <Button
@@ -115,6 +150,8 @@ export default function MoneyScreen() {
                 }
               />
             </>
+          ) : !m.credit.request_pending && !m.data_sharing.enabled ? (
+            <Text style={styles.darkText}>{t('merchant.creditNeedsSharing', { partner: m.data_sharing.partner_name })}</Text>
           ) : null}
         </Card>
 
@@ -147,6 +184,8 @@ const useStyles = makeStyles((c) => ({
   text: { fontSize: fontSize.body, color: c.text },
   title: { fontSize: fontSize.title, fontWeight: '700', color: c.text },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  creditBar: { height: 10, borderRadius: 5, backgroundColor: 'rgba(255,255,255,0.18)', overflow: 'hidden' },
+  creditBarFill: { height: 10, borderRadius: 5, backgroundColor: '#22C55E' },
   darkTitle: { fontSize: fontSize.title, fontWeight: '700', color: '#FFFFFF' },
   darkText: { fontSize: fontSize.body, color: '#D6D3D1' },
   darkInput: { borderWidth: 1, borderColor: '#57534E', borderRadius: radius.md, paddingHorizontal: spacing.md, minHeight: 46, color: '#FFFFFF', fontSize: fontSize.body },

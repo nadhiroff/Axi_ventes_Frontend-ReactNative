@@ -3,7 +3,8 @@ import { FlatList, View } from 'react-native';
 
 import type { HomeAnnouncement } from '../../api/types';
 import { useAutoPager } from '../../hooks/useSlideshow';
-import { makeStyles, spacing } from '../../theme';
+import { spacing } from '../../theme';
+import { PagerDots } from '../ui/PagerDots';
 import { HomeAnnouncementCard } from './AnnouncementCard';
 
 /**
@@ -12,7 +13,6 @@ import { HomeAnnouncementCard } from './AnnouncementCard';
  * (minuterie partagée de useSlideshow, la même pour toutes les photos de l'application).
  */
 export function ArrivalsCarousel({ items, cardWidth }: { items: HomeAnnouncement[]; cardWidth: number }) {
-  const styles = useStyles();
   const list = useRef<FlatList<HomeAnnouncement>>(null);
   const step = cardWidth + spacing.md;
   const { page, onDrag, setPage } = useAutoPager(list, items.length, step);
@@ -34,19 +34,7 @@ export function ArrivalsCarousel({ items, cardWidth }: { items: HomeAnnouncement
         onScrollBeginDrag={onDrag}
         onMomentumScrollEnd={(e) => setPage(Math.max(0, Math.min(items.length - 1, Math.round(e.nativeEvent.contentOffset.x / step))))}
       />
-      {items.length > 1 ? (
-        <View style={styles.dots} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          {items.map((a, i) => (
-            <View key={a.id} style={[styles.dot, i === page && styles.dotOn]} />
-          ))}
-        </View>
-      ) : null}
+      {items.length > 1 ? <PagerDots count={items.length} page={page} /> : null}
     </View>
   );
 }
-
-const useStyles = makeStyles((c) => ({
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: 6 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: c.border },
-  dotOn: { width: 18, backgroundColor: c.brand },
-}));

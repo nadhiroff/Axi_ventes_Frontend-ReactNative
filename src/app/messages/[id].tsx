@@ -207,8 +207,13 @@ export default function ConversationScreen() {
       message: conv.retention_note,
       tone: 'info',
       buttons: [
-        ...(merchant ? [{ label: t('chat.retentionTitle'), onPress: chooseRetention }] : [{ label: t('chat.seeStall'), onPress: () => router.push(`/etal/${conv.stall.id}`) }]),
-        { label: merchant ? t('chat.seeClient') : t('chat.seeMerchant'), variant: 'ghost' as const, onPress: () => router.push({ pathname: '/profil/[id]', params: { id: conv.other_user_id, conv: conv.id } }) },
+        // Compte bloqué : ni profil ni étal à ouvrir
+        ...(conv.other_unavailable
+          ? []
+          : [
+              ...(merchant ? [{ label: t('chat.retentionTitle'), onPress: chooseRetention }] : [{ label: t('chat.seeStall'), onPress: () => router.push(`/etal/${conv.stall.id}`) }]),
+              { label: merchant ? t('chat.seeClient') : t('chat.seeMerchant'), variant: 'ghost' as const, onPress: () => router.push({ pathname: '/profil/[id]', params: { id: conv.other_user_id, conv: conv.id } }) },
+            ]),
         { label: t('chat.clearAction'), variant: 'destructive' as const, onPress: clearChat },
         { label: t('common.cancel'), variant: 'ghost' as const },
       ],
@@ -251,6 +256,7 @@ export default function ConversationScreen() {
         <BackButton />
         <Pressable
           style={styles.headerMain}
+          disabled={conv.other_unavailable}
           onPress={() => router.push({ pathname: '/profil/[id]', params: { id: conv.other_user_id, conv: conv.id } })}
           accessibilityRole="link"
           accessibilityHint={t('profile.title')}
@@ -261,8 +267,8 @@ export default function ConversationScreen() {
               <Text style={[styles.headerName, { flexShrink: 1 }]} numberOfLines={1}>
                 {conv.other.name}
               </Text>
-              {conv.my_role === 'client' ? <Tag label={t('chat.merchantBadge')} tone="brand" icon="shopping-bag" /> : null}
-              {conv.my_role === 'client' && conv.stall.subscribed ? <SubscriberTag /> : null}
+              {conv.my_role === 'client' && !conv.other_unavailable ? <Tag label={t('chat.merchantBadge')} tone="brand" icon="shopping-bag" /> : null}
+              {conv.my_role === 'client' && conv.stall.subscribed && !conv.other_unavailable ? <SubscriberTag /> : null}
             </View>
             <Text style={[styles.headerSub, conv.other_online && { color: colors.trustText, fontWeight: '600' }]} numberOfLines={1}>
               {conv.other_online ? t('chat.online') : conv.other_last_seen_at ? lastSeen(conv.other_last_seen_at, t) : conv.my_role === 'merchant' ? conv.stall.name : ''}
@@ -283,6 +289,7 @@ export default function ConversationScreen() {
       ) : (
       <FlatList
         inverted
+        showsVerticalScrollIndicator={false}
         data={messages}
         keyExtractor={(m) => m.id}
         contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm, width: '100%', maxWidth: contentWidth, alignSelf: 'center' }}
@@ -344,7 +351,12 @@ export default function ConversationScreen() {
           <Text style={styles.trayHint}>{sendingTray ? t('chat.sending') : t('chat.trayHint', { n: tray.length, max: MAX_ATTACHMENTS })}</Text>
         </View>
       ) : null}
-      {!conv.can_write ? (
+      {conv.other_unavailable ? (
+        <View style={[styles.followBar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
+          <Icon name="slash" size={18} color={colors.textMuted} />
+          <Text style={styles.followText}>{t('chat.unavailable')}</Text>
+        </View>
+      ) : !conv.can_write ? (
         // Le client écrit seulement aux étals qu'il suit : un geste pour suivre, puis la saisie apparaît
         <View style={[styles.followBar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
           <Text style={styles.followText}>{t('chat.followToWrite', { name: conv.stall.name })}</Text>

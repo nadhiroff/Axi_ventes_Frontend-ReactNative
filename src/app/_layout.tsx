@@ -49,8 +49,8 @@ export default function RootLayout() {
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
           <Stack.Screen name="(client)" />
           <Stack.Screen name="bienvenue" options={{ gestureEnabled: false }} />
-          {/* Plein écran : la présentation « modal » d'iOS rétrécit l'écran d'en dessous sur un fond noir (bandes noires) */}
-          <Stack.Screen name="auth" options={{ presentation: 'fullScreenModal' }} />
+          {/* Pas de présentation modale native : elle laisserait des bandes noires (« modal ») ou cacherait les fenêtres de DialogHost (« fullScreenModal ») */}
+          <Stack.Screen name="auth" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen name="paiement" options={{ gestureEnabled: false }} />
           <Stack.Screen name="commercant" />
           {/* Dans une discussion, glisser un message sert à y répondre : pas de retour arrière par glissement */}

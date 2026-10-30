@@ -62,11 +62,11 @@ export const darkPalette: Palette = {
   trustSoft: '#13301F',
   ink: '#2A2622',
   inkSoft: '#3A3530',
-  // Fond et cartes proches : l'écran paraît plein, sans bandes noires entre les blocs
-  background: '#1A1714',
-  surface: '#23201C',
-  surfaceAlt: '#2A2622',
-  border: '#36312C',
+  // Fond et cartes de la MÊME couleur : aucune marge sombre autour des blocs, l'écran est plein
+  background: '#2D2925',
+  surface: '#2D2925',
+  surfaceAlt: '#37322D',
+  border: '#433D37',
   text: '#F5F5F4',
   textMuted: '#B4ADA7',
   textOnDark: '#FFFFFF',

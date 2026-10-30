@@ -89,6 +89,7 @@ export default function ClientsScreen() {
                   {/* Nom puis badge (Abonné, Fidèle, Nouveau…) sur la même ligne */}
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                     <Text style={[styles.title, { flexShrink: 1 }]} numberOfLines={1}>{c.display_name}</Text>
+                    {c.unavailable ? <Tag label={t('merchant.unavailable')} tone="outline" icon="slash" /> : null}
                     {c.invite_status === 'pending' ? <Tag label={t('invites.pending')} tone="outline" icon="clock" /> : c.invite_status === 'declined' ? <Tag label={t('invites.refused')} tone="outline" /> : null}
                     {c.badge ? <Tag label={c.badge.label} tone={c.badge.kind === 'follow_up' ? 'brand' : c.badge.kind === 'loyal' || c.badge.kind === 'follower' ? 'trust' : 'neutral'} /> : null}
                   </View>
@@ -109,7 +110,7 @@ export default function ClientsScreen() {
                       )
                     }
                   />
-                ) : c.user_id && (c.invite_status ?? 'accepted') === 'accepted' ? (
+                ) : c.user_id && !c.unavailable && (c.invite_status ?? 'accepted') === 'accepted' ? (
                   <IconButton icon="message-circle" label={t('chat.write')} onPress={() => write(c.id)} />
                 ) : (
                   <Icon name="chevron-right" size={18} color={colors.textMuted} />
