@@ -76,7 +76,7 @@ export default function MyStallScreen() {
           <Button label={t('merchant.addProduct')} icon="plus" onPress={() => router.push('/commercant/produit/nouveau')} style={{ flex: 1 }} />
         </View>
 
-        <AnnouncementManager announcements={s.announcements} />
+        <AnnouncementManager announcements={s.announcements} stall={s} />
 
         {drafts.length ? (
           <>

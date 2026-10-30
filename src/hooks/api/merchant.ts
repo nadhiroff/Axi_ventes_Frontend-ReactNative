@@ -58,6 +58,8 @@ export function useMerchantActions() {
     relocation: useMutation({ mutationFn: api.broadcastRelocation, onSuccess }),
     arrival: useMutation({ mutationFn: (v: { text: string; photo: LocalFile | null }) => api.announceArrival(v.text, v.photo), onSuccess }),
     updateAnnouncement: useMutation({ mutationFn: (v: { id: string; text: string }) => api.updateAnnouncement(v.id, v.text), onSuccess }),
+    setAnnouncementPhoto: useMutation({ mutationFn: (v: { id: string; photo: LocalFile }) => api.setAnnouncementPhoto(v.id, v.photo), onSuccess }),
+    removeAnnouncementPhoto: useMutation({ mutationFn: (announcementId: string) => api.removeAnnouncementPhoto(announcementId), onSuccess }),
     deleteAnnouncement: useMutation({ mutationFn: (announcementId: string) => api.deleteAnnouncement(announcementId), onSuccess }),
     deleteVoiceMessage: useMutation({ mutationFn: (messageId: string) => api.deleteVoiceMessage(messageId), onSuccess }),
     addClient: useMutation({ mutationFn: (input: ClientInput) => api.addClient(input), onSuccess }),
