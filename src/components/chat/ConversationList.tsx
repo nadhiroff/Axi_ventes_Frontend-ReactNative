@@ -8,14 +8,17 @@ import { api } from '../../api/endpoints';
 import type { ConversationSummary } from '../../api/types';
 import { useConversations } from '../../hooks/api/chat';
 import { queryKeys } from '../../hooks/api/queryKeys';
-import { useT } from '../../i18n';
+import { useLangStore, useT } from '../../i18n';
 import { confirmAction, notify, toast } from '../../lib/confirm';
-import { formatShortDate } from '../../lib/format';
+import { formatChatTime } from '../../lib/format';
+import { useSettings } from '../../hooks/api/account';
 import { fontSize, makeStyles, radius, spacing, useTheme } from '../../theme';
 import { Avatar } from '../ui/Avatar';
 import { Ticks } from './Ticks';
 import { Icon } from '../ui/Icon';
 import { Screen } from '../ui/Screen';
+import { Tag } from '../ui/Tag';
+import { SubscriberBadge } from '../ui/VerifiedIcon';
 import { EmptyView, ErrorView, LoadingView } from '../ui/StateViews';
 
 /**
@@ -94,6 +97,8 @@ export function ConversationList({ role }: { role?: 'client' | 'merchant' }) {
 
 function ConversationRow({ c, onLongPress }: { c: ConversationSummary; onLongPress: () => void }) {
   const styles = useStyles();
+  const lang = useLangStore((st) => st.lang);
+  const dateFormat = useSettings().data?.date_format;
   const t = useT();
   const { colors } = useTheme();
   const unread = c.unread_count > 0;
@@ -112,7 +117,10 @@ function ConversationRow({ c, onLongPress }: { c: ConversationSummary; onLongPre
           <Text style={[styles.name, unread && styles.bold]} numberOfLines={1}>
             {c.other.name}
           </Text>
-          {c.last_message ? <Text style={styles.date}>{formatShortDate(c.last_message.created_at)}</Text> : null}
+          {/* L'autre personne est un commerçant (je lui écris en tant que client) */}
+          {c.my_role === 'client' ? <Tag label={t('chat.merchantBadge')} tone="brand" icon="shopping-bag" /> : null}
+          {c.my_role === 'client' && c.stall.subscribed ? <SubscriberBadge size={16} /> : null}
+          {c.last_message ? <Text style={styles.date}>{formatChatTime(c.last_message.created_at, lang, dateFormat)}</Text> : null}
         </View>
         <View style={styles.line}>
           {c.last_message?.mine ? <Ticks status={c.last_message.status} size={15} /> : null}
@@ -123,7 +131,7 @@ function ConversationRow({ c, onLongPress }: { c: ConversationSummary; onLongPre
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{c.unread_count}</Text>
             </View>
-          ) : !c.kept ? (
+          ) : c.retention_hours <= 48 ? (
             <Icon name="clock" size={14} color={colors.textMuted} />
           ) : null}
         </View>

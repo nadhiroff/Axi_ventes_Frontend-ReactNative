@@ -1,19 +1,20 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { errorMessage } from '../../api/client';
 import { api } from '../../api/endpoints';
 import type { Currency, NotificationType, Operator, UserSettings } from '../../api/types';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
+import { Icon } from '../../components/ui/Icon';
 import { Chip, OptionTile } from '../../components/ui/Chip';
-import { MenuRow, SwitchRow } from '../../components/ui/Field';
+import { MenuRow } from '../../components/ui/Field';
 import { Screen } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
-import { useSettings, useUpdateSettings } from '../../hooks/api/account';
+import { useAccountActions, useSettings, useUpdateSettings } from '../../hooks/api/account';
 import { LANG_LABELS, useLangStore, useT, type Lang } from '../../i18n';
-import { notify, toast } from '../../lib/confirm';
+import { confirmAction, notify, toast } from '../../lib/confirm';
 import { useCurrencyStore } from '../../store/currencyStore';
 import { formatBytes } from '../../lib/format';
 import { useAuthStore } from '../../store/authStore';
@@ -33,6 +34,7 @@ export default function SettingsScreen() {
   const application = user?.merchant_application;
   const settings = useSettings();
   const update = useUpdateSettings();
+  const { resetDataUsage } = useAccountActions();
   const { preference, setPreference } = useThemeStore();
   const { lang, setLang } = useLangStore();
   const s = settings.data;
@@ -66,8 +68,16 @@ export default function SettingsScreen() {
     }
   };
 
+  // Plafond borné de 100 Mo à 20 Go ; le champ affiche la valeur réellement enregistrée
+  const saveDataCap = (v: string) => {
+    const cap = Math.min(20000, Math.max(100, Number(v.replace(/\D/g, '')) || 1500));
+    save({ data_cap_mb: cap });
+    return String(cap);
+  };
+
+  // Seul le canal changé est envoyé : le serveur garde l'autre tel quel
   const toggleNotif = (type: NotificationType, channel: 'app' | 'email', value: boolean) =>
-    save({ notifications: { [type]: { ...(s?.notifications[type] ?? { app: true, email: true }), [channel]: value } } as Partial<UserSettings['notifications']> });
+    save({ notifications: { [type]: { [channel]: value } } as Partial<UserSettings['notifications']> });
 
   return (
     <>
@@ -146,22 +156,23 @@ export default function SettingsScreen() {
         {signedIn && s ? (
           <>
             <Text style={styles.section}>{t('settings.notifications')}</Text>
-            <Card style={{ gap: spacing.xs }}>
-              {NOTIF_TYPES.map((type) => (
-                <View key={type} style={styles.notifRow}>
-                  <Text style={[styles.label, { flex: 1 }]}>{t(`settings.notifTypes.${type}`)}</Text>
-                  <View style={{ flexDirection: 'row', gap: spacing.md }}>
-                    <View style={{ width: 120 }}>
-                      <SwitchRow label={t('settings.inApp')} value={s.notifications[type].app} onChange={(v) => toggleNotif(type, 'app', v)} />
-                    </View>
-                    <View style={{ width: 120 }}>
-                      <SwitchRow label={t('settings.byEmail')} value={s.notifications[type].email} onChange={(v) => toggleNotif(type, 'email', v)} />
-                    </View>
-                  </View>
+            {/* Un titre par canal (« Dans l'app », puis « Par email »), puis une case par type : le texte garde toute la largeur */}
+            <Card style={{ gap: spacing.md }}>
+              {(['app', 'email'] as const).map((channel) => (
+                <View key={channel}>
+                  <Text style={styles.notifHead}>{t(channel === 'app' ? 'settings.inApp' : 'settings.byEmail')}</Text>
+                  {NOTIF_TYPES.map((type) => (
+                    <CheckRow
+                      key={type}
+                      label={t(`settings.notifTypes.${type}`)}
+                      checked={s.notifications[type][channel]}
+                      onChange={(v) => toggleNotif(type, channel, v)}
+                    />
+                  ))}
                 </View>
               ))}
-              <Text style={styles.muted}>{t('settings.reminders')}</Text>
             </Card>
+            <Text style={styles.muted}>{t('settings.reminders')}</Text>
 
             <Text style={styles.section}>{merchant ? t('settings.savedBuyer') : t('settings.saved')}</Text>
             <Card style={{ gap: spacing.md }}>
@@ -189,11 +200,24 @@ export default function SettingsScreen() {
             <Card style={{ gap: spacing.md }}>
               <Text style={styles.label}>{t('settings.dataUsed', { used: formatBytes(s.data.used_bytes), cap: s.data.cap_mb })}</Text>
               <View style={styles.bar}>
-                <View style={[styles.barFill, { width: `${s.data.used_pct}%`, backgroundColor: s.data.used_pct >= 90 ? colors.danger : colors.trust }]} />
+                <View style={[styles.barFill, { width: `${Math.min(100, s.data.used_pct)}%`, backgroundColor: s.data.used_pct >= 90 ? colors.danger : colors.trust }]} />
               </View>
               {s.data.used_pct >= 90 ? <Text style={[styles.muted, { color: colors.danger }]}>{t('settings.dataWarning')}</Text> : null}
+              <Button
+                label={t('settings.dataReset')}
+                icon="rotate-ccw"
+                variant="ghost"
+                size="sm"
+                disabled={s.data.used_bytes === 0}
+                loading={resetDataUsage.isPending}
+                onPress={() =>
+                  confirmAction(t('settings.dataResetConfirm'), t('settings.dataResetText'), () =>
+                    resetDataUsage.mutate(undefined, { onSuccess: () => toast(t('settings.dataResetDone')), onError: (e) => notify(t('settings.data'), errorMessage(e), 'error') }),
+                  )
+                }
+              />
               <Text style={styles.label}>{t('settings.dataCap')}</Text>
-              <SavedText initial={String(s.data.cap_mb)} label={t('settings.dataCap')} keyboard="number-pad" onSave={(v) => save({ data_cap_mb: Math.max(100, Number(v.replace(/\D/g, '')) || 1500) })} />
+              <SavedText initial={String(s.data.cap_mb)} label={t('settings.dataCap')} keyboard="number-pad" onSave={saveDataCap} />
             </Card>
 
             <Text style={styles.section}>{t('settings.security')}</Text>
@@ -207,16 +231,43 @@ export default function SettingsScreen() {
   );
 }
 
+/** Ligne à cocher : la case et son texte, toute la ligne se touche */
+function CheckRow({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+  const styles = useStyles();
+  return (
+    <Pressable
+      onPress={() => onChange(!checked)}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked }}
+      accessibilityLabel={label}
+      style={({ pressed }) => [styles.notifRow, pressed && { opacity: 0.6 }]}
+    >
+      <View style={[styles.box, checked && styles.boxOn]}>{checked ? <Icon name="check" size={18} color="#FFFFFF" /> : null}</View>
+      <Text style={[styles.label, { flex: 1 }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 /** Champ enregistré en base quand on le quitte (initialisé depuis les réglages) */
-function SavedText({ initial, label, placeholder, keyboard, onSave }: { initial: string; label: string; placeholder?: string; keyboard?: 'phone-pad' | 'number-pad'; onSave: (value: string) => void }) {
+function SavedText({ initial, label, placeholder, keyboard, onSave }: { initial: string; label: string; placeholder?: string; keyboard?: 'phone-pad' | 'number-pad'; onSave: (value: string) => string | void }) {
   const styles = useStyles();
   const { colors } = useTheme();
   const [value, setValue] = useState(initial);
+  // Valeur changée par le serveur (numéro remis au format, plafond borné…) : le champ la reprend
+  const [shown, setShown] = useState(initial);
+  if (shown !== initial) {
+    setShown(initial);
+    setValue(initial);
+  }
   return (
     <TextInput
       value={value}
       onChangeText={setValue}
-      onBlur={() => value.trim() !== initial && onSave(value.trim())}
+      onBlur={() => {
+        if (value.trim() === initial) return;
+        const saved = onSave(value.trim());
+        if (typeof saved === 'string') setValue(saved);
+      }}
       keyboardType={keyboard}
       placeholder={placeholder}
       placeholderTextColor={colors.textMuted}
@@ -232,7 +283,10 @@ const useStyles = makeStyles((c) => ({
   muted: { fontSize: fontSize.small, color: c.textMuted },
   row: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  notifRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm, borderBottomWidth: 1, borderBottomColor: c.border, paddingVertical: spacing.xs },
+  notifHead: { fontSize: fontSize.small, fontWeight: '700', color: c.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, paddingBottom: spacing.xs, borderBottomWidth: 1, borderBottomColor: c.border },
+  notifRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 48, paddingVertical: spacing.xs },
+  box: { width: 26, height: 26, borderRadius: 6, borderWidth: 2, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
+  boxOn: { backgroundColor: c.trust, borderColor: c.trust },
   input: { borderWidth: 1, borderColor: c.border, backgroundColor: c.surface, borderRadius: radius.md, paddingHorizontal: spacing.md, minHeight: 48, fontSize: fontSize.body, color: c.text },
   bar: { height: 10, borderRadius: 5, backgroundColor: c.surfaceAlt, overflow: 'hidden' },
   barFill: { height: 10, borderRadius: 5 },

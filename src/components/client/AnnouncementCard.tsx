@@ -13,6 +13,7 @@ import { Avatar } from '../ui/Avatar';
 import { ImageViewer } from '../ui/ImageViewer';
 import { PhotoCarousel } from '../ui/PhotoCarousel';
 import { Button } from '../ui/Button';
+import { useReduceMotion, useSlideIndex } from '../../hooks/useSlideshow';
 import { CachedImage } from '../ui/CachedImage';
 import { Tag } from '../ui/Tag';
 import { SubscriberBadge, VerifiedIcon } from '../ui/VerifiedIcon';
@@ -46,9 +47,13 @@ export function HomeAnnouncementCard({ a, width, preview = false }: { a: HomeAnn
   const t = useT();
   const follow = useFollow(a.stall.id);
   const requireAuth = useRequireAuth();
+  // Arrivage à plusieurs photos : elles se succèdent en fondu sur la carte
+  const photos = a.images.length ? a.images : a.image ? [a.image] : [];
+  const slide = useSlideIndex(photos.length, a.id, 5);
+  const reduceMotion = useReduceMotion();
   return (
     <Pressable disabled={preview} onPress={() => router.push(`/etal/${a.stall.id}`)} style={[styles.ad, { width }]} accessibilityRole="button" accessibilityLabel={`${a.stall.name} : ${a.text}`}>
-      {a.image ? <CachedImage image={a.image} variant="medium" style={styles.adImage} contentFit="cover" /> : null}
+      {photos.length ? <CachedImage image={photos[slide]} variant="medium" style={styles.adImage} contentFit="cover" transition={reduceMotion ? 0 : 450} /> : null}
       <View style={styles.adBody}>
         <View style={styles.adStall}>
           <Avatar name={a.stall.name} image={a.stall.avatar} size={32} />

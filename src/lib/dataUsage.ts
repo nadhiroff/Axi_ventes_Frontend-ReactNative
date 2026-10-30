@@ -10,6 +10,12 @@ export function setDataUsageSender(sender: (bytes: number) => Promise<void>) {
   flush = sender;
 }
 
+/** Compteur remis à zéro : ce qui n'est pas encore envoyé est oublié aussi */
+export function clearPendingDataUsage() {
+  pending = 0;
+  AsyncStorage.removeItem('axi-data-pending').catch(() => undefined);
+}
+
 export function recordDataUsage(bytes: number) {
   // En-têtes HTTP et TLS : environ 500 octets par échange
   pending += bytes + 500;

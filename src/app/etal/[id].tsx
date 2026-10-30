@@ -13,7 +13,7 @@ import { Icon } from '../../components/ui/Icon';
 import { ImageViewer } from '../../components/ui/ImageViewer';
 import { PhotoCarousel } from '../../components/ui/PhotoCarousel';
 import { AnnouncementCard } from '../../components/client/AnnouncementCard';
-import { SubscriberBadge } from '../../components/ui/VerifiedIcon';
+import { SubscriberBadge, SubscriberTag } from '../../components/ui/VerifiedIcon';
 import { Grid, Screen } from '../../components/ui/Screen';
 import { BackButton } from '../../components/ui/ScreenHeader';
 import { SectionHeader } from '../../components/ui/SectionHeader';
@@ -82,7 +82,7 @@ export default function StallScreen() {
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <View style={{ width: '100%', maxWidth: contentWidth, paddingHorizontal: gutter, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md }}>
           <BackButton tone="onBrand" compact />
-          <View style={{ flex: 1, gap: spacing.md }}>
+          <View style={{ flex: 1, gap: spacing.sm }}>
           <View style={styles.identity}>
             <Pressable onPress={() => s.photos.length > 0 && setPhotoIndex(0)} accessibilityRole="imagebutton" accessibilityLabel={s.name}>
               <Avatar name={s.name} image={s.avatar} size={tablet ? 80 : 60} variant="inverse" />
@@ -100,11 +100,19 @@ export default function StallScreen() {
               </Text>
             </View>
           </View>
-          <View style={styles.tags}>
-            {s.verification ? <Tag label={t('stall.verifiedBy')} tone="trustSolid" icon="check-circle" /> : <Tag label={t('stall.notVerified')} tone="outline" />}
-            {s.pay_on_delivery ? <Tag label={t('stall.payOnDelivery')} tone="trust" /> : null}
-            {s.location.moved_at ? <Tag label={t('stall.newLocation')} tone="brand" /> : null}
-            {s.delivery_note ? <Tag label={s.delivery_note} tone="neutral" /> : null}
+          {/* Deux lignes de badges alignés : confiance (vérifié, paiement à la réception), puis emplacement et livraison */}
+          <View style={styles.tagRows}>
+            <View style={styles.tags}>
+              {s.verification ? <Tag label={t('stall.verifiedBy')} tone="trustSolid" icon="check-circle" style={styles.tag} /> : <Tag label={t('stall.notVerified')} tone="outline" style={styles.tag} />}
+              {s.pay_on_delivery ? <Tag label={t('stall.payOnDelivery')} tone="trust" icon="dollar-sign" style={styles.tag} /> : null}
+              {s.subscribed ? <SubscriberTag onDark /> : null}
+            </View>
+            {s.location.moved_at || s.delivery_note ? (
+              <View style={styles.tags}>
+                {s.location.moved_at ? <Tag label={t('stall.newLocation')} tone="brand" icon="map-pin" style={styles.tag} /> : null}
+                {s.delivery_note ? <Tag label={s.delivery_note} tone="neutral" icon="truck" style={styles.tag} /> : null}
+              </View>
+            ) : null}
           </View>
           </View>
         </View>
@@ -172,13 +180,16 @@ function ContactButton({ icon, label, onPress }: { icon: 'whatsapp' | 'phone' | 
 }
 
 const useStyles = makeStyles((c) => ({
-  header: { backgroundColor: c.brand, paddingBottom: spacing.lg, alignItems: 'center' },
+  header: { backgroundColor: c.brand, paddingBottom: spacing.md, alignItems: 'center' },
   identity: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   followers: { color: '#FFFFFF', fontSize: fontSize.small, fontWeight: '700' },
   name: { fontSize: fontSize.heading, fontWeight: '800', color: '#FFFFFF', flexShrink: 1 },
   tagline: { fontSize: fontSize.body, color: '#FFEDD5' },
   location: { fontSize: fontSize.small, color: '#FED7AA', fontWeight: '600' },
-  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  tagRows: { gap: spacing.xs },
+  tags: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.xs },
+  // Même hauteur pour tous les badges, avec ou sans icône
+  tag: { alignSelf: 'center', minHeight: 24 },
   actions: { flexDirection: 'row', gap: spacing.sm },
   contacts: { flexDirection: 'row', justifyContent: 'space-around', gap: spacing.sm },
   contact: { alignItems: 'center', gap: 4, minWidth: 64 },

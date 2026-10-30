@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
 import type { AppNotification } from '../api/types';
+import { ClientInvites } from '../components/ClientInvites';
 import { AudioPlayerButton } from '../components/ui/AudioPlayerButton';
 import { Button } from '../components/ui/Button';
 import { Icon, type IconName } from '../components/ui/Icon';
@@ -62,10 +63,11 @@ export default function NotificationsScreen() {
         <LoadingView />
       ) : list.isError ? (
         <ErrorView error={list.error} onRetry={() => list.refetch()} />
-      ) : !items.length ? (
-        <EmptyView icon="bell" title={t('notifications.empty')} text={t('notifications.emptyText')} />
       ) : (
         <Screen>
+          {/* Invitations des commerçants (accepter avant toute discussion), puis les notifications */}
+          <ClientInvites />
+          {!items.length ? <EmptyView icon="bell" title={t('notifications.empty')} text={t('notifications.emptyText')} /> : null}
           {items.map((n) => (
             <Pressable key={n.id} onPress={() => open(n)} style={({ pressed }) => [styles.card, !n.read && styles.unread, pressed && { opacity: 0.85 }]} accessibilityRole="button" accessibilityHint={t('notifications.tapHint')}>
               <Icon name={icons[n.type]} size={20} color={n.read ? colors.textMuted : colors.brand} />

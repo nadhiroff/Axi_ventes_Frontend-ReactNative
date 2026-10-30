@@ -8,9 +8,11 @@ import { queryKeys } from './queryKeys';
 export const useStallOptions = () => useQuery({ queryKey: queryKeys.stallOptions, queryFn: api.stallOptions, staleTime: 3600_000 });
 export const useMerchantToday = () => useQuery({ queryKey: queryKeys.merchantToday, queryFn: api.merchantToday, refetchInterval: 60_000 });
 export const useMerchantStall = () => useQuery({ queryKey: queryKeys.merchantStall, queryFn: api.merchantStall });
-export const useMerchantClients = (segment: ClientSegment, search: string) =>
-  useQuery({ queryKey: queryKeys.merchantClients(segment, search), queryFn: () => api.merchantClients(segment, search || undefined) });
-export const useMerchantClient = (clientId: string) => useQuery({ queryKey: queryKeys.merchantClient(clientId), queryFn: () => api.merchantClient(clientId) });
+// Relue toutes les 30 s, SEULEMENT quand l'onglet est affiché (réponse 304 sans corps si rien n'a changé)
+export const useMerchantClients = (segment: ClientSegment, search: string, visible = true) =>
+  useQuery({ queryKey: queryKeys.merchantClients(segment, search), queryFn: () => api.merchantClients(segment, search || undefined), staleTime: 15_000, refetchInterval: visible ? 30_000 : false });
+// Fiche relue à chaque ouverture : jamais une ancienne copie (compteurs, commandes) gardée sur le téléphone
+export const useMerchantClient = (clientId: string) => useQuery({ queryKey: queryKeys.merchantClient(clientId), queryFn: () => api.merchantClient(clientId), staleTime: 0 });
 export const useMerchantMoney = () => useQuery({ queryKey: queryKeys.merchantMoney, queryFn: api.merchantMoney });
 export const useVoiceMessages = () => useQuery({ queryKey: queryKeys.voiceMessages, queryFn: api.voiceMessages });
 

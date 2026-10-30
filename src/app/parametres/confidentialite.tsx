@@ -28,7 +28,7 @@ export default function PrivacyScreen() {
 
   const exportData = () =>
     actions.exportData.mutate(undefined, {
-      onSuccess: ({ url }) => Linking.openURL(url),
+      onSuccess: ({ url }) => Linking.openURL(url).catch(() => notify(t('settings.exportData'), url, 'error')),
       onError: (e) => notify(t('settings.exportData'), errorMessage(e), 'error'),
     });
 
@@ -59,11 +59,11 @@ export default function PrivacyScreen() {
           <Card key={c.id} style={{ gap: spacing.sm }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
               <Text style={[styles.title, { flex: 1 }]}>{c.partner_name}</Text>
-              <Tag label={c.active ? t('common.yes') : t('common.no')} tone={c.active ? 'trust' : 'outline'} />
+              <Tag label={c.active ? t('settings.consentActive') : t('settings.consentRevoked')} tone={c.active ? 'trust' : 'outline'} />
             </View>
             <Text style={styles.muted}>{c.scope}</Text>
             <Text style={styles.muted}>{formatShortDate(c.granted_at, dateFormat)}{c.revoked_at ? ` → ${formatShortDate(c.revoked_at, dateFormat)}` : ''}</Text>
-            {c.active ? <Button label={t('common.delete')} variant="danger" size="sm" onPress={() => confirmAction(t('settings.revokeConsent'), c.partner_name, () => actions.revokeConsent.mutate(c.id), { destructive: true })} /> : null}
+            {c.active ? <Button label={t('settings.revokeConsentButton')} variant="danger" size="sm" onPress={() => confirmAction(t('settings.revokeConsent'), c.partner_name, () => actions.revokeConsent.mutate(c.id, { onError: (e) => notify(t('settings.revokeConsent'), errorMessage(e), 'error') }), { destructive: true })} /> : null}
           </Card>
         ))}
 

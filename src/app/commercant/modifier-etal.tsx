@@ -11,10 +11,13 @@ import { Screen } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { ErrorView, LoadingView } from '../../components/ui/StateViews';
 import { useMerchantStall, useStallMutations } from '../../hooks/api/merchant';
-import { takeProductPhoto } from '../../hooks/useProductPhoto';
+import { pickPhotos, takeProductPhoto } from '../../hooks/useProductPhoto';
 import { useT } from '../../i18n';
 import { confirmAction, notify, toast } from '../../lib/confirm';
 import { fontSize, spacing, useTheme } from '../../theme';
+
+// Même limite que le serveur (StallController::GALLERY_MAX)
+const GALLERY_MAX = 8;
 
 /** Modifier mon étal : photo, nom, emplacement, contacts, options. */
 export default function EditStallScreen() {
@@ -32,11 +35,16 @@ export default function EditStallScreen() {
     if (photo) mutations.photo.mutate(photo, { onSuccess: () => toast(t('common.saved')), onError: (e) => notify(t('merchant.stallPhoto'), errorMessage(e), 'error') });
   };
 
-  // Galerie : les photos après la photo principale
+  // Galerie : les photos après la photo principale ; depuis la galerie du téléphone, plusieurs d'un coup
   const gallery = s.photos.slice(s.avatar ? 1 : 0);
+  const left = GALLERY_MAX - gallery.length;
   const addGallery = async (source: 'camera' | 'library') => {
-    const photo = await takeProductPhoto(source, false);
-    if (photo) mutations.addGallery.mutate([photo], { onSuccess: () => toast(t('merchant.photoAdded')), onError: (e) => notify(t('merchant.gallery'), errorMessage(e), 'error') });
+    const photos = source === 'library' ? await pickPhotos(left) : await takeProductPhoto('camera', false).then((p) => (p ? [p] : []));
+    if (!photos.length) return;
+    mutations.addGallery.mutate(photos, {
+      onSuccess: () => toast(photos.length > 1 ? t('merchant.photosAdded', { count: photos.length }) : t('merchant.photoAdded')),
+      onError: (e) => notify(t('merchant.gallery'), errorMessage(e), 'error'),
+    });
   };
 
   return (
@@ -58,7 +66,7 @@ export default function EditStallScreen() {
           </View>
         </Card>
         <Card style={{ gap: spacing.md }}>
-          <Text style={{ color: colors.text, fontWeight: '700', fontSize: fontSize.body }}>{t('merchant.gallery')}</Text>
+          <Text style={{ color: colors.text, fontWeight: '700', fontSize: fontSize.body }}>{`${t('merchant.gallery')} · ${gallery.length}/${GALLERY_MAX}`}</Text>
           <Text style={{ color: colors.textMuted, fontSize: fontSize.small }}>{t('merchant.galleryHint')}</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
             {gallery.map((img, i) => (
@@ -76,7 +84,7 @@ export default function EditStallScreen() {
               </View>
             ))}
           </View>
-          {gallery.length < 8 ? (
+          {left > 0 ? (
             <View style={{ flexDirection: 'row', gap: spacing.sm }}>
               <Button label={t('common.camera')} icon="camera" size="sm" variant="ghost" onPress={() => addGallery('camera')} loading={mutations.addGallery.isPending} style={{ flex: 1 }} />
               <Button label={t('common.gallery')} icon="image" size="sm" variant="ghost" onPress={() => addGallery('library')} disabled={mutations.addGallery.isPending} style={{ flex: 1 }} />

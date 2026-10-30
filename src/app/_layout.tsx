@@ -7,11 +7,12 @@ import { useEffect } from 'react';
 import { KeyboardProvider, KeyboardToolbar } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { PushNotifications } from '../components/PushNotifications';
 import { SessionWatcher } from '../components/SessionWatcher';
 import { DialogHost } from '../components/ui/DialogHost';
 import { useT } from '../i18n';
 
-import { PERSIST_MAX_AGE, queryClient, queryPersister } from '../lib/queryClient';
+import { PERSIST_MAX_AGE, PERSIST_VERSION, queryClient, queryPersister } from '../lib/queryClient';
 import { useAuthStore } from '../store/authStore';
 import { useKeyboardToolbarStore } from '../store/uiStore';
 import { useTheme } from '../theme';
@@ -42,13 +43,14 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <KeyboardProvider>
-      <PersistQueryClientProvider client={queryClient} persistOptions={{ persister: queryPersister, maxAge: PERSIST_MAX_AGE }}>
+      <PersistQueryClientProvider client={queryClient} persistOptions={{ persister: queryPersister, maxAge: PERSIST_MAX_AGE, buster: PERSIST_VERSION }}>
         {/* Thème de navigation aux couleurs de l'app : sans lui, le fond blanc par défaut apparaît en ligne au bord de l'écran pendant le retour par glissement */}
         <ThemeProvider value={navTheme}>
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
           <Stack.Screen name="(client)" />
           <Stack.Screen name="bienvenue" options={{ gestureEnabled: false }} />
-          <Stack.Screen name="auth" options={{ presentation: 'modal' }} />
+          {/* Plein écran : la présentation « modal » d'iOS rétrécit l'écran d'en dessous sur un fond noir (bandes noires) */}
+          <Stack.Screen name="auth" options={{ presentation: 'fullScreenModal' }} />
           <Stack.Screen name="paiement" options={{ gestureEnabled: false }} />
           <Stack.Screen name="commercant" />
           {/* Dans une discussion, glisser un message sert à y répondre : pas de retour arrière par glissement */}
@@ -59,6 +61,7 @@ export default function RootLayout() {
         {/* Au-dessus du clavier : champ précédent / suivant et « OK » pour le fermer */}
         {toolbar ? <KeyboardToolbar doneText={t('common.done')} theme={{ light: { primary: colors.brand, disabled: colors.textMuted, background: colors.surfaceAlt, ripple: colors.border }, dark: { primary: colors.brand, disabled: colors.textMuted, background: colors.surfaceAlt, ripple: colors.border } }} /> : null}
         <SessionWatcher />
+        <PushNotifications />
         <DialogHost />
       </PersistQueryClientProvider>
       </KeyboardProvider>

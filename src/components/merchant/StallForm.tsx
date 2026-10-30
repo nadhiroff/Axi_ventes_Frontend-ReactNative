@@ -8,6 +8,7 @@ import { useT } from '../../i18n';
 import { confirmAction, notify } from '../../lib/confirm';
 import { fontSize, makeStyles, spacing } from '../../theme';
 import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
 import { OptionTile } from '../ui/Chip';
 import { Field, SwitchRow } from '../ui/Field';
 import { PlacePicker } from './PlacePicker';
@@ -74,33 +75,46 @@ export function StallForm({ initial, submitLabel, onSubmit }: Props) {
 
   return (
     <View style={styles.form}>
-      <Field label={t('merchant.name')} value={form.name} onChangeText={set('name')} error={errors.name} />
-      <Field label={t('merchant.tagline')} value={form.tagline} onChangeText={set('tagline')} error={errors.tagline} />
-      <Text style={styles.label}>{t('merchant.type')}</Text>
-      <View style={styles.row}>
-        <OptionTile label={t('merchant.retail')} selected={form.merchant_type === 'retail'} onPress={() => set('merchant_type')('retail')} />
-        <OptionTile label={t('merchant.wholesale')} selected={form.merchant_type === 'wholesale'} onPress={() => set('merchant_type')('wholesale')} />
-      </View>
-      <PlacePicker kind="aisle" options={options} value={form.aisle} onChange={set('aisle')} error={errors.aisle_id} />
-      <PlacePicker kind="site" options={options} value={form.site} onChange={set('site')} error={errors.site_id} />
-      <SwitchRow label={t('merchant.noPlace')} value={!form.has_physical_place} onChange={(v) => set('has_physical_place')(!v)} />
-      {form.has_physical_place ? (
+      {/* Rangé par blocs : l'étal, son emplacement, les contacts, la vente */}
+      <Card style={styles.block}>
+        <Text style={styles.title}>{t('merchant.sectionStall')}</Text>
+        <Field label={t('merchant.name')} value={form.name} onChangeText={set('name')} error={errors.name} />
+        <Field label={t('merchant.tagline')} value={form.tagline} onChangeText={set('tagline')} error={errors.tagline} />
+        <Text style={styles.label}>{t('merchant.type')}</Text>
         <View style={styles.row}>
-          <View style={{ flex: 1 }}>
-            <Field label={t('merchant.row')} value={form.row} onChangeText={set('row')} placeholder={t('merchant.rowPlaceholder')} error={errors.row} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Field label={t('merchant.stand')} value={form.stand} onChangeText={set('stand')} placeholder={t('merchant.standPlaceholder')} error={errors.stand} />
-          </View>
+          <OptionTile label={t('merchant.retail')} selected={form.merchant_type === 'retail'} onPress={() => set('merchant_type')('retail')} />
+          <OptionTile label={t('merchant.wholesale')} selected={form.merchant_type === 'wholesale'} onPress={() => set('merchant_type')('wholesale')} />
         </View>
-      ) : null}
-      {moved && initial.verified ? <Text style={styles.warning}>{t('merchant.moveWarning')}</Text> : null}
-      <Field label={t('auth.phone')} value={form.phone} onChangeText={set('phone')} keyboardType="phone-pad" error={errors.phone} />
-      <Field label={t('merchant.whatsapp')} value={form.whatsapp} onChangeText={set('whatsapp')} keyboardType="phone-pad" error={errors.whatsapp} />
-      <Field label={t('merchant.deliveryNote')} value={form.delivery_note} onChangeText={set('delivery_note')} />
-      <SwitchRow label={t('merchant.payOnDelivery')} value={form.pay_on_delivery} onChange={set('pay_on_delivery')} />
-      <SwitchRow label={t('merchant.voiceMessages')} value={form.accepts_voice_messages} onChange={set('accepts_voice_messages')} />
-      <SwitchRow label={t('merchant.isOpen')} value={form.is_open} onChange={set('is_open')} />
+        <PlacePicker kind="aisle" options={options} value={form.aisle} onChange={set('aisle')} error={errors.aisle_id} />
+      </Card>
+      <Card style={styles.block}>
+        <Text style={styles.title}>{t('merchant.sectionPlace')}</Text>
+        <PlacePicker kind="site" options={options} value={form.site} onChange={set('site')} error={errors.site_id} />
+        <SwitchRow label={t('merchant.noPlace')} value={!form.has_physical_place} onChange={(v) => set('has_physical_place')(!v)} />
+        {form.has_physical_place ? (
+          <View style={styles.row}>
+            <View style={{ flex: 1 }}>
+              <Field label={t('merchant.row')} value={form.row} onChangeText={set('row')} placeholder={t('merchant.rowPlaceholder')} error={errors.row} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Field label={t('merchant.stand')} value={form.stand} onChangeText={set('stand')} placeholder={t('merchant.standPlaceholder')} error={errors.stand} />
+            </View>
+          </View>
+        ) : null}
+        {moved && initial.verified ? <Text style={styles.warning}>{t('merchant.moveWarning')}</Text> : null}
+      </Card>
+      <Card style={styles.block}>
+        <Text style={styles.title}>{t('merchant.sectionContacts')}</Text>
+        <Field label={t('auth.phone')} value={form.phone} onChangeText={set('phone')} keyboardType="phone-pad" error={errors.phone} />
+        <Field label={t('merchant.whatsapp')} value={form.whatsapp} onChangeText={set('whatsapp')} keyboardType="phone-pad" error={errors.whatsapp} />
+        <SwitchRow label={t('merchant.voiceMessages')} value={form.accepts_voice_messages} onChange={set('accepts_voice_messages')} />
+      </Card>
+      <Card style={styles.block}>
+        <Text style={styles.title}>{t('merchant.sectionSelling')}</Text>
+        <SwitchRow label={t('merchant.isOpen')} value={form.is_open} onChange={set('is_open')} />
+        <SwitchRow label={t('merchant.payOnDelivery')} value={form.pay_on_delivery} onChange={set('pay_on_delivery')} />
+        <Field label={t('merchant.deliveryNote')} value={form.delivery_note} onChangeText={set('delivery_note')} />
+      </Card>
       <View style={styles.row}>
         <Button label={t('common.cancel')} variant="ghost" size="lg" onPress={cancel} style={{ flex: 1 }} />
         <Button label={submitLabel} size="lg" onPress={submit} loading={saving} style={{ flex: 2 }} />
@@ -110,7 +124,9 @@ export function StallForm({ initial, submitLabel, onSubmit }: Props) {
 }
 
 const useStyles = makeStyles((c) => ({
-  form: { gap: spacing.lg, width: '100%', maxWidth: 640, alignSelf: 'center' },
+  form: { gap: spacing.md, width: '100%' },
+  block: { gap: spacing.md },
+  title: { fontSize: fontSize.body, fontWeight: '700', color: c.text },
   label: { fontSize: fontSize.small, fontWeight: '600', color: c.text },
   row: { flexDirection: 'row', gap: spacing.md },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },

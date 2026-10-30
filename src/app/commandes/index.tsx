@@ -8,7 +8,7 @@ import { EmptyView, ErrorView, LoadingView } from '../../components/ui/StateView
 import { useSettings } from '../../hooks/api/account';
 import { useOrders } from '../../hooks/api/client';
 import { useT } from '../../i18n';
-import { formatFcfa, formatShortDate } from '../../lib/format';
+import { formatFcfa, formatShortDate, orderNumber } from '../../lib/format';
 import { fontSize, makeStyles, radius, spacing, useLayout, useTheme } from '../../theme';
 
 /** Historique des commandes du client */
@@ -34,7 +34,7 @@ export default function OrdersScreen() {
             {orders.data.orders.map((o) => (
               <Pressable key={o.id} onPress={() => router.push(`/commande/${o.id}`)} style={({ pressed }) => [styles.card, pressed && { opacity: 0.85 }]} accessibilityRole="button">
                 <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={styles.title}>{t('orders.order', { id: o.id })}</Text>
+                  <Text style={styles.title}>{t('orders.order', { id: orderNumber(o.id) })}</Text>
                   <Text style={styles.muted} numberOfLines={1}>{o.stalls.map((s) => s.name).join(', ')}</Text>
                   <Text style={styles.status}>{o.status_label}</Text>
                   <Text style={styles.muted}>{formatShortDate(o.created_at, dateFormat, true)}</Text>

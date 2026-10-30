@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { errorMessage } from '../../api/client';
 import { api } from '../../api/endpoints';
@@ -10,10 +10,11 @@ import { Avatar } from '../../components/ui/Avatar';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Chip } from '../../components/ui/Chip';
+import { ImageViewer } from '../../components/ui/ImageViewer';
 import { Screen } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { ErrorView, LoadingView } from '../../components/ui/StateViews';
-import { SubscriberBadge, VerifiedIcon } from '../../components/ui/VerifiedIcon';
+import { SubscriberBadge, SubscriberTag, VerifiedIcon } from '../../components/ui/VerifiedIcon';
 import { useT } from '../../i18n';
 import { confirmAction, notify } from '../../lib/confirm';
 import { formatFcfa } from '../../lib/format';
@@ -33,6 +34,8 @@ export default function PublicProfileScreen() {
   const { colors } = useTheme();
   const profile = useQuery({ queryKey: ['profile', id, contact ?? ''], queryFn: () => api.profile(id, contact) });
   const [reporting, setReporting] = useState(false);
+  // Photo de profil touchée : en grand
+  const [viewing, setViewing] = useState(false);
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [details, setDetails] = useState('');
   const [sending, setSending] = useState(false);
@@ -76,13 +79,16 @@ export default function PublicProfileScreen() {
       <Screen>
         <View style={styles.column}>
           <Card style={{ alignItems: 'center', gap: spacing.sm }}>
-            <Avatar name={p.display_name} image={p.avatar} size={96} variant="soft" />
+            <Pressable onPress={() => p.avatar && setViewing(true)} disabled={!p.avatar} accessibilityRole="imagebutton" accessibilityLabel={p.display_name}>
+              <Avatar name={p.display_name} image={p.avatar} size={96} variant="soft" />
+            </Pressable>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Text style={styles.name}>{p.display_name}</Text>
               {p.stall?.verified ? <VerifiedIcon size={18} /> : null}
               {p.stall?.subscribed ? <SubscriberBadge size={18} /> : null}
             </View>
             <Text style={styles.muted}>{p.role === 'merchant' ? t('profile.merchant') : t('profile.client')} · {t('profile.since', { date: since })}</Text>
+            {p.stall?.subscribed ? <SubscriberTag /> : null}
             {p.bio ? <Text style={styles.bio}>{p.bio}</Text> : <Text style={styles.muted}>{t('profile.noBio')}</Text>}
             {p.with_me ? (
               <Text style={styles.stat}>{t('profile.withMe', { n: p.with_me.orders_count, amount: formatFcfa(p.with_me.total_spent) })}</Text>
@@ -123,6 +129,7 @@ export default function PublicProfileScreen() {
           )}
         </View>
       </Screen>
+      <ImageViewer images={p.avatar ? [p.avatar] : []} visible={viewing} onClose={() => setViewing(false)} title={p.display_name} />
     </>
   );
 }

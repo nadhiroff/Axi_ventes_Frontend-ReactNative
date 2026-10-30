@@ -32,3 +32,6 @@ export const queryPersister = createAsyncStoragePersister({
 });
 
 export const PERSIST_MAX_AGE = 7 * DAY;
+
+// À augmenter quand la forme d'une réponse change : l'ancienne copie gardée sur le téléphone est jetée
+export const PERSIST_VERSION = '2';

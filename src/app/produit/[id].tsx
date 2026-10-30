@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { FlatList, Pressable, Text, View } from 'react-native';
 
 import { useAddToCart } from '../../components/client/useAddToCart';
@@ -12,8 +12,10 @@ import { Screen } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { ErrorView, LoadingView } from '../../components/ui/StateViews';
 import { Tag } from '../../components/ui/Tag';
+import type { ApiImage } from '../../api/types';
 import { useFavorite, useProduct } from '../../hooks/api/client';
 import { useRequireAuth } from '../../hooks/useRequireAuth';
+import { useAutoPager } from '../../hooks/useSlideshow';
 import { useT } from '../../i18n';
 import { useAuthStore } from '../../store/authStore';
 import { formatPrice } from '../../lib/format';
@@ -30,8 +32,11 @@ export default function ProductScreen() {
   const favorite = useFavorite(id);
   const requireAuth = useRequireAuth();
   const [viewer, setViewer] = useState<number | null>(null);
-  const [page, setPage] = useState(0);
   const p = product.data;
+  // Photos du produit : défilent seules, et au doigt
+  const width = Math.min(contentWidth - gutter * 2, tablet ? 560 : contentWidth);
+  const gallery = useRef<FlatList<ApiImage>>(null);
+  const { page, onDrag, setPage } = useAutoPager(gallery, p?.images.length ?? 0, width);
   // Produit de mon propre étal : pas de panier, de favori ni de « Voir l'étal », mais « Modifier ce produit »
   const ownStallId = useAuthStore((st) => st.user?.merchant?.stall_id ?? null);
   const addToCart = useAddToCart(p?.stall ?? { id: '', name: '', verified: false, location: { site: '', site_id: '', row: null, stand: null, label: '', map_url: null, moved_at: null } });
@@ -39,7 +44,6 @@ export default function ProductScreen() {
   if (product.isPending) return <LoadingView />;
   if (!p) return <ErrorView error={product.error} onRetry={() => product.refetch()} />;
 
-  const width = Math.min(contentWidth - gutter * 2, tablet ? 560 : contentWidth);
   const inCart = addToCart.quantityOf(p.id);
   const own = ownStallId !== null && p.stall.id === ownStallId;
 
@@ -74,12 +78,15 @@ export default function ProductScreen() {
           {p.images.length ? (
             <>
               <FlatList
+                ref={gallery}
                 data={p.images}
                 horizontal
                 pagingEnabled
                 showsHorizontalScrollIndicator={false}
                 keyExtractor={(img, i) => `${img.thumb_url}-${i}`}
+                onScrollBeginDrag={onDrag}
                 onMomentumScrollEnd={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / width))}
+                getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
                 renderItem={({ item, index }) => (
                   <Pressable onPress={() => setViewer(index)} accessibilityRole="imagebutton" accessibilityLabel={t('product.openPhoto', { name: p.name })}>
                     <CachedImage image={item} variant="medium" style={{ width, height: width, borderRadius: radius.lg }} contentFit="cover" />

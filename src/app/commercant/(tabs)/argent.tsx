@@ -89,7 +89,7 @@ export default function MoneyScreen() {
             <Tag label={m.supplier_offer.label} tone="outline" />
             <Text style={styles.title}>{m.supplier_offer.title}</Text>
             <Text style={styles.text}>{m.supplier_offer.text}</Text>
-            {m.supplier_offer.url ? <Button label={t('merchant.offer')} variant="ghost" onPress={() => Linking.openURL(m.supplier_offer!.url!)} /> : null}
+            {m.supplier_offer.url ? <Button label={t('merchant.offer')} variant="ghost" onPress={() => Linking.openURL(m.supplier_offer!.url!).catch(() => undefined)} /> : null}
           </Card>
         ) : null}
 

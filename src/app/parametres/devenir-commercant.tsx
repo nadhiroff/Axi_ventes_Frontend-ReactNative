@@ -15,6 +15,7 @@ import { Icon } from '../../components/ui/Icon';
 import { Screen } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { useStallOptions } from '../../hooks/api/merchant';
+import { useConfirmLeave } from '../../hooks/useConfirmLeave';
 import { takeProductPhoto } from '../../hooks/useProductPhoto';
 import { useT } from '../../i18n';
 import { confirmAction, notify } from '../../lib/confirm';
@@ -22,7 +23,9 @@ import { formatShortDate } from '../../lib/format';
 import { useAuthStore } from '../../store/authStore';
 import { fontSize, makeStyles, radius, spacing, useTheme } from '../../theme';
 
-const ID_TYPES: IdType[] = ['cni', 'cip', 'passport', 'other'];
+const ID_TYPES: IdType[] = ['cni', 'cip', 'passport'];
+// Un numéro par opérateur au Bénin (MTN, Moov, Celtiis)
+const MAX_PHONES = 3;
 type Photos = { id_front: LocalFile | null; id_back: LocalFile | null; selfie: LocalFile | null; stall_photo: LocalFile | null };
 
 /**
@@ -93,9 +96,10 @@ export default function BecomeMerchantScreen() {
 function ApplicationForm({ initialPhone }: { initialPhone: string }) {
   const styles = useStyles();
   const t = useT();
+  const { colors } = useTheme();
   const setUser = useAuthStore((s) => s.setUser);
   const options = useStallOptions().data;
-  const [form, setForm] = useState({
+  const [initialForm] = useState(() => ({
     stall_name: '',
     merchant_type: 'retail' as MerchantType,
     phone: initialPhone,
@@ -105,8 +109,14 @@ function ApplicationForm({ initialPhone }: { initialPhone: string }) {
     stand: '',
     site: { id: '', other: '' },
     aisle: { id: '', other: '' },
-  });
+  }));
+  const [form, setForm] = useState(initialForm);
   const [photos, setPhotos] = useState<Photos>({ id_front: null, id_back: null, selfie: null, stall_photo: null });
+  const [otherPhones, setOtherPhones] = useState<string[]>([]);
+  // Comme les autres écrans de modification : Retour, glissement ou « Annuler » demandent TOUJOURS Non / Oui
+  // (le texte précise si des informations ou des photos seront perdues). Après l'envoi, l'écran change : plus de question.
+  const dirty = JSON.stringify(form) !== JSON.stringify(initialForm) || Object.values(photos).some(Boolean) || otherPhones.some((p) => p.trim());
+  const { cancel } = useConfirmLeave(dirty);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [sending, setSending] = useState(false);
   const set = <K extends keyof typeof form>(key: K) => (value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }));
@@ -133,7 +143,7 @@ function ApplicationForm({ initialPhone }: { initialPhone: string }) {
       try {
         const { site, aisle, ...rest } = form;
         const result = await api.applyMerchant(
-          { ...rest, stall_name: rest.stall_name.trim(), id_number: rest.id_number.trim(), site_id: site.id, site_other: site.other.trim(), aisle_id: aisle.id, aisle_other: aisle.other.trim() },
+          { ...rest, other_phones: otherPhones.map((p) => p.trim()).filter(Boolean), stall_name: rest.stall_name.trim(), id_number: rest.id_number.trim(), site_id: site.id, site_other: site.other.trim(), aisle_id: aisle.id, aisle_other: aisle.other.trim() },
           { id_front: photos.id_front!, id_back: photos.id_back, selfie: photos.selfie!, stall_photo: photos.stall_photo! },
         );
         setUser(result.user);
@@ -177,6 +187,20 @@ function ApplicationForm({ initialPhone }: { initialPhone: string }) {
       <Text style={styles.section}>{t('apply.identitySection')}</Text>
       <Card style={{ gap: spacing.lg }}>
         <Field label={t('apply.phone')} value={form.phone} onChangeText={set('phone')} keyboardType="phone-pad" autoComplete="tel" hint={t('apply.phoneHint')} error={errors.phone} />
+        {/* Autres numéros (facultatifs) : un par opérateur, 3 au total */}
+        {otherPhones.map((p, i) => (
+          <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm }}>
+            <View style={{ flex: 1 }}>
+              <Field label={t('apply.otherPhone', { n: i + 2 })} value={p} onChangeText={(v) => setOtherPhones((list) => list.map((x, k) => (k === i ? v : x)))} keyboardType="phone-pad" error={i === 0 ? errors.other_phones : undefined} />
+            </View>
+            <Pressable onPress={() => setOtherPhones((list) => list.filter((_, k) => k !== i))} style={styles.removePhone} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('cart.remove')}>
+              <Icon name="trash-2" size={18} color={colors.danger} />
+            </Pressable>
+          </View>
+        ))}
+        {otherPhones.length < MAX_PHONES - 1 ? (
+          <Button label={t('apply.addPhone')} icon="plus" variant="ghost" size="sm" onPress={() => setOtherPhones((list) => [...list, ''])} style={{ alignSelf: 'flex-start' }} />
+        ) : null}
         <Text style={styles.label}>{t('apply.idType')}</Text>
         <View style={styles.wrap}>
           {ID_TYPES.map((type) => (
@@ -188,7 +212,10 @@ function ApplicationForm({ initialPhone }: { initialPhone: string }) {
         <PhotoSlot label={`${t('apply.idBack')} (${t('common.optional')})`} photo={photos.id_back} onChange={(p) => setPhotos((x) => ({ ...x, id_back: p }))} />
         <PhotoSlot label={t('apply.selfie')} hint={t('apply.selfieHint')} photo={photos.selfie} square error={errors.selfie} onChange={(p) => setPhotos((x) => ({ ...x, selfie: p }))} />
       </Card>
-      <Button label={t('apply.send')} size="lg" icon="send" onPress={submit} loading={sending} />
+      <View style={styles.row}>
+        <Button label={t('common.cancel')} size="lg" variant="ghost" onPress={cancel} disabled={sending} style={{ flex: 1 }} />
+        <Button label={t('apply.send')} size="lg" icon="send" onPress={submit} loading={sending} style={{ flex: 2 }} />
+      </View>
       <Text style={styles.muted}>{t('apply.privacy')}</Text>
     </>
   );
@@ -237,6 +264,7 @@ const useStyles = makeStyles((c) => ({
   reason: { fontSize: fontSize.body, color: c.danger, fontWeight: '600' },
   label: { fontSize: fontSize.small, fontWeight: '600', color: c.text },
   row: { flexDirection: 'row', gap: spacing.md },
+  removePhone: { width: 44, height: 48, alignItems: 'center', justifyContent: 'center' },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   error: { color: c.danger, fontSize: fontSize.small },
   step: { flexDirection: 'row', gap: spacing.md, alignItems: 'center' },
