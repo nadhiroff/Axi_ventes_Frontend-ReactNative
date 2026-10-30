@@ -92,7 +92,6 @@ export default function SettingsScreen() {
               <MenuRow icon="star" label={t('merchant.subscription')} onPress={() => router.push('/commercant/abonnement')} />
               <MenuRow icon="dollar-sign" label={t('settings.payouts')} onPress={() => router.push('/commercant/argent')} />
               <MenuRow icon="message-circle" label={t('chat.title')} onPress={() => router.push('/messages')} />
-              <MenuRow icon="mic" label={t('merchant.voiceInbox')} onPress={() => router.push('/commercant/messages')} />
               <MenuRow icon="bar-chart-2" label={t('merchant.sales')} onPress={() => router.push('/ventes')} />
             </Card>
           </>

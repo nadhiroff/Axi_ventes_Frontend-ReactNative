@@ -11,20 +11,19 @@ import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { SectionHeader } from '../../../components/ui/SectionHeader';
 import { ErrorView, LoadingView } from '../../../components/ui/StateViews';
 import { Tag } from '../../../components/ui/Tag';
-import { useMerchantStall, useStallMutations, useVoiceMessages } from '../../../hooks/api/merchant';
+import { useMerchantStall, useStallMutations } from '../../../hooks/api/merchant';
 import { formatCount } from '../../../lib/format';
 import { useT } from '../../../i18n';
 import { confirmAction, notify } from '../../../lib/confirm';
 import { fontSize, makeStyles, spacing, useLayout } from '../../../theme';
 
-/** « Mon étal » : vitrine, vérification sur place, catalogue (photo ou vocal), messages vocaux reçus. */
+/** « Mon étal » : vitrine, vérification sur place, catalogue. */
 export default function MyStallScreen() {
   const styles = useStyles();
   const t = useT();
   const { listColumns, tablet } = useLayout();
   const stall = useMerchantStall();
   const mutations = useStallMutations();
-  const unheard = (useVoiceMessages().data?.messages ?? []).filter((m) => !m.listened).length;
   const d = stall.data;
 
   if (stall.isPending) return <LoadingView />;
@@ -64,11 +63,10 @@ export default function MyStallScreen() {
               ) : null}
             </View>
           )}
-          <Button label={unheard ? `${t('merchant.messages')} (${unheard})` : t('merchant.messages')} icon="mic" variant="ghost" onPress={() => router.push('/commercant/messages')} />
         </Card>
 
         <View style={{ flexDirection: tablet ? 'row' : 'column', gap: spacing.sm }}>
-          <Button label={t('merchant.addPhoto')} icon="camera" onPress={() => router.push('/commercant/produit/nouveau')} style={{ flex: 1 }} />
+          <Button label={t('merchant.addProduct')} icon="plus" onPress={() => router.push('/commercant/produit/nouveau')} style={{ flex: 1 }} />
         </View>
 
         {drafts.length ? (
