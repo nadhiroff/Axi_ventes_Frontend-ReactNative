@@ -161,6 +161,7 @@ export const fr = {
     negotiate: 'Pour un prix à débattre, contactez le commerçant par WhatsApp ou par téléphone.',
   },
   product: {
+    editOwn: 'Modifier ce produit',
     description: 'Description',
     negotiable: 'Prix à débattre',
     soldOut: 'Épuisé',

@@ -15,6 +15,7 @@ import { Tag } from '../../components/ui/Tag';
 import { useFavorite, useProduct } from '../../hooks/api/client';
 import { useRequireAuth } from '../../hooks/useRequireAuth';
 import { useT } from '../../i18n';
+import { useAuthStore } from '../../store/authStore';
 import { formatPrice } from '../../lib/format';
 import { fontSize, makeStyles, pickColor, productTilePalette, radius, spacing, useLayout, useTheme } from '../../theme';
 
@@ -31,6 +32,8 @@ export default function ProductScreen() {
   const [viewer, setViewer] = useState<number | null>(null);
   const [page, setPage] = useState(0);
   const p = product.data;
+  // Produit de mon propre étal : pas de panier, de favori ni de « Voir l'étal », mais « Modifier ce produit »
+  const ownStallId = useAuthStore((st) => st.user?.merchant?.stall_id ?? null);
   const addToCart = useAddToCart(p?.stall ?? { id: '', name: '', verified: false, location: { site: '', site_id: '', row: null, stand: null, label: '', map_url: null, moved_at: null } });
 
   if (product.isPending) return <LoadingView />;
@@ -38,12 +41,14 @@ export default function ProductScreen() {
 
   const width = Math.min(contentWidth - gutter * 2, tablet ? 560 : contentWidth);
   const inCart = addToCart.quantityOf(p.id);
+  const own = ownStallId !== null && p.stall.id === ownStallId;
 
   return (
     <>
       <ScreenHeader
         title={p.name}
         right={
+          own ? undefined : (
           <Pressable
             onPress={() => requireAuth(() => favorite.mutate(!p.is_favorite), t('auth.reasonFavorite'))}
             accessibilityRole="button"
@@ -53,11 +58,14 @@ export default function ProductScreen() {
           >
             <Icon name="heart" size={22} color={p.is_favorite ? colors.brand : colors.textMuted} />
           </Pressable>
+          )
         }
       />
       <Screen
         footer={
-          p.in_stock && p.price ? (
+          own ? (
+            <Button label={t('product.editOwn')} icon="edit-2" size="lg" onPress={() => router.push(`/commercant/produit/${p.id}`)} />
+          ) : p.in_stock && p.price ? (
             <Button label={inCart ? t('product.inCart', { n: inCart }) : `${t('product.add')} · ${formatPrice(p.price)}`} icon={inCart ? 'check' : 'shopping-bag'} size="lg" variant={inCart ? 'trust' : 'primary'} onPress={() => addToCart.add(p)} />
           ) : undefined
         }
@@ -106,8 +114,12 @@ export default function ProductScreen() {
             <Text style={styles.descriptionText}>{p.description}</Text>
           </View>
         ) : null}
-        <StallCard stall={p.stall} />
-        <Button label={t('product.seeStall')} variant="ghost" icon="shopping-bag" onPress={() => router.push(`/etal/${p.stall.id}`)} />
+        {!own ? (
+          <>
+            <StallCard stall={p.stall} />
+            <Button label={t('product.seeStall')} variant="ghost" icon="shopping-bag" onPress={() => router.push(`/etal/${p.stall.id}`)} />
+          </>
+        ) : null}
       </Screen>
       <ImageViewer images={p.images} initialIndex={viewer ?? 0} visible={viewer !== null} onClose={() => setViewer(null)} title={p.name} />
     </>
