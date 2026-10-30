@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { errorMessage } from '../../../api/client';
+import { AdsCarousel } from '../../../components/AdCard';
 import { showBroadcastResult } from '../../../components/merchant/broadcast';
 import { Button, IconButton } from '../../../components/ui/Button';
 import { Card } from '../../../components/ui/Card';
@@ -43,6 +44,7 @@ export default function TodayScreen() {
       <Screen refreshing={today.isRefetching} onRefresh={() => today.refetch()}>
         <Tag label={d.stall_open ? t('stall.open') : t('stall.closed')} tone={d.stall_open ? 'trust' : 'outline'} size="md" />
         <SubscriptionBanner />
+        <AdsCarousel ads={d.ads} />
         <View style={{ flexDirection: 'row', gap: spacing.md }}>
           <Card tone="trustSoft" style={{ flex: 1 }}>
             <Text style={[styles.kpiLabel, { color: colors.trustText }]}>{t('merchant.salesToday')}</Text>
@@ -158,7 +160,7 @@ function MessagesButton() {
   return (
     <View style={{ flexDirection: 'row', gap: 4 }}>
       <HeaderIcon icon="bell" label={t('notifications.title')} count={badges?.unread_notifications ?? 0} onPress={() => router.push('/notifications')} />
-      <HeaderIcon icon="message-circle" label={t('chat.title')} count={badges?.unread_messages ?? 0} onPress={() => router.push('/messages')} />
+      <HeaderIcon icon="message-circle" label={t('chat.title')} count={badges?.unread_as_merchant ?? 0} onPress={() => router.push('/messages')} />
     </View>
   );
 }

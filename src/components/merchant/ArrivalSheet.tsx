@@ -66,7 +66,7 @@ export function ArrivalSheet({
               <Icon name="x" size={22} color={colors.text} />
             </Pressable>
           </View>
-          <ScrollView contentContainerStyle={{ gap: spacing.md }} keyboardShouldPersistTaps="handled">
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: spacing.md }} keyboardShouldPersistTaps="handled">
             <Text style={styles.hint}>{subscribed ? t('merchant.arrivalHintPro') : t('merchant.arrivalHintFree')}</Text>
             <TextInput
               value={text}

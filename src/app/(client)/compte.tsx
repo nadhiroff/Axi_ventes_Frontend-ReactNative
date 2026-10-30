@@ -1,3 +1,5 @@
 import { AccountScreen } from '../../components/account/AccountScreen';
 
-export default AccountScreen;
+export default function ClientAccount() {
+  return <AccountScreen space="client" />;
+}
