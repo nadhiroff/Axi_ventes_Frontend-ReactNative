@@ -101,6 +101,7 @@ export const api = {
   sendMedia: (conversationId: string, file: { photo: LocalFile } | { audio: LocalFile }, replyTo?: string) =>
     apiUpload<ChatMessage>(`/v1/conversations/${id(conversationId)}/messages`, replyTo ? { reply_to: replyTo } : {}, file),
   rates: () => apiGet<Rates>('/v1/rates'),
+  clearConversation: (conversationId: string) => apiSend<{ cleared: true }>('DELETE', `/v1/conversations/${id(conversationId)}`),
   hideMessage: (conversationId: string, messageId: string) => apiSend<{ hidden: true; id: string }>('POST', `/v1/conversations/${id(conversationId)}/messages/${id(messageId)}/hide`),
   profile: (userId: string, contact?: string) => apiGet<PublicProfile>(`/v1/users/${id(userId)}/profile${q({ contact })}`),
   report: (userId: string, reason: ReportReason, details: string, conversationId?: string) =>
