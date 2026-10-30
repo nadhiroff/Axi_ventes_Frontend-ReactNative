@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "axi",
+    "slug": "axi",
+    "scheme": "axi",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#C2410C",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "softwareKeyboardLayoutMode": "resize"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "axi utilise l'appareil photo pour ajouter vos produits.",
+          "photosPermission": "axi accède à vos photos pour ajouter vos produits.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "axi utilise le micro pour la recherche vocale et les messages vocaux."
+        }
+      ],
+      "expo-asset",
+      [
+        "expo-notifications",
+        {
+          "color": "#C2410C"
+        }
+      ],
+      "expo-video"
+    ]
+  }
+}
