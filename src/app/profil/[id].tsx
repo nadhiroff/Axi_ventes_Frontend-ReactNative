@@ -26,11 +26,12 @@ const REASONS: ReportReason[] = ['spam', 'fraud', 'insult', 'fake', 'other'];
  * Jamais d'email ni de téléphone : le reste reste privé. Bouton pour écrire et pour signaler le profil.
  */
 export default function PublicProfileScreen() {
-  const { id, conv, cli } = useLocalSearchParams<{ id: string; conv?: string; cli?: string }>();
+  // contact : email ou téléphone exact avec lequel le commerçant vient de trouver la personne (« Ajouter un client »)
+  const { id, conv, cli, contact } = useLocalSearchParams<{ id: string; conv?: string; cli?: string; contact?: string }>();
   const styles = useStyles();
   const t = useT();
   const { colors } = useTheme();
-  const profile = useQuery({ queryKey: ['profile', id], queryFn: () => api.profile(id) });
+  const profile = useQuery({ queryKey: ['profile', id, contact ?? ''], queryFn: () => api.profile(id, contact) });
   const [reporting, setReporting] = useState(false);
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [details, setDetails] = useState('');
@@ -93,7 +94,7 @@ export default function PublicProfileScreen() {
             {p.stall ? <Button label={t('profile.seeStall')} icon="shopping-bag" variant="ghost" onPress={() => router.push(`/etal/${p.stall!.id}`)} style={{ flex: 1 }} /> : null}
           </View>
 
-          {p.reported ? (
+          {contact && !conv && !cli ? null : p.reported ? (
             <Text style={[styles.muted, { textAlign: 'center' }]}>{t('profile.alreadyReported')}</Text>
           ) : !reporting ? (
             <Button label={t('profile.report')} icon="flag" variant="danger" onPress={() => setReporting(true)} />

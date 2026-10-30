@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import { ApiError, errorMessage } from '../../../api/client';
 import { api } from '../../../api/endpoints';
@@ -94,6 +94,12 @@ export default function NewClientScreen() {
               <Text style={styles.muted}>{t('merchant.searching')}</Text>
             </View>
           ) : found ? (
+            <Pressable
+              onPress={() => router.push({ pathname: '/profil/[id]', params: { id: found.user!.id, contact: contact.trim() } })}
+              accessibilityRole="button"
+              accessibilityHint={t('merchant.seeProfile')}
+              style={({ pressed }) => [pressed && { opacity: 0.85 }]}
+            >
             <Card style={styles.found}>
               <Avatar name={found.user!.display_name} image={found.user!.avatar} size={56} variant="soft" />
               <View style={{ flex: 1, gap: 4 }}>
@@ -107,8 +113,10 @@ export default function NewClientScreen() {
                   <Tag label={found.kind_detected === 'reseller' ? t('merchant.reseller') : t('merchant.individual')} tone={found.kind_detected === 'reseller' ? 'brand' : 'neutral'} />
                   {found.existing_client_id ? <Tag label={t('merchant.alreadyClient')} tone="trust" icon="check" /> : null}
                 </View>
+                <Text style={styles.link}>{t('merchant.seeProfile')} ›</Text>
               </View>
             </Card>
+            </Pressable>
           ) : debounced.length >= 6 && lookup.data?.valid ? (
             <>
               <Card style={{ gap: spacing.xs }}>
@@ -131,4 +139,5 @@ const useStyles = makeStyles((c) => ({
   foundTitle: { fontSize: fontSize.small, fontWeight: '700', color: c.trustText },
   name: { fontSize: fontSize.title, fontWeight: '700', color: c.text },
   muted: { fontSize: fontSize.small, color: c.textMuted },
+  link: { fontSize: fontSize.small, color: c.brand, fontWeight: '700' },
 }));
