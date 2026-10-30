@@ -162,6 +162,7 @@ export const en: Dict = {
     negotiate: 'For a negotiable price, contact the trader on WhatsApp or by phone.',
   },
   product: {
+    editOwn: 'Edit this product',
     description: 'Description',
     negotiable: 'Price to negotiate',
     soldOut: 'Sold out',
