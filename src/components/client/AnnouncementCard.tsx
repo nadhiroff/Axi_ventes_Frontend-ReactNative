@@ -9,6 +9,7 @@ import { toast } from '../../lib/confirm';
 import { formatShortDate } from '../../lib/format';
 import { fontSize, makeStyles, radius, spacing } from '../../theme';
 import { Avatar } from '../ui/Avatar';
+import { PhotoCarousel } from '../ui/PhotoCarousel';
 import { Button } from '../ui/Button';
 import { CachedImage } from '../ui/CachedImage';
 import { Tag } from '../ui/Tag';
@@ -21,13 +22,15 @@ export function AnnouncementCard({ a, onImage }: { a: Announcement; onImage?: ()
   return (
     <View style={styles.card}>
       <Tag label={t('stall.announcement')} tone="brand" icon="package" />
-      {a.image ? (
+      {a.images.length > 1 ? (
+        <PhotoCarousel images={a.images} height={180} onOpen={() => onImage?.()} />
+      ) : a.image ? (
         <Pressable onPress={onImage} accessibilityRole="imagebutton">
           <CachedImage image={a.image} variant="medium" style={styles.image} contentFit="cover" />
         </Pressable>
       ) : null}
       <Text style={styles.text}>{a.text}</Text>
-      <Text style={styles.date}>{formatShortDate(a.created_at)}</Text>
+      <Text style={styles.date}>{t('merchant.announcementUntil', { date: formatShortDate(`${a.ends_on}T12:00:00`) })}</Text>
     </View>
   );
 }
