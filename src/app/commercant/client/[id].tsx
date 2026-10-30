@@ -66,7 +66,7 @@ export default function ClientScreen() {
               />
             ) : null}
             {c.phone ? <Button label={t('common.call')} icon="phone" variant="ghost" size="sm" onPress={() => callPhone(c.phone)} /> : null}
-            {c.phone ? <Button label={t('common.whatsapp')} icon="message-circle" variant="ghost" size="sm" onPress={() => openWhatsapp(c.phone!)} /> : null}
+            {c.phone ? <Button label={t('common.whatsapp')} icon="whatsapp" variant="ghost" size="sm" onPress={() => openWhatsapp(c.phone!)} /> : null}
             <Button
               label={t('merchant.followUp')}
               icon="send"
