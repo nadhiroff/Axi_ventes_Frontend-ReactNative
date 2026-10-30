@@ -171,7 +171,7 @@ function EditSheet({ announcement, onClose, onImage }: { announcement: Announcem
               <Button label={t('common.gallery')} icon="image" size="sm" variant="ghost" onPress={() => pick('library')} disabled={busy} style={{ flex: 1 }} />
             </View>
           )}
-          <Button label={t('common.save')} icon="check" size="lg" loading={actions.updateAnnouncement.isPending} disabled={text.trim().length < 3} onPress={save} />
+          <Button label={t('common.update')} icon="check" size="lg" loading={actions.updateAnnouncement.isPending} disabled={text.trim().length < 3} onPress={save} />
         </View>
       </KeyboardAvoidingView>
     </Modal>

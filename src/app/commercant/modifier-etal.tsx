@@ -82,7 +82,7 @@ export default function EditStallScreen() {
         </Card>
         <StallForm
           initial={s}
-          submitLabel={t('common.save')}
+          submitLabel={t('common.update')}
           onSubmit={async (input) => {
             await mutations.update.mutateAsync(input);
             toast(t('merchant.stallSaved'));

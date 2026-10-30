@@ -92,7 +92,7 @@ function EditProductForm({ product }: { product: Product }) {
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
             {paused ? <Button label={t('merchant.resume')} onPress={() => save(true)} loading={mutations.update.isPending} style={{ flex: 1 }} /> : null}
             {draft ? <Button label={t('merchant.publishDraft')} onPress={() => save(true)} loading={mutations.update.isPending} style={{ flex: 1 }} /> : null}
-            <Button label={t('common.save')} variant={draft || paused ? 'ghost' : 'primary'} onPress={() => save(false)} loading={mutations.update.isPending} style={{ flex: 1 }} />
+            <Button label={t('common.update')} variant={draft || paused ? 'ghost' : 'primary'} onPress={() => save(false)} loading={mutations.update.isPending} style={{ flex: 1 }} />
           </View>
         }
       >

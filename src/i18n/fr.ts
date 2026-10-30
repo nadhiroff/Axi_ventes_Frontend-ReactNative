@@ -2,6 +2,7 @@
 // l'être dans en.ts (le typage l'impose). « singulier|pluriel » : forme choisie selon {n}.
 export const fr = {
   common: {
+    update: 'Mettre à jour',
     done: 'OK',
     later: 'Plus tard',
     cancel: 'Annuler',

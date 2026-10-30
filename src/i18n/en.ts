@@ -3,6 +3,7 @@ import type { Dict } from './fr';
 // English texts. The Dict type forces every French key to be translated here.
 export const en: Dict = {
   common: {
+    update: 'Update',
     done: 'Done',
     later: 'Later',
     cancel: 'Cancel',
