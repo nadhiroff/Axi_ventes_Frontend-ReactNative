@@ -1,7 +1,9 @@
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { errorMessage } from '../../../api/client';
+import { AnnouncementManager } from '../../../components/merchant/AnnouncementManager';
 import { ProductRow } from '../../../components/merchant/ProductRow';
 import { Avatar } from '../../../components/ui/Avatar';
 import { Button } from '../../../components/ui/Button';
@@ -14,10 +16,12 @@ import { Tag } from '../../../components/ui/Tag';
 import { useMerchantStall, useStallMutations } from '../../../hooks/api/merchant';
 import { formatCount } from '../../../lib/format';
 import { useT } from '../../../i18n';
-import { confirmAction, notify } from '../../../lib/confirm';
+import { notify } from '../../../lib/confirm';
 import { fontSize, makeStyles, spacing, useLayout } from '../../../theme';
 
-/** « Mon étal » : vitrine, vérification sur place, catalogue. */
+const PREVIEW = 6;
+
+/** « Mon étal » : vitrine, vérification sur place, annonces d'arrivage, catalogue. */
 export default function MyStallScreen() {
   const styles = useStyles();
   const t = useT();
@@ -25,6 +29,7 @@ export default function MyStallScreen() {
   const stall = useMerchantStall();
   const mutations = useStallMutations();
   const d = stall.data;
+  const [showAll, setShowAll] = useState(false);
 
   if (stall.isPending) return <LoadingView />;
   if (!d) return <ErrorView error={stall.error} onRetry={() => stall.refetch()} />;
@@ -32,6 +37,8 @@ export default function MyStallScreen() {
   const s = d.stall;
   const drafts = d.products.filter((p) => p.status === 'draft');
   const published = d.products.filter((p) => p.status !== 'draft');
+  // Catalogue : les 6 premiers produits, « Voir tous les produits » déplie la liste complète ici même
+  const visible = showAll ? published : published.slice(0, PREVIEW);
 
   return (
     <>
@@ -69,6 +76,8 @@ export default function MyStallScreen() {
           <Button label={t('merchant.addProduct')} icon="plus" onPress={() => router.push('/commercant/produit/nouveau')} style={{ flex: 1 }} />
         </View>
 
+        <AnnouncementManager announcements={s.announcements} />
+
         {drafts.length ? (
           <>
             <SectionHeader title={t('merchant.drafts')} />
@@ -77,8 +86,15 @@ export default function MyStallScreen() {
         ) : null}
         <SectionHeader title={t('merchant.products')} note={String(published.length)} />
         {!published.length ? <Text style={styles.muted}>{t('merchant.noProducts')}</Text> : null}
-        <Grid columns={listColumns}>{published.map((p) => <ProductRow key={p.id} product={p} />)}</Grid>
-        <Button label={t('stall.allProducts')} variant="ghost" icon="eye" onPress={() => confirmAction(s.name, s.location.label, () => router.push(`/etal/${s.id}`), { confirmLabel: t('product.seeStall') })} />
+        <Grid columns={listColumns}>{visible.map((p) => <ProductRow key={p.id} product={p} />)}</Grid>
+        {published.length > PREVIEW ? (
+          <Button
+            label={showAll ? t('merchant.showLess') : t('merchant.showAllProducts', { n: published.length })}
+            variant="ghost"
+            icon={showAll ? 'chevron-up' : 'chevron-down'}
+            onPress={() => setShowAll((v) => !v)}
+          />
+        ) : null}
       </Screen>
     </>
   );

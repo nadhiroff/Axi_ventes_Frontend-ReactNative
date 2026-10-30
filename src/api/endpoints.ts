@@ -1,6 +1,7 @@
 import { apiGet, apiSend, apiUpload, type LocalFile } from './client';
 import type {
   AislePayload,
+  Announcement,
   ApplicationInput,
   AvatarVisibility,
   Badges,
@@ -164,6 +165,8 @@ export const api = {
   markOrderReady: (orderId: string) => apiSend<{ status: 'ready' }>('POST', `/v1/merchant/orders/${id(orderId)}/ready`),
   broadcastRelocation: () => apiSend<BroadcastResult>('POST', '/v1/merchant/relocation/broadcast'),
   announceArrival: (text: string, photo: LocalFile | null) => apiUpload<BroadcastResult>('/v1/merchant/arrivals', { text }, photo ? { photo } : {}),
+  updateAnnouncement: (announcementId: string, text: string) => apiSend<Announcement>('PATCH', `/v1/merchant/announcements/${id(announcementId)}`, { text }),
+  deleteAnnouncement: (announcementId: string) => apiSend<{ deleted: true }>('DELETE', `/v1/merchant/announcements/${id(announcementId)}`),
   deleteVoiceMessage: (messageId: string) => apiSend<{ deleted: true }>('DELETE', `/v1/merchant/voice-messages/${id(messageId)}`),
   merchantClients: (segment: ClientSegment, search?: string) => apiGet<MerchantClients>(`/v1/merchant/clients${q({ segment, q: search })}`),
   merchantClient: (clientId: string) => apiGet<MerchantClientDetail>(`/v1/merchant/clients/${id(clientId)}`),
