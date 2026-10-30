@@ -179,7 +179,7 @@ export const fr = {
     onSiteConfirm: 'Vous payez maintenant les frais en Mobile Money. Prévoyez {cash} en espèces pour le commerçant à la remise.',
     title: 'Mon panier',
     empty: 'Votre panier est vide',
-    emptyText: 'Parcourez les allées et ajoutez des produits de plusieurs étals : vous paierez une seule fois.',
+    emptyText: 'Touchez une notification pour l\'ouvrir : elle disparaît ensuite.',
     browse: 'Parcourir les allées',
     stalls: '1 étal|{n} étals',
     reception: 'Comment recevoir votre commande',
@@ -417,6 +417,8 @@ export const fr = {
     ref: 'Réf. {ref}',
   },
   notifications: {
+    tapHint: 'Ouvre et retire la notification',
+    dismiss: 'Retirer la notification',
     emptyText: 'Les notifications vues sont effacées automatiquement.',
     title: 'Notifications',
     empty: 'Aucune notification.',

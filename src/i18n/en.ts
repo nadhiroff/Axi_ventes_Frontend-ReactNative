@@ -180,7 +180,7 @@ export const en: Dict = {
     onSiteConfirm: 'You pay the fees now with Mobile Money. Keep {cash} in cash for the merchant on delivery.',
     title: 'My cart',
     empty: 'Your cart is empty',
-    emptyText: 'Browse the aisles and add products from several stalls: you pay only once.',
+    emptyText: 'Tap a notification to open it: it then disappears.',
     browse: 'Browse the aisles',
     stalls: '1 stall|{n} stalls',
     reception: 'How to receive your order',
@@ -418,6 +418,8 @@ export const en: Dict = {
     ref: 'Ref. {ref}',
   },
   notifications: {
+    tapHint: 'Opens and removes the notification',
+    dismiss: 'Remove notification',
     emptyText: 'Seen notifications are cleared automatically.',
     title: 'Notifications',
     empty: 'No notifications.',
