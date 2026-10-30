@@ -28,7 +28,8 @@ export function AnnouncementManager({ announcements, stall }: { announcements: A
   const actions = useMerchantActions();
   const [editing, setEditing] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState<Announcement | null>(null);
-  const [image, setImage] = useState<ApiImage | null>(null);
+  // Visionneuse : toutes les photos de l'annonce, en commençant par celle touchée
+  const [viewer, setViewer] = useState<{ images: ApiImage[]; index: number } | null>(null);
   if (!announcements.length) return null;
 
   const remove = (a: Announcement) =>
@@ -45,7 +46,7 @@ export function AnnouncementManager({ announcements, stall }: { announcements: A
       {announcements.map((a) => (
         <View key={a.id} style={styles.card}>
           {a.image ? (
-            <Pressable onPress={() => setImage(a.image)} accessibilityRole="imagebutton" accessibilityLabel={t('merchant.announcementImage')}>
+            <Pressable onPress={() => setViewer({ images: a.images, index: 0 })} accessibilityRole="imagebutton" accessibilityLabel={t('merchant.announcementImage')}>
               <CachedImage image={a.image} style={styles.thumb} contentFit="cover" />
             </Pressable>
           ) : null}
@@ -67,11 +68,10 @@ export function AnnouncementManager({ announcements, stall }: { announcements: A
           announcement={current}
           limits={{ days: stall.subscription.limits.announcement_days, photos: stall.subscription.limits.announcement_photos }}
           onClose={() => setEditing(null)}
-          onImage={setImage}
         />
       ) : null}
-      {previewing ? <PreviewSheet announcement={previewing} stall={stall} onClose={() => setPreviewing(null)} onImage={setImage} /> : null}
-      <ImageViewer images={image ? [image] : []} visible={!!image} onClose={() => setImage(null)} />
+      {previewing ? <PreviewSheet announcement={previewing} stall={stall} onClose={() => setPreviewing(null)} /> : null}
+      <ImageViewer images={viewer?.images ?? []} initialIndex={viewer?.index ?? 0} visible={!!viewer} onClose={() => setViewer(null)} />
     </>
   );
 }
@@ -91,7 +91,7 @@ function SmallAction({ icon, label, onPress, danger = false }: { icon: 'eye' | '
 }
 
 /** Aperçu : l'annonce telle que les clients la voient, sur la page de l'étal et (abonné) sur l'accueil */
-function PreviewSheet({ announcement, stall, onClose, onImage }: { announcement: Announcement; stall: MerchantStallDetail; onClose: () => void; onImage: (image: ApiImage) => void }) {
+function PreviewSheet({ announcement, stall, onClose }: { announcement: Announcement; stall: MerchantStallDetail; onClose: () => void }) {
   const styles = useStyles();
   const t = useT();
   const { colors } = useTheme();
@@ -108,7 +108,7 @@ function PreviewSheet({ announcement, stall, onClose, onImage }: { announcement:
           </View>
           <ScrollView contentContainerStyle={{ gap: spacing.md }}>
             <Text style={styles.label}>{t('merchant.previewOnStall')}</Text>
-            <AnnouncementCard a={announcement} onImage={announcement.image ? () => onImage(announcement.image!) : undefined} />
+            <AnnouncementCard a={announcement} />
             <Text style={styles.label}>{t('merchant.previewOnHome')}</Text>
             {stall.subscription.status === 'active' ? (
               <HomeAnnouncementCard a={{ ...announcement, stall, is_followed: false }} width={Math.min(300, contentWidth - 48)} preview />
@@ -123,13 +123,14 @@ function PreviewSheet({ announcement, stall, onClose, onImage }: { announcement:
 }
 
 /** Modifier : texte, date de fin et photos (ajouter, retirer), dans la limite de la formule */
-function EditSheet({ announcement, limits, onClose, onImage }: { announcement: Announcement; limits: { days: number; photos: number }; onClose: () => void; onImage: (image: ApiImage) => void }) {
+function EditSheet({ announcement, limits, onClose }: { announcement: Announcement; limits: { days: number; photos: number }; onClose: () => void }) {
   const styles = useStyles();
   const t = useT();
   const { colors } = useTheme();
   const actions = useMerchantActions();
   const [text, setText] = useState(announcement.text);
   const [endsOn, setEndsOn] = useState<string>(announcement.ends_on);
+  const [viewer, setViewer] = useState<number | null>(null);
   const busy = actions.addAnnouncementPhotos.isPending || actions.removeAnnouncementPhoto.isPending;
   const left = limits.photos - announcement.images.length;
   const changed = text.trim() !== announcement.text.trim() || endsOn !== announcement.ends_on;
@@ -176,7 +177,7 @@ function EditSheet({ announcement, limits, onClose, onImage }: { announcement: A
               <View style={styles.photos}>
                 {announcement.images.map((img, i) => (
                   <View key={img.thumb_url + i} style={styles.editThumb}>
-                    <Pressable onPress={() => onImage(img)} accessibilityRole="imagebutton">
+                    <Pressable onPress={() => setViewer(i)} accessibilityRole="imagebutton">
                       <CachedImage image={img} style={styles.editImage} contentFit="cover" />
                     </Pressable>
                     <Pressable onPress={() => removePhoto(i)} style={styles.removeBadge} accessibilityRole="button" accessibilityLabel={t('cart.remove')} hitSlop={6}>
@@ -199,6 +200,8 @@ function EditSheet({ announcement, limits, onClose, onImage }: { announcement: A
           </View>
         </View>
       </KeyboardAvoidingView>
+      {/* Dans la fenêtre de modification, pour s'afficher par-dessus */}
+      <ImageViewer images={announcement.images} initialIndex={viewer ?? 0} visible={viewer !== null} onClose={() => setViewer(null)} />
     </Modal>
   );
 }
