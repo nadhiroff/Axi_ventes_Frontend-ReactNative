@@ -5,15 +5,13 @@ import type { ColorValue } from 'react-native';
 
 import { useTheme } from '../../theme';
 
-/** Icônes Feather, plus le logo WhatsApp (marque reconnue de tous, dans sa couleur verte par défaut) */
+/** Icônes Feather, plus le logo WhatsApp (même couleur que les autres icônes) */
 export type IconName = ComponentProps<typeof Feather>['name'] | 'whatsapp';
-
-export const WHATSAPP_GREEN = '#25D366';
 
 /** Icônes au trait fin, comme sur les maquettes. Police embarquée : aucun téléchargement. */
 export function Icon({ name, size = 20, color }: { name: IconName; size?: number; color?: string }) {
   const { colors } = useTheme();
-  if (name === 'whatsapp') return <FontAwesome name="whatsapp" size={size * 1.1} color={color ?? WHATSAPP_GREEN} />;
+  if (name === 'whatsapp') return <FontAwesome name="whatsapp" size={size * 1.1} color={color ?? colors.text} />;
   return <Feather name={name} size={size} color={color ?? colors.text} />;
 }
 

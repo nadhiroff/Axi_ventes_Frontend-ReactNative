@@ -162,8 +162,7 @@ function ContactButton({ icon, label, onPress }: { icon: 'whatsapp' | 'phone' | 
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={({ pressed }) => [styles.contact, pressed && { opacity: 0.7 }]}>
       <View style={styles.contactCircle}>
-        {/* Le logo WhatsApp garde sa couleur verte, les autres sont orange */}
-        <Icon name={icon} size={20} color={icon === 'whatsapp' ? undefined : colors.brand} />
+        <Icon name={icon} size={20} color={colors.brand} />
       </View>
       <Text style={styles.contactLabel} numberOfLines={1}>
         {label}
