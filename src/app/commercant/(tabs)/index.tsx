@@ -150,17 +150,26 @@ const useStyles = makeStyles((c) => ({
   section: { fontSize: fontSize.heading - 2, fontWeight: '700', color: c.text, marginTop: spacing.md },
 }));
 
-/** Bouton « Messages » avec le nombre de messages non lus */
+/** En haut de « Ma journée » : notifications et messages, chacun avec son nombre de non-lus */
 function MessagesButton() {
   const t = useT();
-  const { colors } = useTheme();
-  const unread = useBadges().data?.unread_messages ?? 0;
+  const badges = useBadges().data;
   return (
-    <Pressable onPress={() => router.push('/messages')} accessibilityRole="button" accessibilityLabel={t('chat.title')} hitSlop={8} style={{ padding: 6 }}>
-      <Icon name="message-circle" size={24} color={colors.text} />
-      {unread > 0 ? (
-        <View style={{ position: 'absolute', top: 0, right: 0, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: colors.brand, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 }}>
-          <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '700' }}>{unread}</Text>
+    <View style={{ flexDirection: 'row', gap: 4 }}>
+      <HeaderIcon icon="bell" label={t('notifications.title')} count={badges?.unread_notifications ?? 0} onPress={() => router.push('/notifications')} />
+      <HeaderIcon icon="message-circle" label={t('chat.title')} count={badges?.unread_messages ?? 0} onPress={() => router.push('/messages')} />
+    </View>
+  );
+}
+
+function HeaderIcon({ icon, label, count, onPress }: { icon: 'bell' | 'message-circle'; label: string; count: number; onPress: () => void }) {
+  const { colors } = useTheme();
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={count > 0 ? `${label}, ${count}` : label} hitSlop={6} style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}>
+      <Icon name={icon} size={20} color={colors.text} />
+      {count > 0 ? (
+        <View style={{ position: 'absolute', top: -2, right: -2, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: colors.brand, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 }}>
+          <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '700' }}>{count > 9 ? '9+' : count}</Text>
         </View>
       ) : null}
     </Pressable>
