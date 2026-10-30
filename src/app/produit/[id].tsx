@@ -100,6 +100,12 @@ export default function ProductScreen() {
           {p.images.length ? <Tag label={t('product.photos', { n: p.images.length })} tone="neutral" size="md" icon="image" /> : null}
         </View>
         {!p.price ? <Text style={styles.muted}>{t('stall.negotiate')}</Text> : null}
+        {p.description ? (
+          <View style={styles.description}>
+            <Text style={styles.descriptionTitle}>{t('product.description')}</Text>
+            <Text style={styles.descriptionText}>{p.description}</Text>
+          </View>
+        ) : null}
         <StallCard stall={p.stall} />
         <Button label={t('product.seeStall')} variant="ghost" icon="shopping-bag" onPress={() => router.push(`/etal/${p.stall.id}`)} />
       </Screen>
@@ -118,4 +124,7 @@ const useStyles = makeStyles((c) => ({
   name: { fontSize: fontSize.display, fontWeight: '800', color: c.text },
   price: { fontSize: fontSize.heading, fontWeight: '800', color: c.brand },
   muted: { fontSize: fontSize.body, color: c.textMuted },
+  description: { gap: 4, backgroundColor: c.surface, borderRadius: radius.lg, padding: spacing.md },
+  descriptionTitle: { fontSize: fontSize.small, fontWeight: '700', color: c.text },
+  descriptionText: { fontSize: fontSize.body, color: c.text, lineHeight: 22 },
 }));

@@ -25,6 +25,7 @@ export default function NewProductScreen() {
   const mutations = useProductMutations();
   const [photos, setPhotos] = useState<LocalFile[]>([]);
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [priceMax, setPriceMax] = useState('');
   const [negotiable, setNegotiable] = useState(false);
@@ -41,7 +42,7 @@ export default function NewProductScreen() {
     setErrors(local);
     if (Object.keys(local).length) return;
     mutations.create.mutate(
-      { fields: { name: name.trim(), price: negotiable ? '' : price.replace(/\D/g, ''), price_max: negotiable ? '' : priceMax.replace(/\D/g, ''), is_today: today ? '1' : '0', stock_quantity: trackStock ? stock.replace(/\D/g, '') : '' }, photos },
+      { fields: { name: name.trim(), description: description.trim(), price: negotiable ? '' : price.replace(/\D/g, ''), price_max: negotiable ? '' : priceMax.replace(/\D/g, ''), is_today: today ? '1' : '0', stock_quantity: trackStock ? stock.replace(/\D/g, '') : '' }, photos },
       {
         onSuccess: () => {
           toast(t('merchant.productPublished'));
@@ -70,6 +71,17 @@ export default function NewProductScreen() {
           {!voice ? (
             <>
               <Field label={t('merchant.productName')} value={name} onChangeText={setName} error={errors.name} />
+              <Field
+                label={`${t('merchant.productDescription')} (${t('common.optional')})`}
+                value={description}
+                onChangeText={setDescription}
+                placeholder={t('merchant.productDescriptionPlaceholder')}
+                multiline
+                maxLength={1000}
+                style={{ minHeight: 90, textAlignVertical: 'top' }}
+                hint={t('merchant.productDescriptionHint')}
+                error={errors.description}
+              />
               <SwitchRow label={t('merchant.negotiable')} value={negotiable} onChange={setNegotiable} />
               {!negotiable ? (
                 <PriceFields min={price} max={priceMax} onMin={setPrice} onMax={setPriceMax} errors={errors} />

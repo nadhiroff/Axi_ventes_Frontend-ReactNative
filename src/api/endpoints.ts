@@ -152,7 +152,7 @@ export const api = {
   addStallPhotos: (photos: LocalFile[]) => apiUpload<MerchantStall>('/v1/merchant/stall/photos', {}, { photos }),
   removeStallPhoto: (index: number) => apiSend<MerchantStall>('DELETE', `/v1/merchant/stall/photos/${index}`),
   requestVerification: () => apiSend<{ message: string }>('POST', '/v1/merchant/verification-request'),
-  createProduct: (fields: { name: string; price: string; price_max: string; is_today: string; stock_quantity: string }, photos: LocalFile[]) =>
+  createProduct: (fields: { name: string; description: string; price: string; price_max: string; is_today: string; stock_quantity: string }, photos: LocalFile[]) =>
     apiUpload<Product>('/v1/merchant/products', fields, photos.length ? { photos } : {}),
   createVoiceProduct: (audio: LocalFile, photos: LocalFile[]) => apiUpload<Product>('/v1/merchant/products/voice', {}, photos.length ? { audio, photos } : { audio }),
   updateProduct: (productId: string, patch: ProductPatch) => apiSend<Product>('PATCH', `/v1/merchant/products/${id(productId)}`, patch),

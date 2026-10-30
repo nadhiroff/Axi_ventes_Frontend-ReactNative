@@ -139,6 +139,8 @@ export type StallDetail = StallSummary & {
 export type Product = {
   id: string;
   name: string;
+  /** Description du commerçant (matière, taille, couleur…), visible sur la fiche du produit */
+  description: string | null;
   image: ApiImage | null; // première photo
   images: ApiImage[]; // galerie
   price: Price | null; // null = « Prix à débattre »
@@ -300,7 +302,7 @@ export type StallInput = Partial<{
   is_open: boolean;
 }>;
 
-export type ProductPatch = Partial<{ name: string; price: number | null; price_max: number | null; in_stock: boolean; stock_quantity: number | null; is_today: boolean; status: 'active' }>;
+export type ProductPatch = Partial<{ name: string; description: string | null; price: number | null; price_max: number | null; in_stock: boolean; stock_quantity: number | null; is_today: boolean; status: 'active' }>;
 
 export type MerchantOrder = { id: string; customer_name: string; customer_phone: string | null; summary: string; status: 'to_prepare' | 'ready' | 'picked_up'; status_label: string };
 export type MerchantToday = {

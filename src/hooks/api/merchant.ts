@@ -40,7 +40,7 @@ export function useProductMutations() {
   const onSuccess = useRefreshMerchant();
   return {
     create: useMutation({
-      mutationFn: (v: { fields: { name: string; price: string; price_max: string; is_today: string; stock_quantity: string }; photos: LocalFile[] }) => api.createProduct(v.fields, v.photos),
+      mutationFn: (v: { fields: { name: string; description: string; price: string; price_max: string; is_today: string; stock_quantity: string }; photos: LocalFile[] }) => api.createProduct(v.fields, v.photos),
       onSuccess,
     }),
     createVoice: useMutation({ mutationFn: (v: { audio: LocalFile; photos: LocalFile[] }) => api.createVoiceProduct(v.audio, v.photos), onSuccess }),

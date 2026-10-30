@@ -161,6 +161,7 @@ export const en: Dict = {
     negotiate: 'For a negotiable price, contact the trader on WhatsApp or by phone.',
   },
   product: {
+    description: 'Description',
     negotiable: 'Price to negotiate',
     soldOut: 'Sold out',
     today: 'Today',
@@ -258,6 +259,9 @@ export const en: Dict = {
     noUrl: 'The payment page could not open. Try again: you will be charged only once.',
   },
   merchant: {
+    productDescription: 'Description',
+    productDescriptionPlaceholder: 'E.g. 100% cotton, 6 yards, several colours available',
+    productDescriptionHint: 'Shown to customers on the product page.',
     announcementView: 'View',
     announcementImage: 'Announcement photo',
     announcementPreview: 'Announcement preview',
