@@ -33,13 +33,13 @@ export function AnnouncementCard({ a, onImage }: { a: Announcement; onImage?: ()
 }
 
 /** Petite annonce sur l'accueil (commerçant abonné) : photo, étal, texte, « Suivre » en un geste */
-export function HomeAnnouncementCard({ a, width }: { a: HomeAnnouncement; width: number }) {
+export function HomeAnnouncementCard({ a, width, preview = false }: { a: HomeAnnouncement; width: number; preview?: boolean }) {
   const styles = useStyles();
   const t = useT();
   const follow = useFollow(a.stall.id);
   const requireAuth = useRequireAuth();
   return (
-    <Pressable onPress={() => router.push(`/etal/${a.stall.id}`)} style={[styles.ad, { width }]} accessibilityRole="button" accessibilityLabel={`${a.stall.name} : ${a.text}`}>
+    <Pressable disabled={preview} onPress={() => router.push(`/etal/${a.stall.id}`)} style={[styles.ad, { width }]} accessibilityRole="button" accessibilityLabel={`${a.stall.name} : ${a.text}`}>
       {a.image ? <CachedImage image={a.image} variant="medium" style={styles.adImage} contentFit="cover" /> : null}
       <View style={styles.adBody}>
         <View style={styles.adStall}>
@@ -51,7 +51,9 @@ export function HomeAnnouncementCard({ a, width }: { a: HomeAnnouncement; width:
         <Text style={styles.adText} numberOfLines={3}>{a.text}</Text>
         <View style={styles.adFooter}>
           <Tag label={t('home.sponsored')} tone="outline" />
-          {!a.is_followed ? (
+          {preview ? (
+            <Tag label={t('stall.follow')} tone="brand" icon="plus" />
+          ) : !a.is_followed ? (
             <Button
               label={t('stall.follow')}
               icon="plus"

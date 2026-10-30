@@ -1,25 +1,33 @@
 import { useState } from 'react';
-import { Modal, Pressable, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { errorMessage } from '../../api/client';
-import type { Announcement } from '../../api/types';
+import type { Announcement, ApiImage, MerchantStallDetail } from '../../api/types';
 import { useMerchantActions } from '../../hooks/api/merchant';
+import { takeProductPhoto } from '../../hooks/useProductPhoto';
 import { useT } from '../../i18n';
 import { confirmAction, notify, toast } from '../../lib/confirm';
 import { formatShortDate } from '../../lib/format';
-import { fontSize, makeStyles, radius, spacing, useTheme } from '../../theme';
+import { fontSize, makeStyles, radius, spacing, useLayout, useTheme } from '../../theme';
+import { AnnouncementCard, HomeAnnouncementCard } from '../client/AnnouncementCard';
 import { Button } from '../ui/Button';
 import { CachedImage } from '../ui/CachedImage';
 import { Icon } from '../ui/Icon';
+import { ImageViewer } from '../ui/ImageViewer';
 import { SectionHeader } from '../ui/SectionHeader';
 
-/** « Mes annonces d'arrivage » dans Mon étal : chacune peut être modifiée ou supprimée */
-export function AnnouncementManager({ announcements }: { announcements: Announcement[] }) {
+/**
+ * « Mes annonces d'arrivage » dans Mon étal : voir l'annonce comme les clients, l'image en grand,
+ * modifier le texte et la photo, supprimer.
+ */
+export function AnnouncementManager({ announcements, stall }: { announcements: Announcement[]; stall: MerchantStallDetail }) {
   const styles = useStyles();
   const t = useT();
   const actions = useMerchantActions();
-  const [editing, setEditing] = useState<Announcement | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [previewing, setPreviewing] = useState<Announcement | null>(null);
+  const [image, setImage] = useState<ApiImage | null>(null);
   if (!announcements.length) return null;
 
   const remove = (a: Announcement) =>
@@ -27,33 +35,90 @@ export function AnnouncementManager({ announcements }: { announcements: Announce
       actions.deleteAnnouncement.mutate(a.id, { onSuccess: () => toast(t('merchant.announcementDeleted'), 'info'), onError: (e) => notify(t('merchant.arrivalTitle'), errorMessage(e), 'error') }),
     { destructive: true, confirmLabel: t('common.delete') });
 
+  // Annonce en cours de modification : version à jour (photo changée, texte modifié)
+  const current = announcements.find((a) => a.id === editing) ?? null;
+
   return (
     <>
       <SectionHeader title={t('merchant.myAnnouncements')} />
       {announcements.map((a) => (
         <View key={a.id} style={styles.card}>
-          {a.image ? <CachedImage image={a.image} style={styles.thumb} contentFit="cover" /> : null}
+          {a.image ? (
+            <Pressable onPress={() => setImage(a.image)} accessibilityRole="imagebutton" accessibilityLabel={t('merchant.announcementImage')}>
+              <CachedImage image={a.image} style={styles.thumb} contentFit="cover" />
+            </Pressable>
+          ) : null}
           <View style={{ flex: 1, gap: 4 }}>
             <Text style={styles.text} numberOfLines={3}>{a.text}</Text>
             <Text style={styles.date}>{formatShortDate(a.created_at)}</Text>
             <View style={styles.row}>
-              <Button label={t('common.edit')} icon="edit-2" size="sm" variant="ghost" onPress={() => setEditing(a)} />
+              <Button label={t('merchant.announcementView')} icon="eye" size="sm" variant="ghost" onPress={() => setPreviewing(a)} />
+              <Button label={t('common.edit')} icon="edit-2" size="sm" variant="ghost" onPress={() => setEditing(a.id)} />
               <Button label={t('common.delete')} icon="trash-2" size="sm" variant="danger" onPress={() => remove(a)} />
             </View>
           </View>
         </View>
       ))}
-      {editing ? <EditSheet key={editing.id} announcement={editing} onClose={() => setEditing(null)} /> : null}
+      {current ? <EditSheet key={current.id} announcement={current} onClose={() => setEditing(null)} onImage={setImage} /> : null}
+      {previewing ? <PreviewSheet announcement={previewing} stall={stall} onClose={() => setPreviewing(null)} onImage={setImage} /> : null}
+      <ImageViewer images={image ? [image] : []} visible={!!image} onClose={() => setImage(null)} />
     </>
   );
 }
 
-function EditSheet({ announcement, onClose }: { announcement: Announcement; onClose: () => void }) {
+/** Aperçu : l'annonce telle que les clients la voient, sur la page de l'étal et (abonné) sur l'accueil */
+function PreviewSheet({ announcement, stall, onClose, onImage }: { announcement: Announcement; stall: MerchantStallDetail; onClose: () => void; onImage: (image: ApiImage) => void }) {
+  const styles = useStyles();
+  const t = useT();
+  const { colors } = useTheme();
+  const { contentWidth } = useLayout();
+  return (
+    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.backdrop}>
+        <View style={[styles.sheet, { maxHeight: '88%' }]}>
+          <View style={styles.header}>
+            <Text style={styles.title}>{t('merchant.announcementPreview')}</Text>
+            <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel={t('common.close')}>
+              <Icon name="x" size={22} color={colors.text} />
+            </Pressable>
+          </View>
+          <ScrollView contentContainerStyle={{ gap: spacing.md }}>
+            <Text style={styles.label}>{t('merchant.previewOnStall')}</Text>
+            <AnnouncementCard a={announcement} onImage={announcement.image ? () => onImage(announcement.image!) : undefined} />
+            <Text style={styles.label}>{t('merchant.previewOnHome')}</Text>
+            {stall.subscription.status === 'active' ? (
+              <HomeAnnouncementCard a={{ ...announcement, stall, is_followed: false }} width={Math.min(300, contentWidth - 48)} preview />
+            ) : (
+              <Text style={styles.date}>{t('merchant.previewHomeLocked')}</Text>
+            )}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+/** Modifier : texte, et photo (ajouter, changer, retirer) */
+function EditSheet({ announcement, onClose, onImage }: { announcement: Announcement; onClose: () => void; onImage: (image: ApiImage) => void }) {
   const styles = useStyles();
   const t = useT();
   const { colors } = useTheme();
   const actions = useMerchantActions();
   const [text, setText] = useState(announcement.text);
+  const busy = actions.setAnnouncementPhoto.isPending || actions.removeAnnouncementPhoto.isPending;
+
+  const pick = async (source: 'camera' | 'library') => {
+    const photo = await takeProductPhoto(source, false);
+    if (photo)
+      actions.setAnnouncementPhoto.mutate({ id: announcement.id, photo }, {
+        onSuccess: () => toast(announcement.image ? t('merchant.photoChanged') : t('merchant.photoAdded')),
+        onError: (e) => notify(t('merchant.arrivalTitle'), errorMessage(e), 'error'),
+      });
+  };
+  const removePhoto = () =>
+    confirmAction(t('merchant.removePhoto'), '', () =>
+      actions.removeAnnouncementPhoto.mutate(announcement.id, { onSuccess: () => toast(t('merchant.photoRemoved'), 'info'), onError: (e) => notify(t('merchant.arrivalTitle'), errorMessage(e), 'error') }),
+    { destructive: true, confirmLabel: t('common.delete') });
   const save = () =>
     actions.updateAnnouncement.mutate({ id: announcement.id, text: text.trim() }, {
       onSuccess: () => {
@@ -62,6 +127,7 @@ function EditSheet({ announcement, onClose }: { announcement: Announcement; onCl
       },
       onError: (e) => notify(t('merchant.arrivalTitle'), errorMessage(e), 'error'),
     });
+
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior="padding" style={styles.backdrop}>
@@ -72,7 +138,24 @@ function EditSheet({ announcement, onClose }: { announcement: Announcement; onCl
               <Icon name="x" size={22} color={colors.text} />
             </Pressable>
           </View>
-          <TextInput value={text} onChangeText={setText} multiline maxLength={500} autoFocus style={styles.input} placeholderTextColor={colors.textMuted} />
+          <TextInput value={text} onChangeText={setText} multiline maxLength={500} style={styles.input} placeholderTextColor={colors.textMuted} />
+          <Text style={styles.label}>{t('merchant.photo')}</Text>
+          {announcement.image ? (
+            <View style={{ flexDirection: 'row', gap: spacing.md, alignItems: 'center' }}>
+              <Pressable onPress={() => onImage(announcement.image!)} accessibilityRole="imagebutton">
+                <CachedImage image={announcement.image} style={styles.editImage} contentFit="cover" />
+              </Pressable>
+              <View style={{ flex: 1, gap: spacing.sm }}>
+                <Button label={t('merchant.changePhoto')} icon="image" size="sm" variant="ghost" onPress={() => pick('library')} loading={busy} />
+                <Button label={t('common.delete')} icon="trash-2" size="sm" variant="danger" onPress={removePhoto} disabled={busy} />
+              </View>
+            </View>
+          ) : (
+            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+              <Button label={t('common.camera')} icon="camera" size="sm" variant="ghost" onPress={() => pick('camera')} loading={busy} style={{ flex: 1 }} />
+              <Button label={t('common.gallery')} icon="image" size="sm" variant="ghost" onPress={() => pick('library')} disabled={busy} style={{ flex: 1 }} />
+            </View>
+          )}
           <Button label={t('common.save')} icon="check" size="lg" loading={actions.updateAnnouncement.isPending} disabled={text.trim().length < 3} onPress={save} />
         </View>
       </KeyboardAvoidingView>
@@ -83,12 +166,14 @@ function EditSheet({ announcement, onClose }: { announcement: Announcement; onCl
 const useStyles = makeStyles((c) => ({
   card: { flexDirection: 'row', gap: spacing.md, backgroundColor: c.surface, borderRadius: radius.lg, borderWidth: 1.5, borderColor: c.brandSoft, padding: spacing.md },
   thumb: { width: 72, height: 72, borderRadius: radius.md },
+  editImage: { width: 96, height: 96, borderRadius: radius.md },
   text: { fontSize: fontSize.body, color: c.text },
   date: { fontSize: fontSize.caption, color: c.textMuted },
-  row: { flexDirection: 'row', gap: spacing.sm, marginTop: 4 },
+  label: { fontSize: fontSize.small, fontWeight: '700', color: c.text },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: 4 },
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(12,10,9,0.5)' },
   sheet: { backgroundColor: c.surface, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: spacing.xl, gap: spacing.md, width: '100%', maxWidth: 640, alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontSize: fontSize.title + 1, fontWeight: '700', color: c.text },
-  input: { minHeight: 110, maxHeight: 220, borderWidth: 1, borderColor: c.border, borderRadius: radius.md, padding: spacing.md, fontSize: fontSize.body, color: c.text, backgroundColor: c.background, textAlignVertical: 'top' },
+  input: { minHeight: 100, maxHeight: 200, borderWidth: 1, borderColor: c.border, borderRadius: radius.md, padding: spacing.md, fontSize: fontSize.body, color: c.text, backgroundColor: c.background, textAlignVertical: 'top' },
 }));
