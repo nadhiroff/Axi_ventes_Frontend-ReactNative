@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import type { Announcement, HomeAnnouncement } from '../../api/types';
@@ -9,6 +10,7 @@ import { toast } from '../../lib/confirm';
 import { formatShortDate } from '../../lib/format';
 import { fontSize, makeStyles, radius, spacing } from '../../theme';
 import { Avatar } from '../ui/Avatar';
+import { ImageViewer } from '../ui/ImageViewer';
 import { PhotoCarousel } from '../ui/PhotoCarousel';
 import { Button } from '../ui/Button';
 import { CachedImage } from '../ui/CachedImage';
@@ -16,21 +18,24 @@ import { Tag } from '../ui/Tag';
 import { SubscriberBadge, VerifiedIcon } from '../ui/VerifiedIcon';
 
 /** Annonce d'arrivage sur la page de l'étal : texte, photo, date */
-export function AnnouncementCard({ a, onImage }: { a: Announcement; onImage?: () => void }) {
+export function AnnouncementCard({ a }: { a: Announcement }) {
   const styles = useStyles();
   const t = useT();
+  // Toucher une photo : toutes les photos en plein écran, à faire défiler, en commençant par celle touchée
+  const [viewer, setViewer] = useState<number | null>(null);
   return (
     <View style={styles.card}>
       <Tag label={t('stall.announcement')} tone="brand" icon="package" />
       {a.images.length > 1 ? (
-        <PhotoCarousel images={a.images} height={180} onOpen={() => onImage?.()} />
+        <PhotoCarousel images={a.images} height={180} onOpen={setViewer} />
       ) : a.image ? (
-        <Pressable onPress={onImage} accessibilityRole="imagebutton">
+        <Pressable onPress={() => setViewer(0)} accessibilityRole="imagebutton">
           <CachedImage image={a.image} variant="medium" style={styles.image} contentFit="cover" />
         </Pressable>
       ) : null}
       <Text style={styles.text}>{a.text}</Text>
       <Text style={styles.date}>{t('merchant.announcementUntil', { date: formatShortDate(`${a.ends_on}T12:00:00`) })}</Text>
+      <ImageViewer images={a.images} initialIndex={viewer ?? 0} visible={viewer !== null} onClose={() => setViewer(null)} />
     </View>
   );
 }
