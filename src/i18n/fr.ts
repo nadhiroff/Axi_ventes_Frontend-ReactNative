@@ -46,6 +46,7 @@ export const fr = {
   },
   auth: {
     reasonEmail: 'Connectez-vous pour écrire un email au commerçant.',
+    reasonContact: 'Connectez-vous ou créez un compte pour contacter ce commerçant.',
     suspendedTitle: 'Accès bloqué',
     contactAxi: 'Écrire à l\'équipe Axi',
     contactSubject: 'Mon compte Axi est bloqué',
