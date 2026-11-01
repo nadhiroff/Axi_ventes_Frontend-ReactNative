@@ -117,14 +117,14 @@ export default function StallScreen() {
 
       <Screen refreshing={stall.isRefetching} onRefresh={() => stall.refetch()}>
         {s.photos.length > 1 ? <PhotoCarousel images={s.photos} onOpen={setPhotoIndex} /> : null}
-        {/* Actions principales côte à côte, puis contacts en petits boutons ronds sur une seule ligne */}
+        {/* Actions principales côte à côte, puis contacts en petits boutons ronds sur une seule ligne (WhatsApp, appel et email réservés aux comptes connectés) */}
         <View style={styles.actions}>
           <Button label={s.is_followed ? t('stall.following') : t('stall.follow')} icon={s.is_followed ? 'check' : 'plus'} variant={s.is_followed ? 'ghost' : 'primary'} onPress={toggleFollow} loading={follow.isPending} style={{ flex: 1 }} />
           {ownStallId !== s.id ? <Button label={t('chat.write')} icon="message-square" variant="ghost" onPress={writeToStall} loading={opening} style={{ flex: 1 }} /> : null}
         </View>
         <View style={styles.contacts}>
-          {s.contacts.whatsapp ? <ContactButton icon="whatsapp" label={t('common.whatsapp')} onPress={() => openWhatsapp(s.contacts.whatsapp!)} /> : null}
-          {s.contacts.phone ? <ContactButton icon="phone" label={t('common.call')} onPress={() => callPhone(s.contacts.phone)} /> : null}
+          {s.contacts.whatsapp ? <ContactButton icon="whatsapp" label={t('common.whatsapp')} onPress={() => requireAuth(() => openWhatsapp(s.contacts.whatsapp!), t('auth.reasonContact'))} /> : null}
+          {s.contacts.phone ? <ContactButton icon="phone" label={t('common.call')} onPress={() => requireAuth(() => callPhone(s.contacts.phone), t('auth.reasonContact'))} /> : null}
           {ownStallId !== s.id ? <ContactButton icon="mail" label={t('stall.emailShort')} onPress={() => requireAuth(() => setEmailOpen(true), t('auth.reasonEmail'))} /> : null}
           {s.location.map_url ? <ContactButton icon="map" label={t('stall.map')} onPress={() => openLink(s.location.map_url!)} /> : null}
         </View>

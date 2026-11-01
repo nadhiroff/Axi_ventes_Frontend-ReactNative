@@ -47,6 +47,7 @@ export const en: Dict = {
   },
   auth: {
     reasonEmail: 'Sign in to email the merchant.',
+    reasonContact: 'Sign in or create an account to contact this merchant.',
     contactAxi: 'Email the Axi team',
     contactSubject: 'My Axi account is blocked',
     suspendedTitle: 'Access blocked',
