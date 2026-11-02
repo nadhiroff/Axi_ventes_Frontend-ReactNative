@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { LocalFile } from '../../api/client';
@@ -10,8 +11,18 @@ export const useMerchantToday = () => useQuery({ queryKey: queryKeys.merchantTod
 // Relu à chaque ouverture ; visible : toutes les 30 s sur Mon étal (vérification par un agent, nouvelle adresse)
 export const useMerchantStall = (visible = false) => useQuery({ queryKey: queryKeys.merchantStall, queryFn: api.merchantStall, staleTime: 0, refetchInterval: visible ? 30_000 : false });
 // Relue toutes les 30 s, SEULEMENT quand l'onglet est affiché (réponse 304 sans corps si rien n'a changé)
-export const useMerchantClients = (segment: ClientSegment, search: string, visible = true) =>
-  useQuery({ queryKey: queryKeys.merchantClients(segment, search), queryFn: () => api.merchantClients(segment, search || undefined), staleTime: 15_000, refetchInterval: visible ? 30_000 : false });
+/**
+ * Mes clients (avec le dernier message de chacun et ses coches) : relu dès que l'onglet revient à l'écran, puis toutes
+ * les 5 s tant qu'il est affiché, pour que « vu / pas vu » suive comme dans la liste des discussions.
+ */
+export function useMerchantClients(segment: ClientSegment, search: string, visible = true) {
+  const query = useQuery({ queryKey: queryKeys.merchantClients(segment, search), queryFn: () => api.merchantClients(segment, search || undefined), staleTime: 0, refetchInterval: visible ? 5_000 : false });
+  const { refetch } = query;
+  useEffect(() => {
+    if (visible) void refetch();
+  }, [visible, refetch]);
+  return query;
+}
 // Fiche relue à chaque ouverture : jamais une ancienne copie (compteurs, commandes) gardée sur le téléphone
 export const useMerchantClient = (clientId: string) => useQuery({ queryKey: queryKeys.merchantClient(clientId), queryFn: () => api.merchantClient(clientId), staleTime: 0 });
 // Relu à chaque ouverture, et toutes les 20 s quand l'écran est affiché : la réponse à un crédit ou un versement apparaît seule

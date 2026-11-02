@@ -362,7 +362,7 @@ export type MerchantClient = {
   /** Compte bloqué par Axi */
   unavailable?: boolean;
   /** Dernier message échangé avec ce client (liste seulement) */
-  last_message?: { preview: string; mine: boolean; created_at: string } | null;
+  last_message?: { preview: string; mine: boolean; status?: MessageStatus | null; created_at: string } | null;
 };
 /** Un commerçant veut m'ajouter à ses clients */
 export type ClientInvite = { id: string; stall: StallSummary; invited_at: string };
