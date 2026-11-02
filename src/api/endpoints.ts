@@ -82,7 +82,8 @@ export const api = {
 
   // Devenir commerçant : demande vérifiée par un agent Axi
   merchantApplication: () => apiGet<{ application: MerchantApplication | null }>('/v1/me/merchant-application'),
-  applyMerchant: (fields: ApplicationInput, files: { id_front: LocalFile; id_back: LocalFile | null; selfie: LocalFile; stall_photo: LocalFile }) =>
+  /** id_back : passeport seulement (recto et verso) ; ifu et rccm : PDF obligatoires */
+  applyMerchant: (fields: ApplicationInput, files: { id_front: LocalFile; id_back: LocalFile | null; selfie: LocalFile; stall_photo: LocalFile; ifu: LocalFile; rccm: LocalFile }) =>
     apiUpload<{ application: MerchantApplication; user: User; message: string }>(
       '/v1/me/merchant-application',
       // Autres numéros envoyés comme other_phones[0], other_phones[1] (lus en tableau par le serveur)

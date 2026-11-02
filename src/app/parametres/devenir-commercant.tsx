@@ -1,3 +1,4 @@
+import * as DocumentPicker from 'expo-document-picker';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
 import { useState } from 'react';
@@ -24,9 +25,14 @@ import { useAuthStore } from '../../store/authStore';
 import { fontSize, makeStyles, radius, spacing, useTheme } from '../../theme';
 
 const ID_TYPES: IdType[] = ['cni', 'cip', 'passport'];
+/** Passeport : recto et verso ; carte d'identité et CIP : une seule photo (même règle côté serveur) */
+const TWO_SIDED: IdType[] = ['passport'];
 // Un numéro par opérateur au Bénin (MTN, Moov, Celtiis)
 const MAX_PHONES = 3;
+/** Même plafond que le serveur pour un PDF (IFU, RCCM) */
+const MAX_PDF_BYTES = 10 * 1024 * 1024;
 type Photos = { id_front: LocalFile | null; id_back: LocalFile | null; selfie: LocalFile | null; stall_photo: LocalFile | null };
+type Docs = { ifu: LocalFile | null; rccm: LocalFile | null };
 
 /**
  * Devenir commerçant : le client envoie sa pièce d'identité, un selfie, une photo de son étal et son emplacement.
@@ -112,14 +118,22 @@ function ApplicationForm({ initialPhone }: { initialPhone: string }) {
   }));
   const [form, setForm] = useState(initialForm);
   const [photos, setPhotos] = useState<Photos>({ id_front: null, id_back: null, selfie: null, stall_photo: null });
+  const [docs, setDocs] = useState<Docs>({ ifu: null, rccm: null });
   const [otherPhones, setOtherPhones] = useState<string[]>([]);
+  const twoSided = TWO_SIDED.includes(form.id_type);
   // Comme les autres écrans de modification : Retour, glissement ou « Annuler » demandent TOUJOURS Non / Oui
   // (le texte précise si des informations ou des photos seront perdues). Après l'envoi, l'écran change : plus de question.
-  const dirty = JSON.stringify(form) !== JSON.stringify(initialForm) || Object.values(photos).some(Boolean) || otherPhones.some((p) => p.trim());
+  const dirty = JSON.stringify(form) !== JSON.stringify(initialForm) || Object.values(photos).some(Boolean) || Object.values(docs).some(Boolean) || otherPhones.some((p) => p.trim());
   const { cancel } = useConfirmLeave(dirty);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [sending, setSending] = useState(false);
   const set = <K extends keyof typeof form>(key: K) => (value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }));
+  // Changer de pièce : une pièce à une seule face n'a pas de verso, l'ancien est retiré tout seul
+  const chooseIdType = (type: IdType) => {
+    set('id_type')(type);
+    if (!TWO_SIDED.includes(type)) setPhotos((x) => ({ ...x, id_back: null }));
+    setErrors(({ id_front: _f, id_back: _b, ...rest }) => rest);
+  };
 
   const submit = () => {
     const local: Record<string, string> = {};
@@ -131,8 +145,11 @@ function ApplicationForm({ initialPhone }: { initialPhone: string }) {
     if (!form.site.id) local.site_id = t('apply.chooseSite');
     else if (form.site.id === options?.other_site_id && form.site.other.trim().length < 2) local.site_id = t('merchant.otherRequired');
     if (!photos.id_front) local.id_front = t('apply.photoRequired');
+    if (twoSided && !photos.id_back) local.id_back = t('apply.photoRequired');
     if (!photos.selfie) local.selfie = t('apply.photoRequired');
     if (!photos.stall_photo) local.stall_photo = t('apply.photoRequired');
+    if (!docs.ifu) local.ifu = t('apply.docRequired');
+    if (!docs.rccm) local.rccm = t('apply.docRequired');
     setErrors(local);
     if (Object.keys(local).length) {
       notify(t('apply.title'), t('apply.missing'), 'error');
@@ -144,7 +161,7 @@ function ApplicationForm({ initialPhone }: { initialPhone: string }) {
         const { site, aisle, ...rest } = form;
         const result = await api.applyMerchant(
           { ...rest, other_phones: otherPhones.map((p) => p.trim()).filter(Boolean), stall_name: rest.stall_name.trim(), id_number: rest.id_number.trim(), site_id: site.id, site_other: site.other.trim(), aisle_id: aisle.id, aisle_other: aisle.other.trim() },
-          { id_front: photos.id_front!, id_back: photos.id_back, selfie: photos.selfie!, stall_photo: photos.stall_photo! },
+          { id_front: photos.id_front!, id_back: twoSided ? photos.id_back : null, selfie: photos.selfie!, stall_photo: photos.stall_photo!, ifu: docs.ifu!, rccm: docs.rccm! },
         );
         setUser(result.user);
         notify(t('apply.sentTitle'), result.message, 'success');
@@ -204,13 +221,22 @@ function ApplicationForm({ initialPhone }: { initialPhone: string }) {
         <Text style={styles.label}>{t('apply.idType')}</Text>
         <View style={styles.wrap}>
           {ID_TYPES.map((type) => (
-            <Chip key={type} label={t(`apply.idTypes.${type}`)} selected={form.id_type === type} onPress={() => set('id_type')(type)} />
+            <Chip key={type} label={t(`apply.idTypes.${type}`)} selected={form.id_type === type} onPress={() => chooseIdType(type)} />
           ))}
         </View>
+        <Text style={styles.muted}>{twoSided ? t('apply.idBothSides') : t('apply.idOneSide')}</Text>
         <Field label={t('apply.idNumber')} value={form.id_number} onChangeText={set('id_number')} autoCapitalize="characters" error={errors.id_number} maxLength={40} />
-        <PhotoSlot label={t('apply.idFront')} photo={photos.id_front} error={errors.id_front} onChange={(p) => setPhotos((x) => ({ ...x, id_front: p }))} />
-        <PhotoSlot label={`${t('apply.idBack')} (${t('common.optional')})`} photo={photos.id_back} onChange={(p) => setPhotos((x) => ({ ...x, id_back: p }))} />
+        {/* Passeport : recto et verso ; carte d'identité et CIP : une seule photo */}
+        <PhotoSlot label={twoSided ? t('apply.idFront') : t('apply.idPhoto')} photo={photos.id_front} error={errors.id_front} onChange={(p) => setPhotos((x) => ({ ...x, id_front: p }))} />
+        {twoSided ? <PhotoSlot label={t('apply.idBack')} photo={photos.id_back} error={errors.id_back} onChange={(p) => setPhotos((x) => ({ ...x, id_back: p }))} /> : null}
         <PhotoSlot label={t('apply.selfie')} hint={t('apply.selfieHint')} photo={photos.selfie} square error={errors.selfie} onChange={(p) => setPhotos((x) => ({ ...x, selfie: p }))} />
+      </Card>
+
+      <Text style={styles.section}>{t('apply.businessSection')}</Text>
+      <Card style={{ gap: spacing.lg }}>
+        <Text style={styles.muted}>{t('apply.businessHint')}</Text>
+        <DocSlot label={t('apply.ifu')} doc={docs.ifu} error={errors.ifu} onChange={(d) => setDocs((x) => ({ ...x, ifu: d }))} onError={(msg) => setErrors((e) => ({ ...e, ifu: msg }))} />
+        <DocSlot label={t('apply.rccm')} doc={docs.rccm} error={errors.rccm} onChange={(d) => setDocs((x) => ({ ...x, rccm: d }))} onError={(msg) => setErrors((e) => ({ ...e, rccm: msg }))} />
       </Card>
       <View style={styles.row}>
         <Button label={t('common.cancel')} size="lg" variant="ghost" onPress={cancel} disabled={sending} style={{ flex: 1 }} />
@@ -255,7 +281,44 @@ function PhotoSlot({ label, hint, photo, square, error, onChange }: { label: str
   );
 }
 
+/** Un document PDF à fournir depuis le téléphone (IFU, RCCM) : nom du fichier, remplacer, retirer. */
+function DocSlot({ label, doc, error, onChange, onError }: { label: string; doc: LocalFile | null; error?: string; onChange: (d: LocalFile | null) => void; onError: (message: string) => void }) {
+  const styles = useStyles();
+  const t = useT();
+  const { colors } = useTheme();
+  const pick = async () => {
+    const result = await DocumentPicker.getDocumentAsync({ type: 'application/pdf', copyToCacheDirectory: true, multiple: false });
+    if (result.canceled || !result.assets?.[0]) return;
+    const file = result.assets[0];
+    // Certains téléphones ignorent le filtre : on revérifie (le serveur contrôle aussi le contenu du fichier)
+    const isPdf = file.mimeType === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!isPdf) return onError(t('apply.docNotPdf'));
+    if (file.size !== undefined && file.size > MAX_PDF_BYTES) return onError(t('apply.docTooLarge'));
+    onChange({ uri: file.uri, name: file.name.toLowerCase().endsWith('.pdf') ? file.name : `${file.name}.pdf`, type: 'application/pdf' });
+    onError('');
+  };
+  return (
+    <View style={{ gap: spacing.sm }}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={[styles.doc, error ? { borderColor: colors.danger } : null]}>
+        <Icon name="file-text" size={22} color={doc ? colors.brand : colors.textMuted} />
+        <Text style={[styles.text, { flex: 1 }, !doc && { color: colors.textMuted }]} numberOfLines={1}>
+          {doc ? doc.name : 'PDF'}
+        </Text>
+        {doc ? (
+          <Pressable onPress={() => onChange(null)} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('cart.remove')}>
+            <Icon name="x" size={18} color={colors.textMuted} />
+          </Pressable>
+        ) : null}
+      </View>
+      <Button label={doc ? t('apply.docReplace') : t('apply.docPick')} icon="upload" variant="ghost" size="sm" onPress={pick} style={{ alignSelf: 'flex-start' }} />
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+    </View>
+  );
+}
+
 const useStyles = makeStyles((c) => ({
+  doc: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderWidth: 1.5, borderStyle: 'dashed', borderColor: c.border, borderRadius: radius.md, paddingHorizontal: spacing.md, backgroundColor: c.surfaceAlt },
   column: { gap: spacing.md, maxWidth: 640, width: '100%', alignSelf: 'center' },
   section: { fontSize: fontSize.title, fontWeight: '700', color: c.text, marginTop: spacing.sm },
   title: { fontSize: fontSize.title + 1, fontWeight: '700', color: c.text },
