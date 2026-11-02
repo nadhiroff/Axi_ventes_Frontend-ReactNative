@@ -29,8 +29,13 @@ export const useDialogStore = create<{
   // Même message déjà affiché (plusieurs appuis) : pas de fenêtre en double à refermer
   showDialog: (d) => set((s) => (s.dialogs.some((x) => x.title === d.title && x.message === d.message) ? s : { dialogs: [...s.dialogs, { ...d, id: nextId++ }] })),
   closeDialog: () => set((s) => ({ dialogs: s.dialogs.slice(1) })),
-  // Message avec bouton : un seul à la fois, le nouveau remplace le précédent (ajouts au panier à la suite)
-  showToast: (message, tone, action) => set((s) => ({ toasts: [...(action ? s.toasts.filter((t) => !t.action) : s.toasts).slice(-2), { id: nextId++, message, tone, action }] })),
+  // Message avec bouton : un seul à la fois, le nouveau remplace le précédent (ajouts au panier à la suite).
+  // Même message déjà affiché (plusieurs « Enregistré » d'affilée) : il est remplacé, jamais empilé ; il reste
+  // affiché le temps normal à partir du dernier enregistrement.
+  showToast: (message, tone, action) =>
+    set((s) => ({
+      toasts: [...s.toasts.filter((t) => (action ? !t.action : t.action || t.message !== message || t.tone !== tone)).slice(-2), { id: nextId++, message, tone, action }],
+    })),
   hideToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
 }));
 
