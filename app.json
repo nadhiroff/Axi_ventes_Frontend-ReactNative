@@ -46,7 +46,8 @@
           "color": "#C2410C"
         }
       ],
-      "expo-video"
+      "expo-video",
+      "expo-sharing"
     ]
   }
 }

@@ -85,6 +85,20 @@ export type UserSettings = {
 export type SessionInfo = { id: string; device: string; ip: string | null; current: boolean; created_at: string; last_used_at: string };
 export type LoginEvent = { success: boolean; label: string; device: string | null; ip: string; channel: 'app' | 'web'; created_at: string };
 export type Consent = { id: string; partner_name: string; scope: string; granted_at: string; revoked_at: string | null; active: boolean };
+/** Mes données (GET /v1/me/data) : dates au format MySQL UTC « 2026-11-02 09:51:36 » */
+export type MyData = {
+  exported_at: string;
+  account: { first_name: string; last_name: string; email: string; phone: string | null; bio: string | null; role: Role; lang: string; created_at: string } | null;
+  settings: Record<string, unknown> | null;
+  stall: { name: string; tagline: string | null; phone: string | null; whatsapp: string | null; row_label: string | null; stand: string | null; created_at: string } | null;
+  orders: { id: number; status: string; total: number; created_at: string }[];
+  payments: { reference: string; amount: number; status: string; created_at: string }[];
+  followed_stalls: { name: string; created_at: string }[];
+  favorites: { name: string; created_at: string }[];
+  consents: { partner: string; scope: string; granted_at: string; revoked_at: string | null }[];
+  blocked_users: { name: string; created_at: string }[];
+  logins: { success: number | boolean; device: string | null; ip: string | null; created_at: string }[];
+};
 export type AppNotification = { id: string; type: NotificationType; title: string; body: string; data: Record<string, string>; read: boolean; created_at: string };
 
 // ---------------------------------------------------------------------------
