@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { ApiError, errorMessage } from '../../api/client';
@@ -79,17 +79,58 @@ export default function ProfileScreen() {
       }
     }, { destructive: true, confirmLabel: t('common.delete') });
 
-  const setVisibility = async (avatar_visibility: AvatarVisibility) => {
-    if (!user || user.avatar_visibility === avatar_visibility) return;
+  // Qui peut voir ma photo : le choix s'affiche tout de suite ; plusieurs appuis rapides n'envoient qu'UN
+  // enregistrement (le dernier choix, après une courte pause), donc un seul « Enregistré » et jamais un ancien
+  // choix qui reviendrait parce que les réponses du serveur arrivent dans le désordre
+  const [pendingVisibility, setPendingVisibility] = useState<AvatarVisibility | null>(null);
+  const visibilityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const visibilityRequest = useRef(0);
+  const sendVisibility = useRef<(v: AvatarVisibility, quiet: boolean) => Promise<void>>(async () => undefined);
+  const send = async (avatar_visibility: AvatarVisibility, quiet: boolean) => {
+    const request = ++visibilityRequest.current;
     try {
-      setUser(await api.updateMe({ avatar_visibility }));
-      toast(t('common.saved'));
+      const updated = await api.updateMe({ avatar_visibility });
+      if (request !== visibilityRequest.current) return; // un choix plus récent a pris le relais
+      setUser(updated);
+      setPendingVisibility(null);
+      if (!quiet) toast(t('common.saved'));
     } catch (e) {
-      notify(t('settings.photo'), errorMessage(e), 'error');
+      if (request !== visibilityRequest.current) return;
+      setPendingVisibility(null);
+      if (!quiet) notify(t('settings.photo'), errorMessage(e), 'error');
     }
+  };
+  // Toujours la dernière version (langue à jour) pour l'enregistrement lancé en quittant l'écran
+  useEffect(() => {
+    sendVisibility.current = send;
+  });
+  const latestVisibility = useRef<AvatarVisibility | null>(null);
+  // Écran quitté pendant la pause : le dernier choix est quand même enregistré
+  useEffect(
+    () => () => {
+      if (visibilityTimer.current && latestVisibility.current) {
+        clearTimeout(visibilityTimer.current);
+        void sendVisibility.current(latestVisibility.current, true);
+      }
+    },
+    [],
+  );
+  const setVisibility = (avatar_visibility: AvatarVisibility) => {
+    if (!user) return;
+    const shown = pendingVisibility ?? user.avatar_visibility;
+    if (shown === avatar_visibility) return;
+    setPendingVisibility(avatar_visibility);
+    latestVisibility.current = avatar_visibility;
+    if (visibilityTimer.current) clearTimeout(visibilityTimer.current);
+    visibilityTimer.current = setTimeout(() => {
+      visibilityTimer.current = null;
+      latestVisibility.current = null;
+      void send(avatar_visibility, false);
+    }, 500);
   };
 
   if (!user) return null;
+  const visibility = pendingVisibility ?? user.avatar_visibility;
   return (
     <>
       <ScreenHeader title={t('settings.profile')} />
@@ -108,10 +149,10 @@ export default function ProfileScreen() {
             <Text style={[styles.label, { alignSelf: 'flex-start' }]}>{t('settings.photoWho')}</Text>
             <View style={styles.row}>
               {VISIBILITY.map((v) => (
-                <OptionTile key={v} label={t(`settings.visibility.${v}`)} selected={user.avatar_visibility === v} onPress={() => setVisibility(v)} />
+                <OptionTile key={v} label={t(`settings.visibility.${v}`)} selected={visibility === v} onPress={() => setVisibility(v)} />
               ))}
             </View>
-            <Text style={styles.muted}>{t(`settings.visibilityHint.${user.avatar_visibility}`)}</Text>
+            <Text style={styles.muted}>{t(`settings.visibilityHint.${visibility}`)}</Text>
           </Card>
           <Card style={{ gap: spacing.lg }}>
             <Text style={styles.muted}>{user.email}</Text>

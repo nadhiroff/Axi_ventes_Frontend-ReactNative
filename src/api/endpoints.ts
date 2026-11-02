@@ -6,6 +6,9 @@ import type {
   ApplicationInput,
   AvatarVisibility,
   Badges,
+  BlockedUser,
+  DeletionRequest,
+  MyData,
   ConversationPayload,
   ConversationSummary,
   ChatMessage,
@@ -82,7 +85,8 @@ export const api = {
 
   // Devenir commerçant : demande vérifiée par un agent Axi
   merchantApplication: () => apiGet<{ application: MerchantApplication | null }>('/v1/me/merchant-application'),
-  applyMerchant: (fields: ApplicationInput, files: { id_front: LocalFile; id_back: LocalFile | null; selfie: LocalFile; stall_photo: LocalFile }) =>
+  /** id_back : passeport seulement (recto et verso) ; ifu et rccm : PDF obligatoires */
+  applyMerchant: (fields: ApplicationInput, files: { id_front: LocalFile; id_back: LocalFile | null; selfie: LocalFile; stall_photo: LocalFile; ifu: LocalFile; rccm: LocalFile }) =>
     apiUpload<{ application: MerchantApplication; user: User; message: string }>(
       '/v1/me/merchant-application',
       // Autres numéros envoyés comme other_phones[0], other_phones[1] (lus en tableau par le serveur)
@@ -112,6 +116,10 @@ export const api = {
   profile: (userId: string, contact?: string) => apiGet<PublicProfile>(`/v1/users/${id(userId)}/profile${q({ contact })}`),
   report: (userId: string, reason: ReportReason, details: string, conversationId?: string) =>
     apiSend<{ message: string }>('POST', `/v1/users/${id(userId)}/report`, { reason, details, ...(conversationId ? { conversation_id: conversationId } : {}) }),
+  // Bloquer quelqu'un qui dérange : les deux ne se voient plus nulle part et ne peuvent plus s'écrire
+  blockUser: (userId: string) => apiSend<{ blocked: true; message: string }>('POST', `/v1/users/${id(userId)}/block`),
+  unblockUser: (userId: string) => apiSend<{ blocked: false; message: string }>('DELETE', `/v1/users/${id(userId)}/block`),
+  blockedUsers: () => apiGet<{ users: BlockedUser[] }>('/v1/me/blocked-users'),
   settings: () => apiGet<UserSettings>('/v1/me/settings'),
   updateSettings: (patch: Partial<Omit<UserSettings, 'data' | 'lang' | 'notifications' | 'axi_points'>> & { data_cap_mb?: number; notifications?: Partial<UserSettings['notifications']> }) =>
     apiSend<UserSettings>('PATCH', '/v1/me/settings', patch),
@@ -126,7 +134,13 @@ export const api = {
   consents: () => apiGet<{ consents: Consent[] }>('/v1/me/consents'),
   revokeConsent: (consentId: string) => apiSend<{ revoked: true }>('DELETE', `/v1/me/consents/${id(consentId)}`),
   exportData: () => apiSend<{ url: string }>('POST', '/v1/me/export'),
-  deleteAccount: (password: string) => apiSend<{ deleted: true }>('POST', '/v1/me/delete', { password }),
+  /** Mes données, affichées dans l'application puis enregistrées ou partagées en fichier */
+  myData: () => apiGet<MyData>('/v1/me/data'),
+  /** Demande de suppression (mot de passe + raison) : traitée par l'équipe Axi, annulable tant qu'elle attend */
+  deleteAccount: (password: string, reason: string) =>
+    apiSend<{ status: 'pending'; message: string; request: DeletionRequest }>('POST', '/v1/me/delete', { password, reason }),
+  deletionRequest: () => apiGet<{ request: DeletionRequest | null }>('/v1/me/deletion-request'),
+  cancelDeletionRequest: () => apiSend<{ request: null; message: string }>('DELETE', '/v1/me/deletion-request'),
   notifications: () => apiGet<{ unread: number; notifications: AppNotification[] }>('/v1/notifications'),
   readNotifications: (ids: string[] | 'all') => apiSend<{ unread: number }>('POST', '/v1/notifications/read', ids === 'all' ? { all: true } : { ids }),
   favorites: () => apiGet<{ products: ProductWithStall[] }>('/v1/favorites'),

@@ -5,17 +5,17 @@ import { Pressable, Text, View } from 'react-native';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
+import { Icon } from '../ui/Icon';
 import { ImageViewer } from '../ui/ImageViewer';
 import { MenuRow } from '../ui/Field';
 import { Screen } from '../ui/Screen';
 import { ScreenHeader } from '../ui/ScreenHeader';
 import { useNotifications } from '../../hooks/api/account';
-import { useBadges } from '../../hooks/api/chat';
 import { useT } from '../../i18n';
 import { confirmAction } from '../../lib/confirm';
 import { leaveSession } from '../../lib/authFlow';
 import { useAuthStore } from '../../store/authStore';
-import { fontSize, makeStyles, spacing } from '../../theme';
+import { fontSize, makeStyles, spacing, useTheme } from '../../theme';
 
 /**
  * « Mon compte » : menu commun au client et au commerçant ; déconnexion avec confirmation.
@@ -25,10 +25,9 @@ import { fontSize, makeStyles, spacing } from '../../theme';
 export function AccountScreen({ space }: { space: 'client' | 'merchant' }) {
   const styles = useStyles();
   const t = useT();
+  const { colors } = useTheme();
   const { status, user, setMode } = useAuthStore();
   const unread = useNotifications().data?.unread ?? 0;
-  const badges = useBadges().data;
-  const unreadMessages = (space === 'merchant' ? badges?.unread_as_merchant : badges?.unread_as_client) ?? 0;
   // Toucher ma photo : elle s'affiche en grand
   const [viewing, setViewing] = useState(false);
 
@@ -45,6 +44,7 @@ export function AccountScreen({ space }: { space: 'client' | 'merchant' }) {
             <Button label={t('account.backHome')} icon="home" variant="ghost" onPress={() => router.replace('/bienvenue')} />
           </Card>
           <MenuRow icon="settings" label={t('account.settings')} onPress={() => router.push('/parametres')} />
+          <MenuRow icon="help-circle" label={t('account.help')} onPress={() => router.push('/parametres/aide')} />
           <Text style={styles.muted}>{t('account.partnerInfo')}</Text>
         </Screen>
       </>
@@ -56,16 +56,20 @@ export function AccountScreen({ space }: { space: 'client' | 'merchant' }) {
     <>
       <ScreenHeader title={t('account.title')} showBack={false} />
       <Screen>
-        <Card style={styles.profile}>
-          <Pressable onPress={() => user.avatar && setViewing(true)} disabled={!user.avatar} accessibilityRole="imagebutton" accessibilityLabel={user.name}>
-            <Avatar name={user.name} image={user.avatar} size={56} variant="soft" />
-          </Pressable>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.title}>{user.name}</Text>
-            <Text style={styles.muted}>{user.email}</Text>
-            <Text style={styles.role}>{merchant ? t('auth.profileMerchant') : t('auth.profileClient')}</Text>
-          </View>
-        </Card>
+        {/* Toute la carte s'ouvre sur « Mes informations » (en bref puis en détail) ; la photo seule s'affiche en grand */}
+        <Pressable onPress={() => router.push('/parametres/mes-infos')} accessibilityRole="button" accessibilityLabel={t('myInfo.open')} style={({ pressed }) => pressed && { opacity: 0.85 }}>
+          <Card style={styles.profile}>
+            <Pressable onPress={() => user.avatar && setViewing(true)} disabled={!user.avatar} accessibilityRole="imagebutton" accessibilityLabel={user.name}>
+              <Avatar name={user.name} image={user.avatar} size={56} variant="soft" />
+            </Pressable>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.title}>{user.name}</Text>
+              <Text style={styles.muted}>{user.email}</Text>
+              <Text style={styles.role}>{merchant ? t('auth.profileMerchant') : t('auth.profileClient')}</Text>
+            </View>
+            <Icon name="chevron-right" size={20} color={colors.textMuted} />
+          </Card>
+        </Pressable>
         <View>
           {merchant ? (
             <MenuRow
@@ -82,7 +86,6 @@ export function AccountScreen({ space }: { space: 'client' | 'merchant' }) {
               }}
             />
           ) : null}
-          <MenuRow icon="message-circle" label={t('chat.title')} value={unreadMessages > 0 ? String(unreadMessages) : undefined} onPress={() => router.push('/messages')} />
           <MenuRow icon="package" label={t('account.orders')} onPress={() => router.push('/commandes')} />
           <MenuRow icon="bar-chart-2" label={merchant && space === 'merchant' ? t('merchant.sales') : t('account.sales')} onPress={() => router.push('/ventes')} />
           <MenuRow icon="heart" label={t('account.favorites')} onPress={() => router.push('/favoris')} />
@@ -97,6 +100,8 @@ export function AccountScreen({ space }: { space: 'client' | 'merchant' }) {
               onPress={() => router.push('/parametres/devenir-commercant')}
             />
           ) : null}
+          {/* Clients et commerçants : règlement de l'application et contact direct de l'équipe Axi */}
+          <MenuRow icon="help-circle" label={t('account.help')} onPress={() => router.push('/parametres/aide')} />
         </View>
         <Button label={t('account.logout')} variant="danger" icon="log-out" onPress={() => confirmAction(t('account.logoutConfirm'), t('account.logoutText'), () => leaveSession(), { destructive: true })} />
         <Text style={styles.muted}>{t('account.partnerInfo')}</Text>

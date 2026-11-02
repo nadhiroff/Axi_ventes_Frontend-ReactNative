@@ -85,6 +85,22 @@ export type UserSettings = {
 export type SessionInfo = { id: string; device: string; ip: string | null; current: boolean; created_at: string; last_used_at: string };
 export type LoginEvent = { success: boolean; label: string; device: string | null; ip: string; channel: 'app' | 'web'; created_at: string };
 export type Consent = { id: string; partner_name: string; scope: string; granted_at: string; revoked_at: string | null; active: boolean };
+/** Ma demande de suppression de compte, en attente de l'équipe Axi */
+export type DeletionRequest = { id: string; reason: string; created_at: string };
+/** Mes données (GET /v1/me/data) : dates au format MySQL UTC « 2026-11-02 09:51:36 » */
+export type MyData = {
+  exported_at: string;
+  account: { first_name: string; last_name: string; email: string; phone: string | null; bio: string | null; role: Role; lang: string; created_at: string } | null;
+  settings: Record<string, unknown> | null;
+  stall: { name: string; tagline: string | null; phone: string | null; whatsapp: string | null; row_label: string | null; stand: string | null; created_at: string } | null;
+  orders: { id: number; status: string; total: number; created_at: string }[];
+  payments: { reference: string; amount: number; status: string; created_at: string }[];
+  followed_stalls: { name: string; created_at: string }[];
+  favorites: { name: string; created_at: string }[];
+  consents: { partner: string; scope: string; granted_at: string; revoked_at: string | null }[];
+  blocked_users: { name: string; created_at: string }[];
+  logins: { success: number | boolean; device: string | null; ip: string | null; created_at: string }[];
+};
 export type AppNotification = { id: string; type: NotificationType; title: string; body: string; data: Record<string, string>; read: boolean; created_at: string };
 
 // ---------------------------------------------------------------------------
@@ -129,6 +145,8 @@ export type PublicProfile = {
   reported: boolean;
 };
 export type ReportReason = 'spam' | 'fraud' | 'insult' | 'fake' | 'other';
+/** Personne que j'ai bloquée (Paramètres > Utilisateurs bloqués) */
+export type BlockedUser = { id: string; display_name: string; avatar: ApiImage | null; role: Role; stall_name: string | null; blocked_at: string };
 
 export type StallDetail = StallSummary & {
   /** Photos à faire défiler : principale puis galerie */
@@ -344,7 +362,7 @@ export type MerchantClient = {
   /** Compte bloqué par Axi */
   unavailable?: boolean;
   /** Dernier message échangé avec ce client (liste seulement) */
-  last_message?: { preview: string; mine: boolean; created_at: string } | null;
+  last_message?: { preview: string; mine: boolean; status?: MessageStatus | null; created_at: string } | null;
 };
 /** Un commerçant veut m'ajouter à ses clients */
 export type ClientInvite = { id: string; stall: StallSummary; invited_at: string };
