@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router/js-tabs';
 
 import { tabIcon } from '../../../components/ui/Icon';
+import { useBadges } from '../../../hooks/api/chat';
 import { useT } from '../../../i18n';
 import { useLayout, useTheme } from '../../../theme';
 
@@ -9,6 +10,8 @@ export default function MerchantTabsLayout() {
   const { colors } = useTheme();
   const { tablet } = useLayout();
   const t = useT();
+  // Messages non lus des clients : pastille sur « Mes clients », là où se trouvent les discussions
+  const unread = useBadges().data?.unread_as_merchant ?? 0;
   return (
     <Tabs
       screenOptions={{
@@ -23,7 +26,10 @@ export default function MerchantTabsLayout() {
     >
       <Tabs.Screen name="index" options={{ title: t('nav.today'), tabBarIcon: tabIcon('sun') }} />
       <Tabs.Screen name="etal" options={{ title: t('nav.stall'), tabBarIcon: tabIcon('box') }} />
-      <Tabs.Screen name="clients" options={{ title: t('nav.clients'), tabBarIcon: tabIcon('users') }} />
+      <Tabs.Screen
+        name="clients"
+        options={{ title: t('nav.clients'), tabBarIcon: tabIcon('users'), tabBarBadge: unread > 0 ? unread : undefined, tabBarBadgeStyle: { backgroundColor: colors.brand } }}
+      />
       <Tabs.Screen name="argent" options={{ title: t('nav.money'), tabBarIcon: tabIcon('credit-card') }} />
       <Tabs.Screen name="compte" options={{ title: t('nav.account'), tabBarIcon: tabIcon('user') }} />
     </Tabs>

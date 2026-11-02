@@ -31,7 +31,6 @@ export default function SettingsScreen() {
   const setUser = useAuthStore((s) => s.setUser);
   const user = useAuthStore((s) => s.user);
   const merchant = user?.role === 'merchant';
-  const application = user?.merchant_application;
   const settings = useSettings();
   const blocked = useBlockedUsers();
   const update = useUpdateSettings();
@@ -96,26 +95,11 @@ export default function SettingsScreen() {
         ) : null}
         {signedIn && merchant ? (
           <>
-            {/* Paramètres propres au commerçant : sa boutique, son abonnement, son argent */}
+            {/* Réglages de la boutique seulement : l'argent, les clients et les messages ont leur onglet, les ventes sont dans Compte */}
             <Text style={styles.section}>{t('settings.shop')}</Text>
             <Card style={{ paddingVertical: 0 }}>
               <MenuRow icon="edit-3" label={t('merchant.editStall')} onPress={() => router.push('/commercant/modifier-etal')} />
               <MenuRow icon="star" label={t('merchant.subscription')} onPress={() => router.push('/commercant/abonnement')} />
-              <MenuRow icon="dollar-sign" label={t('settings.payouts')} onPress={() => router.push('/commercant/argent')} />
-              <MenuRow icon="message-circle" label={t('chat.title')} onPress={() => router.push('/messages')} />
-              <MenuRow icon="bar-chart-2" label={t('merchant.sales')} onPress={() => router.push('/ventes')} />
-            </Card>
-          </>
-        ) : signedIn ? (
-          <>
-            <Text style={styles.section}>{t('settings.sell')}</Text>
-            <Card style={{ paddingVertical: 0 }}>
-              <MenuRow
-                icon="briefcase"
-                label={t('apply.title')}
-                value={application ? t(`apply.status.${application.status}`) : undefined}
-                onPress={() => router.push('/parametres/devenir-commercant')}
-              />
             </Card>
           </>
         ) : null}
@@ -250,7 +234,6 @@ export default function SettingsScreen() {
             <Text style={styles.section}>{t('settings.security')}</Text>
             <MenuRow icon="lock" label={t('settings.security')} onPress={() => router.push('/parametres/securite')} />
             <MenuRow icon="shield" label={t('settings.privacy')} onPress={() => router.push('/parametres/confidentialite')} />
-            <MenuRow icon="user" label={t('settings.profilePhoto')} onPress={() => router.push('/parametres/profil')} />
           </>
         ) : null}
       </Screen>

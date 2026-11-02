@@ -619,7 +619,7 @@ export const en: Dict = {
     sessions: 'Signed-in devices',
     thisDevice: 'This device',
     revokeSession: 'Sign out this device?',
-    history: 'Sign-in history',
+    history: 'Sign-in history (last 7 days)',
     saved: 'Saved details',
     savedHint: 'So you do not have to type anything again when ordering.',
     address: 'Default delivery address',
