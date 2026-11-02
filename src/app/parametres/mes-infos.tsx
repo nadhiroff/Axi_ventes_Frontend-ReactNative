@@ -58,7 +58,8 @@ export default function MyInfoScreen() {
               {s?.verified ? <VerifiedIcon size={18} /> : null}
               {s?.subscribed ? <SubscriberBadge size={18} /> : null}
             </View>
-            <Tag label={merchant ? t('auth.profileMerchant') : t('auth.profileClient')} tone={merchant ? 'brand' : 'outline'} icon={merchant ? 'shopping-bag' : 'user'} />
+            {/* Rôle centré juste sous le nom (le Tag se place à gauche par défaut) */}
+            <Tag label={merchant ? t('auth.profileMerchant') : t('auth.profileClient')} tone={merchant ? 'brand' : 'outline'} icon={merchant ? 'shopping-bag' : 'user'} size="md" style={{ alignSelf: 'center' }} />
             {data?.account?.created_at ? <Text style={styles.muted}>{t('myInfo.since', { date: day(data.account.created_at) })}</Text> : null}
           </Card>
 
@@ -144,9 +145,10 @@ function Line({ label, value, extra }: { label: string; value: string | null | u
   return (
     <View style={styles.line}>
       <Text style={styles.label}>{label}</Text>
+      {/* Valeur et repère (ex. « Confirmé ») sur la même ligne, alignés à droite */}
       <View style={styles.valueBox}>
         <Text style={[styles.value, !value && styles.empty]} selectable>{value || t('myInfo.none')}</Text>
-        {extra}
+        {extra ? <View style={styles.extra}>{extra}</View> : null}
       </View>
     </View>
   );
@@ -165,10 +167,11 @@ const useStyles = makeStyles((c) => ({
   tileLabel: { fontSize: fontSize.caption, color: c.textMuted, textAlign: 'center' },
   blockHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
   blockTitle: { fontSize: fontSize.body, fontWeight: '700', color: c.text },
-  line: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md, paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: c.border },
+  line: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: c.border },
   label: { flex: 1, fontSize: fontSize.small, color: c.textMuted },
-  valueBox: { flex: 1.4, alignItems: 'flex-end', gap: 4 },
-  value: { fontSize: fontSize.small, fontWeight: '600', color: c.text, textAlign: 'right' },
+  valueBox: { flex: 1.6, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: spacing.sm },
+  value: { flexShrink: 1, fontSize: fontSize.small, fontWeight: '600', color: c.text, textAlign: 'right' },
+  extra: { flexShrink: 0 },
   empty: { color: c.textMuted, fontWeight: '400', fontStyle: 'italic' },
   row: { flexDirection: 'row', gap: spacing.sm },
 }));
