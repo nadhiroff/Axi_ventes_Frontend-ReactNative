@@ -15,6 +15,7 @@ export const queryKeys = {
   sessions: ['me', 'sessions'] as const,
   loginHistory: ['me', 'login-history'] as const,
   consents: ['me', 'consents'] as const,
+  blockedUsers: ['me', 'blocked-users'] as const,
   notifications: ['notifications'] as const,
   favorites: ['favorites'] as const,
   recent: ['recently-viewed'] as const,

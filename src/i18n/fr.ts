@@ -739,6 +739,8 @@ export const fr = {
     unblockText: 'Vos discussions et son étal réapparaîtront, et elle pourra de nouveau vous écrire.',
     unblocked: 'Personne débloquée',
     listTitle: 'Utilisateurs bloqués',
+    settingsSection: 'Confidentialité et blocages',
+    none: 'Aucun',
     listHint: 'Les personnes que vous avez bloquées ne voient plus rien de vous et ne peuvent plus vous écrire. Débloquez-les quand vous voulez.',
     empty: 'Vous n\'avez bloqué personne. Pour bloquer quelqu\'un, ouvrez la discussion, touchez les trois points puis « Bloquer ».',
     since: 'Bloqué le {date}',

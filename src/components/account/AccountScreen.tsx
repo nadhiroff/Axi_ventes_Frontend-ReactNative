@@ -9,7 +9,7 @@ import { ImageViewer } from '../ui/ImageViewer';
 import { MenuRow } from '../ui/Field';
 import { Screen } from '../ui/Screen';
 import { ScreenHeader } from '../ui/ScreenHeader';
-import { useNotifications } from '../../hooks/api/account';
+import { useBlockedUsers, useNotifications } from '../../hooks/api/account';
 import { useBadges } from '../../hooks/api/chat';
 import { useT } from '../../i18n';
 import { confirmAction } from '../../lib/confirm';
@@ -27,6 +27,7 @@ export function AccountScreen({ space }: { space: 'client' | 'merchant' }) {
   const t = useT();
   const { status, user, setMode } = useAuthStore();
   const unread = useNotifications().data?.unread ?? 0;
+  const blockedCount = useBlockedUsers().data?.users.length ?? 0;
   const badges = useBadges().data;
   const unreadMessages = (space === 'merchant' ? badges?.unread_as_merchant : badges?.unread_as_client) ?? 0;
   // Toucher ma photo : elle s'affiche en grand
@@ -98,6 +99,8 @@ export function AccountScreen({ space }: { space: 'client' | 'merchant' }) {
               onPress={() => router.push('/parametres/devenir-commercant')}
             />
           ) : null}
+          {/* Personnes bloquées : toujours à portée de main pour les débloquer */}
+          <MenuRow icon="slash" label={t('block.listTitle')} value={blockedCount ? String(blockedCount) : undefined} onPress={() => router.push('/parametres/bloques')} />
           {/* Clients et commerçants : règlement de l'application et contact direct de l'équipe Axi */}
           <MenuRow icon="help-circle" label={t('account.help')} onPress={() => router.push('/parametres/aide')} />
         </View>

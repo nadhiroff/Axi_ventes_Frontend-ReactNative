@@ -1,7 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
 import { Text, View } from 'react-native';
 
-import { api } from '../../api/endpoints';
 import { Avatar } from '../../components/ui/Avatar';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -9,6 +7,7 @@ import { Icon } from '../../components/ui/Icon';
 import { Screen } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { ErrorView, LoadingView } from '../../components/ui/StateViews';
+import { useBlockedUsers } from '../../hooks/api/account';
 import { useT } from '../../i18n';
 import { unblockUser } from '../../lib/blockUser';
 import { formatShortDate } from '../../lib/format';
@@ -19,7 +18,7 @@ export default function BlockedUsersScreen() {
   const styles = useStyles();
   const t = useT();
   const { colors } = useTheme();
-  const query = useQuery({ queryKey: ['me', 'blocked-users'], queryFn: api.blockedUsers, staleTime: 0 });
+  const query = useBlockedUsers();
 
   return (
     <>
