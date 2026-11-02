@@ -16,6 +16,7 @@ import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { ErrorView, LoadingView } from '../../components/ui/StateViews';
 import { SubscriberBadge, SubscriberTag, VerifiedIcon } from '../../components/ui/VerifiedIcon';
 import { useT } from '../../i18n';
+import { blockUser } from '../../lib/blockUser';
 import { confirmAction, notify } from '../../lib/confirm';
 import { formatFcfa } from '../../lib/format';
 import { fontSize, makeStyles, radius, spacing, useTheme } from '../../theme';
@@ -100,6 +101,10 @@ export default function PublicProfileScreen() {
             {p.stall ? <Button label={t('profile.seeStall')} icon="shopping-bag" variant="ghost" onPress={() => router.push(`/etal/${p.stall!.id}`)} style={{ flex: 1 }} /> : null}
           </View>
 
+          {/* Bloquer : sans attendre l'équipe Axi, la personne ne voit plus rien de moi et ne peut plus m'écrire */}
+          {contact && !conv && !cli ? null : (
+            <Button label={t('block.action')} icon="slash" variant="ghost" onPress={() => blockUser(p.id, p.display_name, () => (router.canDismiss() ? router.dismiss(conv ? 2 : 1) : router.replace('/')))} />
+          )}
           {contact && !conv && !cli ? null : p.reported ? (
             <Text style={[styles.muted, { textAlign: 'center' }]}>{t('profile.alreadyReported')}</Text>
           ) : !reporting ? (

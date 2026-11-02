@@ -152,6 +152,7 @@ const fr: HelpContent = {
       audience: 'all',
       rules: [
         'Si un utilisateur enfreint ces règles, signalez-le depuis son profil ou son étal. Les signalements sont examinés par l\'équipe Axi.',
+        'Quelqu\'un vous dérange ? Bloquez-le depuis la discussion (les trois points) ou son profil : vous ne verrez plus rien de lui, et il ne pourra plus vous écrire, voir votre profil ni vous commander. Débloquez-le quand vous voulez dans Paramètres > Utilisateurs bloqués.',
         'L\'équipe Axi peut retirer un contenu, retirer le badge « vérifié », suspendre un étal ou bloquer un compte à tout moment, même sans signalement, en cas de fraude, de faux profil ou de non-respect du règlement.',
         'Un compte bloqué est déconnecté de tous ses appareils. Le motif est affiché à la connexion. Pour le contester, écrivez à l\'équipe Axi.',
         'Les fraudes graves (usurpation d\'identité, faux documents, escroquerie) peuvent être signalées aux autorités compétentes.',
@@ -288,6 +289,7 @@ const en: HelpContent = {
       audience: 'all',
       rules: [
         'If a user breaks these rules, report them from their profile or stall. Reports are reviewed by the Axi team.',
+        'Someone bothering you? Block them from the chat (the three dots) or their profile: you will no longer see anything from them, and they can no longer write to you, see your profile or order from you. Unblock them whenever you want in Settings > Blocked users.',
         'The Axi team can remove content, remove the « verified » badge, suspend a stall or block an account at any time, even without a report, in case of fraud, fake profile or breach of the rules.',
         'A blocked account is signed out of all its devices. The reason is shown at sign-in. To contest it, write to the Axi team.',
         'Serious fraud (identity theft, fake documents, scams) may be reported to the competent authorities.',

@@ -235,6 +235,7 @@ export default function SettingsScreen() {
             <Text style={styles.section}>{t('settings.security')}</Text>
             <MenuRow icon="lock" label={t('settings.security')} onPress={() => router.push('/parametres/securite')} />
             <MenuRow icon="shield" label={t('settings.privacy')} onPress={() => router.push('/parametres/confidentialite')} />
+            <MenuRow icon="slash" label={t('block.listTitle')} onPress={() => router.push('/parametres/bloques')} />
             <MenuRow icon="user" label={t('settings.profilePhoto')} onPress={() => router.push('/parametres/profil')} />
           </>
         ) : null}

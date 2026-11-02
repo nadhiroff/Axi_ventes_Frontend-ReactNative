@@ -6,6 +6,7 @@ import type {
   ApplicationInput,
   AvatarVisibility,
   Badges,
+  BlockedUser,
   ConversationPayload,
   ConversationSummary,
   ChatMessage,
@@ -113,6 +114,10 @@ export const api = {
   profile: (userId: string, contact?: string) => apiGet<PublicProfile>(`/v1/users/${id(userId)}/profile${q({ contact })}`),
   report: (userId: string, reason: ReportReason, details: string, conversationId?: string) =>
     apiSend<{ message: string }>('POST', `/v1/users/${id(userId)}/report`, { reason, details, ...(conversationId ? { conversation_id: conversationId } : {}) }),
+  // Bloquer quelqu'un qui dérange : les deux ne se voient plus nulle part et ne peuvent plus s'écrire
+  blockUser: (userId: string) => apiSend<{ blocked: true; message: string }>('POST', `/v1/users/${id(userId)}/block`),
+  unblockUser: (userId: string) => apiSend<{ blocked: false; message: string }>('DELETE', `/v1/users/${id(userId)}/block`),
+  blockedUsers: () => apiGet<{ users: BlockedUser[] }>('/v1/me/blocked-users'),
   settings: () => apiGet<UserSettings>('/v1/me/settings'),
   updateSettings: (patch: Partial<Omit<UserSettings, 'data' | 'lang' | 'notifications' | 'axi_points'>> & { data_cap_mb?: number; notifications?: Partial<UserSettings['notifications']> }) =>
     apiSend<UserSettings>('PATCH', '/v1/me/settings', patch),

@@ -26,6 +26,7 @@ import { useFollow } from '../../hooks/api/client';
 import { pickChatMedia, type ChatAttachment } from '../../hooks/useProductPhoto';
 import { VideoMessage } from '../../components/chat/VideoMessage';
 import { useT } from '../../i18n';
+import { blockUser } from '../../lib/blockUser';
 import { confirmAction, notify, toast } from '../../lib/confirm';
 import { formatShortDate } from '../../lib/format';
 import { useDialogStore } from '../../components/ui/DialogHost';
@@ -215,6 +216,8 @@ export default function ConversationScreen() {
               { label: merchant ? t('chat.seeClient') : t('chat.seeMerchant'), variant: 'ghost' as const, onPress: () => router.push({ pathname: '/profil/[id]', params: { id: conv.other_user_id, conv: conv.id } }) },
             ]),
         { label: t('chat.clearAction'), variant: 'destructive' as const, onPress: clearChat },
+        // Bloquer la personne qui dérange (client ou commerçant) : plus rien d'elle, et elle ne peut plus écrire
+        ...(conv.other_unavailable ? [] : [{ label: t('block.actionName', { name: conv.other.name }), variant: 'destructive' as const, onPress: () => blockUser(conv.other_user_id, conv.other.name) }]),
         { label: t('common.cancel'), variant: 'ghost' as const },
       ],
     });
