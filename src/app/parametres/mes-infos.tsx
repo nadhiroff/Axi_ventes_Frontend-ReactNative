@@ -79,10 +79,12 @@ export default function MyInfoScreen() {
           <Block icon="user" title={t('myInfo.identity')}>
             <Line label={t('myInfo.firstName')} value={user.first_name} />
             <Line label={t('myInfo.lastName')} value={user.last_name} />
+            {/* « Confirmé » à côté du libellé : la colonne de droite reste entière pour l'adresse, même très longue */}
             <Line
               label={t('myInfo.email')}
               value={user.email}
-              extra={<Tag label={user.email_verified ? t('myInfo.emailVerified') : t('myInfo.emailNotVerified')} tone={user.email_verified ? 'trust' : 'outline'} />}
+              badge={<Tag label={user.email_verified ? t('myInfo.emailVerified') : t('myInfo.emailNotVerified')} tone={user.email_verified ? 'trust' : 'outline'} icon={user.email_verified ? 'check' : undefined} />}
+              wide
             />
             <Line label={t('myInfo.phone')} value={user.phone} />
             <Line label={t('myInfo.language')} value={LANG_LABELS[user.lang]} />
@@ -138,18 +140,20 @@ function Block({ icon, title, children }: { icon: IconName; title: string; child
   );
 }
 
-/** Une information : libellé à gauche, valeur à droite (« Non renseigné » si vide) */
-function Line({ label, value, extra }: { label: string; value: string | null | undefined; extra?: ReactNode }) {
+/**
+ * Une information : libellé à gauche (avec un repère éventuel, ex. « Confirmé », sur la même ligne), valeur à droite,
+ * jamais coupée : une valeur longue (adresse email) passe à la ligne. wide : plus de place pour la valeur.
+ */
+function Line({ label, value, badge, wide }: { label: string; value: string | null | undefined; badge?: ReactNode; wide?: boolean }) {
   const styles = useStyles();
   const t = useT();
   return (
     <View style={styles.line}>
-      <Text style={styles.label}>{label}</Text>
-      {/* Valeur et repère (ex. « Confirmé ») sur la même ligne, alignés à droite */}
-      <View style={styles.valueBox}>
-        <Text style={[styles.value, !value && styles.empty]} selectable>{value || t('myInfo.none')}</Text>
-        {extra ? <View style={styles.extra}>{extra}</View> : null}
+      <View style={[styles.labelBox, wide && { flex: 0, flexShrink: 0 }]}>
+        <Text style={styles.label}>{label}</Text>
+        {badge}
       </View>
+      <Text style={[styles.value, !value && styles.empty]} selectable>{value || t('myInfo.none')}</Text>
     </View>
   );
 }
@@ -168,10 +172,9 @@ const useStyles = makeStyles((c) => ({
   blockHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
   blockTitle: { fontSize: fontSize.body, fontWeight: '700', color: c.text },
   line: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: c.border },
-  label: { flex: 1, fontSize: fontSize.small, color: c.textMuted },
-  valueBox: { flex: 1.6, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: spacing.sm },
-  value: { flexShrink: 1, fontSize: fontSize.small, fontWeight: '600', color: c.text, textAlign: 'right' },
-  extra: { flexShrink: 0 },
+  labelBox: { flex: 1, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm },
+  label: { fontSize: fontSize.small, color: c.textMuted },
+  value: { flex: 1.6, fontSize: fontSize.small, fontWeight: '600', color: c.text, textAlign: 'right' },
   empty: { color: c.textMuted, fontWeight: '400', fontStyle: 'italic' },
   row: { flexDirection: 'row', gap: spacing.sm },
 }));
