@@ -473,7 +473,8 @@ export type ConversationSummary = {
   unread_count: number;
   last_message: { kind: MessageKind; preview: string; mine: boolean; status: MessageStatus | null; created_at: string } | null;
 };
-export type MessageKind = 'text' | 'photo' | 'voice' | 'video';
+/** system : avis de la discussion (ex. durée des messages éphémères changée), affiché au centre en petit */
+export type MessageKind = 'text' | 'photo' | 'voice' | 'video' | 'system';
 /** sent : ✓ reçu par Axi ; delivered : ✓✓ arrivé sur le téléphone de l'autre ; read : ✓✓ bleu, lu */
 export type MessageStatus = 'sent' | 'delivered' | 'read';
 export type ReplyPreview = { id: string; mine: boolean; kind: MessageKind; preview: string };

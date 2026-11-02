@@ -177,6 +177,8 @@ export default function ConversationScreen() {
               .conversationSettings(id, o.hours)
               .then(({ conversation }) => {
                 qc.setQueryData<ConversationPayload>(queryKeys.conversation(id), (old) => (old ? { ...old, conversation } : old));
+                // L'avis « … a réglé les messages éphémères » apparaît tout de suite dans la discussion
+                qc.invalidateQueries({ queryKey: queryKeys.conversation(id) });
                 qc.invalidateQueries({ queryKey: queryKeys.conversations });
                 toast(t('chat.retentionSaved', { label: o.label }));
               })
@@ -298,11 +300,16 @@ export default function ConversationScreen() {
         contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm, width: '100%', maxWidth: contentWidth, alignSelf: 'center' }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
-        renderItem={({ item }) => (
-          <SwipeToReply onReply={() => { if (!item.deleted) { setEditing(null); setReplyTo(item); } }} mine={item.mine}>
-            <Bubble message={item} onImage={setViewer} onLongPress={() => openMenu(item)} otherName={conv.other.name} />
-          </SwipeToReply>
-        )}
+        renderItem={({ item }) =>
+          // Avis (durée des messages changée…) : au centre, en petit, sans bulle ni menu ni réponse, comme WhatsApp
+          item.kind === 'system' ? (
+            <SystemNotice message={item} />
+          ) : (
+            <SwipeToReply onReply={() => { if (!item.deleted) { setEditing(null); setReplyTo(item); } }} mine={item.mine}>
+              <Bubble message={item} onImage={setViewer} onLongPress={() => openMenu(item)} otherName={conv.other.name} />
+            </SwipeToReply>
+          )
+        }
       />
       )}
 
@@ -484,6 +491,21 @@ function useLatest<T>(value: T) {
   return ref;
 }
 
+/** Avis de la discussion : petite pastille centrée avec l'heure */
+function SystemNotice({ message }: { message: ChatMessage }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
+  const time = new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return (
+    <View style={styles.notice} accessibilityRole="text">
+      <Icon name="clock" size={13} color={colors.textMuted} />
+      <Text style={styles.noticeText}>
+        {message.body} <Text style={styles.noticeTime}>{time}</Text>
+      </Text>
+    </View>
+  );
+}
+
 function Bubble({ message, onImage, onLongPress, otherName }: { message: ChatMessage; onImage: (image: ApiImage) => void; onLongPress: () => void; otherName: string }) {
   const styles = useStyles();
   const t = useT();
@@ -523,6 +545,9 @@ function Bubble({ message, onImage, onLongPress, otherName }: { message: ChatMes
 }
 
 const useStyles = makeStyles((c) => ({
+  notice: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: '88%', backgroundColor: c.surfaceAlt, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 6, marginVertical: spacing.xs },
+  noticeText: { flexShrink: 1, fontSize: fontSize.caption, color: c.textMuted, textAlign: 'center', lineHeight: 17 },
+  noticeTime: { fontSize: 11, color: c.textMuted },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.md, paddingBottom: spacing.sm, backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border },
   headerMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   headerName: { fontSize: fontSize.title, fontWeight: '700', color: c.text },
