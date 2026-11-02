@@ -352,6 +352,7 @@ export const en: Dict = {
     otherAislePlaceholder: 'E.g. Shoes',
     otherSitePlaceholder: 'E.g. Bohicon market',
     otherHint: 'An Axi agent will add it to the list for everyone.',
+    unreadCount: '{n} unread message|{n} unread messages',
     choose: 'Choose from the list',
     loadingPlaces: 'Loading the list…',
     searchPlace: 'Search by name',
