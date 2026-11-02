@@ -83,13 +83,16 @@ export default function ClientsScreen() {
           <Text style={styles.muted}>{t('merchant.noClients')}</Text>
         ) : (
           <Grid columns={listColumns}>
-            {data.clients.map((c) => (
-              <Pressable key={c.id} onPress={() => router.push(`/commercant/client/${c.id}`)} style={({ pressed }) => [styles.card, pressed && { opacity: 0.85 }]} accessibilityRole="button">
+            {data.clients.map((c) => {
+              // Message non lu de ce client : ligne « allumée » (fond, gras, heure et pastille en couleur), comme WhatsApp
+              const unread = c.unread_count ?? 0;
+              return (
+              <Pressable key={c.id} onPress={() => router.push(`/commercant/client/${c.id}`)} style={({ pressed }) => [styles.card, unread > 0 && styles.cardUnread, pressed && { opacity: 0.85 }]} accessibilityRole="button" accessibilityHint={unread > 0 ? t('merchant.unreadCount', { n: unread }) : undefined}>
                 <Avatar name={c.display_name} image={c.avatar} size={48} variant="soft" />
                 <View style={{ flex: 1, gap: 2 }}>
                   {/* Nom puis badge (Abonné, Fidèle, Nouveau…) sur la même ligne */}
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                    <Text style={[styles.title, { flexShrink: 1 }]} numberOfLines={1}>{c.display_name}</Text>
+                    <Text style={[styles.title, unread > 0 && styles.titleUnread, { flexShrink: 1 }]} numberOfLines={1}>{c.display_name}</Text>
                     {c.unavailable ? <Tag label={t('merchant.unavailable')} tone="outline" icon="slash" /> : null}
                     {c.invite_status === 'pending' ? <Tag label={t('invites.pending')} tone="outline" icon="clock" /> : c.invite_status === 'declined' ? <Tag label={t('invites.refused')} tone="outline" /> : null}
                     {c.badge ? <Tag label={c.badge.label} tone={c.badge.kind === 'follow_up' ? 'brand' : c.badge.kind === 'loyal' || c.badge.kind === 'follower' ? 'trust' : 'neutral'} /> : null}
@@ -98,13 +101,22 @@ export default function ClientsScreen() {
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                     {/* Mon dernier message : ✓ envoyé, ✓✓ reçu, ✓✓ bleu vu, sans ouvrir la discussion */}
                     {c.last_message?.mine && c.last_message.status ? <Ticks status={c.last_message.status} size={15} /> : null}
-                    <Text style={[styles.muted, { flexShrink: 1 }]} numberOfLines={1}>
+                    <Text style={[styles.muted, unread > 0 && styles.previewUnread, { flexShrink: 1 }]} numberOfLines={1}>
                       {c.last_message ? `${c.last_message.mine ? `${t('chat.yourself')} : ` : ''}${c.last_message.preview}` : c.description}
                     </Text>
                   </View>
                 </View>
                 {/* Heure du dernier message, centrée verticalement à droite */}
-                {c.last_message ? <Text style={styles.time}>{formatChatTime(c.last_message.created_at, lang, dateFormat)}</Text> : null}
+                {c.last_message ? (
+                  <View style={styles.timeBox}>
+                    <Text style={[styles.time, unread > 0 && styles.timeUnread]}>{formatChatTime(c.last_message.created_at, lang, dateFormat)}</Text>
+                    {unread > 0 ? (
+                      <View style={styles.unreadBadge}>
+                        <Text style={styles.unreadText}>{unread > 99 ? '99+' : unread}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                ) : null}
                 {c.badge?.kind === 'follow_up' ? (
                   <Button
                     label={t('merchant.followUp')}
@@ -121,7 +133,8 @@ export default function ClientsScreen() {
                   <Icon name="chevron-right" size={18} color={colors.textMuted} />
                 )}
               </Pressable>
-            ))}
+              );
+            })}
           </Grid>
         )}
       </Screen>
@@ -136,4 +149,11 @@ const useStyles = makeStyles((c) => ({
   title: { fontSize: fontSize.body, fontWeight: '700', color: c.text },
   muted: { fontSize: fontSize.small, color: c.textMuted },
   time: { fontSize: fontSize.caption, color: c.textMuted },
+  cardUnread: { backgroundColor: c.brandSoft, borderWidth: 1, borderColor: c.brand },
+  titleUnread: { fontWeight: '800' },
+  previewUnread: { color: c.text, fontWeight: '700' },
+  timeBox: { alignItems: 'flex-end', gap: 6 },
+  timeUnread: { color: c.brand, fontWeight: '700' },
+  unreadBadge: { minWidth: 22, height: 22, paddingHorizontal: 6, borderRadius: 11, backgroundColor: c.brand, alignItems: 'center', justifyContent: 'center' },
+  unreadText: { color: '#FFFFFF', fontSize: fontSize.caption, fontWeight: '800' },
 }));

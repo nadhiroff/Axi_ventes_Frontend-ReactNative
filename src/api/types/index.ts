@@ -363,6 +363,8 @@ export type MerchantClient = {
   unavailable?: boolean;
   /** Dernier message échangé avec ce client (liste seulement) */
   last_message?: { preview: string; mine: boolean; status?: MessageStatus | null; created_at: string } | null;
+  /** Messages de ce client pas encore lus par le commerçant : la ligne est « allumée » dans la liste */
+  unread_count?: number;
 };
 /** Un commerçant veut m'ajouter à ses clients */
 export type ClientInvite = { id: string; stall: StallSummary; invited_at: string };
@@ -471,7 +473,8 @@ export type ConversationSummary = {
   unread_count: number;
   last_message: { kind: MessageKind; preview: string; mine: boolean; status: MessageStatus | null; created_at: string } | null;
 };
-export type MessageKind = 'text' | 'photo' | 'voice' | 'video';
+/** system : avis de la discussion (ex. durée des messages éphémères changée), affiché au centre en petit */
+export type MessageKind = 'text' | 'photo' | 'voice' | 'video' | 'system';
 /** sent : ✓ reçu par Axi ; delivered : ✓✓ arrivé sur le téléphone de l'autre ; read : ✓✓ bleu, lu */
 export type MessageStatus = 'sent' | 'delivered' | 'read';
 export type ReplyPreview = { id: string; mine: boolean; kind: MessageKind; preview: string };
