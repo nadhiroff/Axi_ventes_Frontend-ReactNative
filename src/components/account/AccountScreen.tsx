@@ -45,6 +45,7 @@ export function AccountScreen({ space }: { space: 'client' | 'merchant' }) {
             <Button label={t('account.backHome')} icon="home" variant="ghost" onPress={() => router.replace('/bienvenue')} />
           </Card>
           <MenuRow icon="settings" label={t('account.settings')} onPress={() => router.push('/parametres')} />
+          <MenuRow icon="help-circle" label={t('account.help')} onPress={() => router.push('/parametres/aide')} />
           <Text style={styles.muted}>{t('account.partnerInfo')}</Text>
         </Screen>
       </>
@@ -97,6 +98,8 @@ export function AccountScreen({ space }: { space: 'client' | 'merchant' }) {
               onPress={() => router.push('/parametres/devenir-commercant')}
             />
           ) : null}
+          {/* Clients et commerçants : règlement de l'application et contact direct de l'équipe Axi */}
+          <MenuRow icon="help-circle" label={t('account.help')} onPress={() => router.push('/parametres/aide')} />
         </View>
         <Button label={t('account.logout')} variant="danger" icon="log-out" onPress={() => confirmAction(t('account.logoutConfirm'), t('account.logoutText'), () => leaveSession(), { destructive: true })} />
         <Text style={styles.muted}>{t('account.partnerInfo')}</Text>

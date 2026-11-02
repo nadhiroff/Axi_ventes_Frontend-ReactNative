@@ -557,6 +557,7 @@ export const en: Dict = {
     merchantSpace: 'My trader space',
     clientSpace: 'Go shopping',
     profile: 'My profile',
+    help: 'Help and rules',
     logout: 'Sign out',
     logoutConfirm: 'Sign out?',
     logoutText: 'You will have to enter your email and password again.',
