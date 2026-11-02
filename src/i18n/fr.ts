@@ -618,7 +618,7 @@ export const fr = {
     sessions: 'Appareils connectés',
     thisDevice: 'Cet appareil',
     revokeSession: 'Déconnecter cet appareil ?',
-    history: 'Historique des connexions',
+    history: 'Historique des connexions (7 derniers jours)',
     saved: 'Infos mémorisées',
     savedHint: 'Pour ne rien ressaisir au moment de commander.',
     address: 'Adresse de livraison par défaut',

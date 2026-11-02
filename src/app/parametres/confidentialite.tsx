@@ -7,7 +7,7 @@ import { ApiError, errorMessage } from '../../api/client';
 import { api } from '../../api/endpoints';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
-import { Field, MenuRow } from '../../components/ui/Field';
+import { Field } from '../../components/ui/Field';
 import { Screen } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { Tag } from '../../components/ui/Tag';
@@ -83,10 +83,6 @@ export default function PrivacyScreen() {
     <>
       <ScreenHeader title={t('settings.privacy')} />
       <Screen>
-        {/* Bloquer et débloquer : aussi ici, où l'on cherche naturellement ce qui touche à la vie privée */}
-        <Card style={{ paddingVertical: 0 }}>
-          <MenuRow icon="slash" label={t('block.listTitle')} onPress={() => router.push('/parametres/bloques')} />
-        </Card>
         <Text style={styles.section}>{t('settings.consents')}</Text>
         {/* À quoi sert un accord, et où le donner : sans cela, « aucun accord » ne voulait rien dire */}
         <Text style={styles.muted}>{t('settings.consentsHint')}</Text>
