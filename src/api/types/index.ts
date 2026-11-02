@@ -363,6 +363,8 @@ export type MerchantClient = {
   unavailable?: boolean;
   /** Dernier message échangé avec ce client (liste seulement) */
   last_message?: { preview: string; mine: boolean; status?: MessageStatus | null; created_at: string } | null;
+  /** Messages de ce client pas encore lus par le commerçant : la ligne est « allumée » dans la liste */
+  unread_count?: number;
 };
 /** Un commerçant veut m'ajouter à ses clients */
 export type ClientInvite = { id: string; stall: StallSummary; invited_at: string };

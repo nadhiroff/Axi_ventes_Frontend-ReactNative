@@ -351,6 +351,7 @@ export const fr = {
     otherAislePlaceholder: 'Ex. : Chaussures',
     otherSitePlaceholder: 'Ex. : Marché de Bohicon',
     otherHint: 'Un agent Axi l\'ajoutera à la liste pour tout le monde.',
+    unreadCount: '{n} message non lu|{n} messages non lus',
     choose: 'Choisir dans la liste',
     loadingPlaces: 'Chargement de la liste…',
     searchPlace: 'Rechercher par nom',
