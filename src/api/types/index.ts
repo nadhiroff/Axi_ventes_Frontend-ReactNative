@@ -85,6 +85,8 @@ export type UserSettings = {
 export type SessionInfo = { id: string; device: string; ip: string | null; current: boolean; created_at: string; last_used_at: string };
 export type LoginEvent = { success: boolean; label: string; device: string | null; ip: string; channel: 'app' | 'web'; created_at: string };
 export type Consent = { id: string; partner_name: string; scope: string; granted_at: string; revoked_at: string | null; active: boolean };
+/** Ma demande de suppression de compte, en attente de l'équipe Axi */
+export type DeletionRequest = { id: string; reason: string; created_at: string };
 /** Mes données (GET /v1/me/data) : dates au format MySQL UTC « 2026-11-02 09:51:36 » */
 export type MyData = {
   exported_at: string;
