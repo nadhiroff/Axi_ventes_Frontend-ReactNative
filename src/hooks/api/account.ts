@@ -12,6 +12,8 @@ export const useSettings = () => useQuery({ queryKey: queryKeys.settings, queryF
 export const useSessions = () => useQuery({ queryKey: queryKeys.sessions, queryFn: api.sessions, enabled: useSignedIn() });
 export const useLoginHistory = () => useQuery({ queryKey: queryKeys.loginHistory, queryFn: api.loginHistory, enabled: useSignedIn() });
 export const useConsents = () => useQuery({ queryKey: queryKeys.consents, queryFn: api.consents, enabled: useSignedIn() });
+/** Personnes que j'ai bloquées (Paramètres > Utilisateurs bloqués, nombre affiché dans Mon compte) */
+export const useBlockedUsers = () => useQuery({ queryKey: queryKeys.blockedUsers, queryFn: api.blockedUsers, enabled: useSignedIn(), staleTime: 0 });
 export const useNotifications = () =>
   useQuery({ queryKey: queryKeys.notifications, queryFn: api.notifications, enabled: useSignedIn(), refetchInterval: 120_000 });
 

@@ -740,6 +740,8 @@ export const en: Dict = {
     unblockText: 'Your chats and their stall will reappear, and they will be able to write to you again.',
     unblocked: 'User unblocked',
     listTitle: 'Blocked users',
+    settingsSection: 'Privacy and blocking',
+    none: 'None',
     listHint: 'People you blocked no longer see anything from you and can no longer write to you. Unblock them whenever you want.',
     empty: 'You have not blocked anyone. To block someone, open the chat, tap the three dots then « Block ».',
     since: 'Blocked on {date}',

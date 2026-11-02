@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Linking, Text, View } from 'react-native';
 
@@ -5,7 +6,7 @@ import { errorMessage } from '../../api/client';
 import { api } from '../../api/endpoints';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
-import { Field } from '../../components/ui/Field';
+import { Field, MenuRow } from '../../components/ui/Field';
 import { Screen } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { Tag } from '../../components/ui/Tag';
@@ -53,6 +54,10 @@ export default function PrivacyScreen() {
     <>
       <ScreenHeader title={t('settings.privacy')} />
       <Screen>
+        {/* Bloquer et débloquer : aussi ici, où l'on cherche naturellement ce qui touche à la vie privée */}
+        <Card style={{ paddingVertical: 0 }}>
+          <MenuRow icon="slash" label={t('block.listTitle')} onPress={() => router.push('/parametres/bloques')} />
+        </Card>
         <Text style={styles.section}>{t('settings.consents')}</Text>
         {!consents.data?.consents.length ? <Text style={styles.muted}>{t('settings.noConsents')}</Text> : null}
         {(consents.data?.consents ?? []).map((c) => (
