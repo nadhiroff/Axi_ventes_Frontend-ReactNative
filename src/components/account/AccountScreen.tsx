@@ -5,6 +5,7 @@ import { Pressable, Text, View } from 'react-native';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
+import { Icon } from '../ui/Icon';
 import { ImageViewer } from '../ui/ImageViewer';
 import { MenuRow } from '../ui/Field';
 import { Screen } from '../ui/Screen';
@@ -14,7 +15,7 @@ import { useT } from '../../i18n';
 import { confirmAction } from '../../lib/confirm';
 import { leaveSession } from '../../lib/authFlow';
 import { useAuthStore } from '../../store/authStore';
-import { fontSize, makeStyles, spacing } from '../../theme';
+import { fontSize, makeStyles, spacing, useTheme } from '../../theme';
 
 /**
  * « Mon compte » : menu commun au client et au commerçant ; déconnexion avec confirmation.
@@ -24,6 +25,7 @@ import { fontSize, makeStyles, spacing } from '../../theme';
 export function AccountScreen({ space }: { space: 'client' | 'merchant' }) {
   const styles = useStyles();
   const t = useT();
+  const { colors } = useTheme();
   const { status, user, setMode } = useAuthStore();
   const unread = useNotifications().data?.unread ?? 0;
   // Toucher ma photo : elle s'affiche en grand
@@ -54,16 +56,20 @@ export function AccountScreen({ space }: { space: 'client' | 'merchant' }) {
     <>
       <ScreenHeader title={t('account.title')} showBack={false} />
       <Screen>
-        <Card style={styles.profile}>
-          <Pressable onPress={() => user.avatar && setViewing(true)} disabled={!user.avatar} accessibilityRole="imagebutton" accessibilityLabel={user.name}>
-            <Avatar name={user.name} image={user.avatar} size={56} variant="soft" />
-          </Pressable>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.title}>{user.name}</Text>
-            <Text style={styles.muted}>{user.email}</Text>
-            <Text style={styles.role}>{merchant ? t('auth.profileMerchant') : t('auth.profileClient')}</Text>
-          </View>
-        </Card>
+        {/* Toute la carte s'ouvre sur « Mes informations » (en bref puis en détail) ; la photo seule s'affiche en grand */}
+        <Pressable onPress={() => router.push('/parametres/mes-infos')} accessibilityRole="button" accessibilityLabel={t('myInfo.open')} style={({ pressed }) => pressed && { opacity: 0.85 }}>
+          <Card style={styles.profile}>
+            <Pressable onPress={() => user.avatar && setViewing(true)} disabled={!user.avatar} accessibilityRole="imagebutton" accessibilityLabel={user.name}>
+              <Avatar name={user.name} image={user.avatar} size={56} variant="soft" />
+            </Pressable>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.title}>{user.name}</Text>
+              <Text style={styles.muted}>{user.email}</Text>
+              <Text style={styles.role}>{merchant ? t('auth.profileMerchant') : t('auth.profileClient')}</Text>
+            </View>
+            <Icon name="chevron-right" size={20} color={colors.textMuted} />
+          </Card>
+        </Pressable>
         <View>
           {merchant ? (
             <MenuRow
