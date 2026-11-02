@@ -556,6 +556,7 @@ export const fr = {
     merchantSpace: 'Mon espace commerçant',
     clientSpace: 'Faire mes achats',
     profile: 'Mon profil',
+    help: 'Aide et règlement',
     logout: 'Se déconnecter',
     logoutConfirm: 'Se déconnecter ?',
     logoutText: 'Vous devrez saisir à nouveau votre email et votre mot de passe.',
