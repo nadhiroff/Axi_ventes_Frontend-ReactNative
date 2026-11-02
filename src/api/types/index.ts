@@ -129,6 +129,8 @@ export type PublicProfile = {
   reported: boolean;
 };
 export type ReportReason = 'spam' | 'fraud' | 'insult' | 'fake' | 'other';
+/** Personne que j'ai bloquée (Paramètres > Utilisateurs bloqués) */
+export type BlockedUser = { id: string; display_name: string; avatar: ApiImage | null; role: Role; stall_name: string | null; blocked_at: string };
 
 export type StallDetail = StallSummary & {
   /** Photos à faire défiler : principale puis galerie */
