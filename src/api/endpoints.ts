@@ -7,6 +7,7 @@ import type {
   AvatarVisibility,
   Badges,
   BlockedUser,
+  DeletionRequest,
   MyData,
   ConversationPayload,
   ConversationSummary,
@@ -135,7 +136,11 @@ export const api = {
   exportData: () => apiSend<{ url: string }>('POST', '/v1/me/export'),
   /** Mes données, affichées dans l'application puis enregistrées ou partagées en fichier */
   myData: () => apiGet<MyData>('/v1/me/data'),
-  deleteAccount: (password: string) => apiSend<{ deleted: true }>('POST', '/v1/me/delete', { password }),
+  /** Demande de suppression (mot de passe + raison) : traitée par l'équipe Axi, annulable tant qu'elle attend */
+  deleteAccount: (password: string, reason: string) =>
+    apiSend<{ status: 'pending'; message: string; request: DeletionRequest }>('POST', '/v1/me/delete', { password, reason }),
+  deletionRequest: () => apiGet<{ request: DeletionRequest | null }>('/v1/me/deletion-request'),
+  cancelDeletionRequest: () => apiSend<{ request: null; message: string }>('DELETE', '/v1/me/deletion-request'),
   notifications: () => apiGet<{ unread: number; notifications: AppNotification[] }>('/v1/notifications'),
   readNotifications: (ids: string[] | 'all') => apiSend<{ unread: number }>('POST', '/v1/notifications/read', ids === 'all' ? { all: true } : { ids }),
   favorites: () => apiGet<{ products: ProductWithStall[] }>('/v1/favorites'),

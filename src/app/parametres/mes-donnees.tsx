@@ -14,6 +14,7 @@ import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { ErrorView, LoadingView } from '../../components/ui/StateViews';
 import { useT } from '../../i18n';
 import { notify } from '../../lib/confirm';
+import { myDataPdf } from '../../lib/myDataPdf';
 import { formatFcfa, formatShortDate } from '../../lib/format';
 import { fontSize, makeStyles, spacing, useTheme } from '../../theme';
 
@@ -32,26 +33,35 @@ export default function MyDataScreen() {
   const styles = useStyles();
   const t = useT();
   const query = useQuery({ queryKey: ['me', 'data'], queryFn: api.myData, staleTime: 0 });
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] = useState<'pdf' | 'json' | null>(null);
   const d = query.data;
 
-  const saveFile = async () => {
+  /** Document PDF lisible par tout le monde (par défaut) ou fichier technique JSON */
+  const saveFile = async (kind: 'pdf' | 'json') => {
     if (!d) return;
-    setSaving(true);
+    setSaving(kind);
     try {
       if (!(await Sharing.isAvailableAsync())) {
         notify(t('myData.title'), t('myData.shareUnavailable'), 'error');
         return;
       }
-      const file = new File(Paths.cache, 'mes-donnees-axi.json');
+      const name = kind === 'pdf' ? 'Mes-donnees-Axi.pdf' : 'mes-donnees-axi.json';
+      const file = new File(Paths.cache, name);
       if (file.exists) file.delete();
-      file.create();
-      await file.write(JSON.stringify(d, null, 2));
-      await Sharing.shareAsync(file.uri, { mimeType: 'application/json', dialogTitle: t('myData.title'), UTI: 'public.json' });
+      if (kind === 'pdf') {
+        // Le PDF est créé sous un nom au hasard : renommé pour que la personne le reconnaisse dans ses fichiers
+        new File(await myDataPdf(d)).move(file);
+      } else {
+        file.create();
+        await file.write(JSON.stringify(d, null, 2));
+      }
+      await Sharing.shareAsync(file.uri, kind === 'pdf'
+        ? { mimeType: 'application/pdf', dialogTitle: t('myData.title'), UTI: 'com.adobe.pdf' }
+        : { mimeType: 'application/json', dialogTitle: t('myData.title'), UTI: 'public.json' });
     } catch (e) {
       notify(t('myData.title'), errorMessage(e), 'error');
     } finally {
-      setSaving(false);
+      setSaving(null);
     }
   };
 
@@ -66,8 +76,10 @@ export default function MyDataScreen() {
         <View style={styles.column}>
           <Text style={styles.muted}>{t('myData.intro')}</Text>
           <Card style={{ gap: spacing.sm }}>
-            <Button label={t('myData.save')} icon="share-2" onPress={saveFile} loading={saving} />
+            <Button label={t('myData.save')} icon="file-text" onPress={() => saveFile('pdf')} loading={saving === 'pdf'} disabled={saving !== null} />
             <Text style={styles.small}>{t('myData.saveHint')}</Text>
+            {/* Pour un service ou un logiciel qui lit les données brutes : discret, sous le document lisible */}
+            <Button label={t('myData.saveJson')} icon="code" variant="ghost" size="sm" onPress={() => saveFile('json')} loading={saving === 'json'} disabled={saving !== null} style={{ alignSelf: 'flex-start' }} />
           </Card>
 
           {a ? (
