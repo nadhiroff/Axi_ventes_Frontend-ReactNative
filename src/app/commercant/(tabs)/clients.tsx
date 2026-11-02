@@ -6,6 +6,7 @@ import { errorMessage } from '../../../api/client';
 import { api } from '../../../api/endpoints';
 import type { ClientSegment } from '../../../api/types';
 import { showBroadcastResult } from '../../../components/merchant/broadcast';
+import { Ticks } from '../../../components/chat/Ticks';
 import { Avatar } from '../../../components/ui/Avatar';
 import { Button, IconButton } from '../../../components/ui/Button';
 import { Card } from '../../../components/ui/Card';
@@ -94,9 +95,13 @@ export default function ClientsScreen() {
                     {c.badge ? <Tag label={c.badge.label} tone={c.badge.kind === 'follow_up' ? 'brand' : c.badge.kind === 'loyal' || c.badge.kind === 'follower' ? 'trust' : 'neutral'} /> : null}
                   </View>
                   {/* Comme WhatsApp : le dernier message envoyé ou reçu, sinon le type de client */}
-                  <Text style={styles.muted} numberOfLines={1}>
-                    {c.last_message ? `${c.last_message.mine ? `${t('chat.yourself')} : ` : ''}${c.last_message.preview}` : c.description}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    {/* Mon dernier message : ✓ envoyé, ✓✓ reçu, ✓✓ bleu vu, sans ouvrir la discussion */}
+                    {c.last_message?.mine && c.last_message.status ? <Ticks status={c.last_message.status} size={15} /> : null}
+                    <Text style={[styles.muted, { flexShrink: 1 }]} numberOfLines={1}>
+                      {c.last_message ? `${c.last_message.mine ? `${t('chat.yourself')} : ` : ''}${c.last_message.preview}` : c.description}
+                    </Text>
+                  </View>
                 </View>
                 {/* Heure du dernier message, centrée verticalement à droite */}
                 {c.last_message ? <Text style={styles.time}>{formatChatTime(c.last_message.created_at, lang, dateFormat)}</Text> : null}
