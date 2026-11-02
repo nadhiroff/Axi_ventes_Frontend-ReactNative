@@ -7,6 +7,7 @@ import type {
   AvatarVisibility,
   Badges,
   BlockedUser,
+  MyData,
   ConversationPayload,
   ConversationSummary,
   ChatMessage,
@@ -132,6 +133,8 @@ export const api = {
   consents: () => apiGet<{ consents: Consent[] }>('/v1/me/consents'),
   revokeConsent: (consentId: string) => apiSend<{ revoked: true }>('DELETE', `/v1/me/consents/${id(consentId)}`),
   exportData: () => apiSend<{ url: string }>('POST', '/v1/me/export'),
+  /** Mes données, affichées dans l'application puis enregistrées ou partagées en fichier */
+  myData: () => apiGet<MyData>('/v1/me/data'),
   deleteAccount: (password: string) => apiSend<{ deleted: true }>('POST', '/v1/me/delete', { password }),
   notifications: () => apiGet<{ unread: number; notifications: AppNotification[] }>('/v1/notifications'),
   readNotifications: (ids: string[] | 'all') => apiSend<{ unread: number }>('POST', '/v1/notifications/read', ids === 'all' ? { all: true } : { ids }),

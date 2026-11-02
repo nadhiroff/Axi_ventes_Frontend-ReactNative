@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Linking, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { errorMessage } from '../../api/client';
 import { api } from '../../api/endpoints';
@@ -15,6 +15,7 @@ import { useT } from '../../i18n';
 import { confirmAction, notify } from '../../lib/confirm';
 import { formatShortDate } from '../../lib/format';
 import { leaveSession } from '../../lib/authFlow';
+import { useAuthStore } from '../../store/authStore';
 import { fontSize, makeStyles, spacing } from '../../theme';
 
 /** Confidentialité : consentements (voir, révoquer), export de mes données, suppression du compte (double confirmation) */
@@ -27,11 +28,8 @@ export default function PrivacyScreen() {
   const [password, setPassword] = useState('');
   const [deleting, setDeleting] = useState(false);
 
-  const exportData = () =>
-    actions.exportData.mutate(undefined, {
-      onSuccess: ({ url }) => Linking.openURL(url).catch(() => notify(t('settings.exportData'), url, 'error')),
-      onError: (e) => notify(t('settings.exportData'), errorMessage(e), 'error'),
-    });
+  // Commerçant : les accords de partage se donnent dans « Mon argent » (partage de l'historique avec l'IMF)
+  const merchant = useAuthStore((s) => s.user?.role === 'merchant');
 
   const deleteAccount = () =>
     confirmAction(t('settings.deleteConfirm1'), t('settings.deleteText1'), () =>
@@ -59,7 +57,18 @@ export default function PrivacyScreen() {
           <MenuRow icon="slash" label={t('block.listTitle')} onPress={() => router.push('/parametres/bloques')} />
         </Card>
         <Text style={styles.section}>{t('settings.consents')}</Text>
-        {!consents.data?.consents.length ? <Text style={styles.muted}>{t('settings.noConsents')}</Text> : null}
+        {/* À quoi sert un accord, et où le donner : sans cela, « aucun accord » ne voulait rien dire */}
+        <Text style={styles.muted}>{t('settings.consentsHint')}</Text>
+        {!consents.data?.consents.length ? (
+          <Card style={{ gap: spacing.md }}>
+            <Text style={styles.muted}>{t('settings.noConsents')}</Text>
+            {merchant ? (
+              <Button label={t('settings.consentsManage')} icon="share-2" variant="ghost" onPress={() => router.push('/commercant/argent')} />
+            ) : (
+              <Text style={styles.muted}>{t('settings.consentsClient')}</Text>
+            )}
+          </Card>
+        ) : null}
         {(consents.data?.consents ?? []).map((c) => (
           <Card key={c.id} style={{ gap: spacing.sm }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
@@ -75,7 +84,7 @@ export default function PrivacyScreen() {
         <Text style={styles.section}>{t('settings.exportData')}</Text>
         <Card style={{ gap: spacing.md }}>
           <Text style={styles.muted}>{t('settings.exportText')}</Text>
-          <Button label={t('settings.exportData')} icon="download" variant="ghost" onPress={exportData} loading={actions.exportData.isPending} />
+          <Button label={t('settings.exportData')} icon="download" variant="ghost" onPress={() => router.push('/parametres/mes-donnees')} />
         </Card>
 
         <Text style={styles.section}>{t('settings.deleteAccount')}</Text>
