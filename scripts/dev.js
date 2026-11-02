@@ -46,15 +46,26 @@ function portBusy() {
     console.log(`› API : http://0.0.0.0:${port} (toutes les adresses du PC)`);
   }
 
+  // Worker : webhooks de paiement, emails et notifications envoyés hors des requêtes (sinon l'API le fait elle-même)
+  let worker = null;
+  if (fs.existsSync(path.join(backend, 'cron', 'worker.php'))) {
+    worker = spawn('php', ['cron/worker.php', '--forever'], { cwd: backend, stdio: ['ignore', 'ignore', 'pipe'] });
+    worker.stderr.on('data', (chunk) => console.warn(`› Worker : ${String(chunk).trim()}`));
+    worker.on('error', (e) => console.warn(`› Worker : impossible de lancer php (${e.message})`));
+    console.log('› Worker : emails, notifications et webhooks en arrière-plan');
+  }
+
   const expo = spawn('npx', ['expo', 'start', ...process.argv.slice(2)], { stdio: 'inherit' });
   const stop = () => {
     php?.kill();
+    worker?.kill();
     expo.kill();
   };
   process.on('SIGINT', stop);
   process.on('SIGTERM', stop);
   expo.on('exit', (code) => {
     php?.kill();
+    worker?.kill();
     process.exit(code ?? 0);
   });
 })();
