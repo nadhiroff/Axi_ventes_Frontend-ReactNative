@@ -297,7 +297,10 @@ export default function ConversationScreen() {
         showsVerticalScrollIndicator={false}
         data={messages}
         keyExtractor={(m) => m.id}
-        contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm, width: '100%', maxWidth: contentWidth, alignSelf: 'center' }}
+        // Liste inversée : flexGrow + 'flex-end' colle les messages en HAUT de l'écran quand il y en a peu
+        // (après l'expiration des anciens messages), au lieu de laisser un grand vide au-dessus.
+        // Dès que la liste dépasse l'écran, le comportement normal (dernier message en bas) reprend.
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', padding: spacing.lg, gap: spacing.sm, width: '100%', maxWidth: contentWidth, alignSelf: 'center' }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         renderItem={({ item }) =>
