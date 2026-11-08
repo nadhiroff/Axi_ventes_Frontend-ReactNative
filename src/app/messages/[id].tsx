@@ -515,6 +515,13 @@ function Bubble({ message, onImage, onLongPress, otherName }: { message: ChatMes
   const time = new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   return (
     <Pressable onLongPress={onLongPress} delayLongPress={350} style={[styles.bubble, message.mine ? styles.mine : styles.theirs]}>
+      {/* Message groupé du commerçant (« Message à mes clients ») : petit badge en haut de la bulle */}
+      {message.announcement && !message.deleted ? (
+        <View style={[styles.announce, message.mine && styles.announceMine]} accessibilityLabel={t('groupMessage.announcement')}>
+          <Icon name="volume-2" size={11} color={message.mine ? '#FFFFFF' : styles.announceText.color} />
+          <Text style={[styles.announceText, message.mine && styles.bodyMine]}>{t('groupMessage.announcement')}</Text>
+        </View>
+      ) : null}
       {message.reply && !message.deleted ? (
         <View style={[styles.quote, message.mine && styles.quoteMine]}>
           <Text style={[styles.quoteName, message.mine && styles.bodyMine]} numberOfLines={1}>{message.reply.mine ? t('chat.yourself') : otherName}</Text>
@@ -578,6 +585,9 @@ const useStyles = makeStyles((c) => ({
   editTitle: { fontSize: fontSize.small, fontWeight: '700', color: c.brand },
   editText: { fontSize: fontSize.small, color: c.textMuted },
   timeMine: { color: 'rgba(255,255,255,0.8)' },
+  announce: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 2, borderRadius: radius.pill, backgroundColor: c.brandSoft },
+  announceMine: { backgroundColor: 'rgba(255,255,255,0.22)' },
+  announceText: { fontSize: 11, fontWeight: '700', color: c.brandDark, letterSpacing: 0.3 },
   photo: { width: 220, height: 220, borderRadius: radius.md },
   bar: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm, paddingHorizontal: spacing.md, paddingTop: spacing.sm, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border },
   iconButton: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center' },

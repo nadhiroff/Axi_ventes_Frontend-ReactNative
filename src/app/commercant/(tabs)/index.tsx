@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useIsFocused } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
@@ -13,6 +13,7 @@ import { ScreenHeader } from '../../../components/ui/ScreenHeader';
 import { ErrorView, LoadingView } from '../../../components/ui/StateViews';
 import { Tag } from '../../../components/ui/Tag';
 import { ArrivalSheet } from '../../../components/merchant/ArrivalSheet';
+import { OrderCard } from '../../../components/merchant/OrderCard';
 import { useBadges } from '../../../hooks/api/chat';
 import { useMerchantActions, useMerchantMoney, useMerchantToday } from '../../../hooks/api/merchant';
 import { SubscriptionBanner } from '../../../components/merchant/SubscriptionBanner';
@@ -29,7 +30,7 @@ export default function TodayScreen() {
   const lang = useLangStore((s) => s.lang);
   const { colors } = useTheme();
   const { listColumns, tablet } = useLayout();
-  const today = useMerchantToday();
+  const today = useMerchantToday(useIsFocused());
   const actions = useMerchantActions();
   const [arrivalOpen, setArrivalOpen] = useState(false);
   const money = useMerchantMoney().data;
@@ -45,15 +46,22 @@ export default function TodayScreen() {
         <Tag label={d.stall_open ? t('stall.open') : t('stall.closed')} tone={d.stall_open ? 'trust' : 'outline'} size="md" />
         <SubscriptionBanner />
         <AdsCarousel ads={d.ads} />
+        {/* Chiffres du jour : mis à jour seuls toutes les 15 s ; toucher ouvre Mes commandes */}
         <View style={{ flexDirection: 'row', gap: spacing.md }}>
-          <Card tone="trustSoft" style={{ flex: 1 }}>
-            <Text style={[styles.kpiLabel, { color: colors.trustText }]}>{t('merchant.salesToday')}</Text>
-            <Text style={[styles.kpi, { color: colors.trustText }]}>{formatFcfa(d.sales_today)}</Text>
-          </Card>
-          <Card tone="brandSoft" style={{ flex: 1 }}>
-            <Text style={[styles.kpiLabel, { color: colors.brandDark }]}>{t('merchant.toPrepare')}</Text>
-            <Text style={[styles.kpi, { color: colors.brandDark }]}>{d.orders_to_prepare}</Text>
-          </Card>
+          <Pressable style={{ flex: 1 }} onPress={() => router.push('/commercant/commandes?tab=done')} accessibilityRole="button">
+            <Card tone="trustSoft" style={{ flex: 1 }}>
+              <Text style={[styles.kpiLabel, { color: colors.trustText }]}>{t('merchant.salesToday')}</Text>
+              <Text style={[styles.kpi, { color: colors.trustText }]} adjustsFontSizeToFit numberOfLines={1}>{formatFcfa(d.sales_today)}</Text>
+              {d.orders_today !== undefined ? <Text style={[styles.kpiHint, { color: colors.trustText }]}>{t('merchantOrders.paidToday', { n: d.orders_today })}</Text> : null}
+            </Card>
+          </Pressable>
+          <Pressable style={{ flex: 1 }} onPress={() => router.push('/commercant/commandes?tab=todo')} accessibilityRole="button">
+            <Card tone="brandSoft" style={{ flex: 1 }}>
+              <Text style={[styles.kpiLabel, { color: colors.brandDark }]}>{t('merchant.toPrepare')}</Text>
+              <Text style={[styles.kpi, { color: colors.brandDark }]}>{d.orders_to_prepare}</Text>
+              {d.orders_open !== undefined ? <Text style={[styles.kpiHint, { color: colors.brandDark }]}>{t('merchantOrders.openCount', { n: d.orders_open })}</Text> : null}
+            </Card>
+          </Pressable>
         </View>
 
         <Card style={styles.connection}>
@@ -92,33 +100,38 @@ export default function TodayScreen() {
           <Button label={t('merchant.arrival')} icon="package" variant="ghost" onPress={() => setArrivalOpen(true)} style={{ flex: 1 }} />
         </View>
 
-        <Text style={styles.section}>{t('merchant.ordersToday')}</Text>
+        {/* Seulement ce qu'il reste à faire (3 au plus, les plus anciennes d'abord) ; le reste dans Mes commandes */}
+        <View style={[styles.sectionRow, { marginTop: spacing.md }]}>
+          <Text style={[styles.section, { flex: 1, marginTop: 0 }]}>{t('merchant.ordersToday')}</Text>
+          <Button label={t('merchantOrders.seeAllShort')} size="sm" variant="ghost" icon="list" onPress={() => router.push('/commercant/commandes')} />
+        </View>
         {!d.orders.length ? <Text style={styles.muted}>{t('merchant.noOrders')}</Text> : null}
         <Grid columns={listColumns}>
           {d.orders.map((o) => (
-            <Card key={o.id} style={{ flex: 1, gap: spacing.sm }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.title}>{o.customer_name}</Text>
-                  <Text style={styles.muted}>{o.summary}</Text>
+            <OrderCard
+              key={o.id}
+              order={{ ...o, amount: o.amount ?? 0, created_at: o.created_at ?? null }}
+              footer={
+                <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs }}>
+                  {o.status === 'to_prepare' ? (
+                    <Button
+                      label={t('merchant.ready')}
+                      variant="dark"
+                      size="sm"
+                      style={{ flex: 1 }}
+                      loading={actions.ready.isPending && actions.ready.variables === o.id}
+                      onPress={() => confirmAction(t('merchant.readyConfirm'), o.summary, () => actions.ready.mutate(o.id, { onError: (e) => notify(t('merchant.ready'), errorMessage(e), 'error') }))}
+                    />
+                  ) : null}
+                  {o.customer_phone ? <IconButton icon="phone" label={t('common.call')} onPress={() => callPhone(o.customer_phone)} /> : null}
                 </View>
-                <Tag label={o.status_label} tone={o.status === 'to_prepare' ? 'brand' : 'trust'} />
-              </View>
-              <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                {o.status === 'to_prepare' ? (
-                  <Button
-                    label={t('merchant.ready')}
-                    variant="dark"
-                    style={{ flex: 1 }}
-                    loading={actions.ready.isPending && actions.ready.variables === o.id}
-                    onPress={() => confirmAction(t('merchant.readyConfirm'), o.summary, () => actions.ready.mutate(o.id, { onError: (e) => notify(t('merchant.ready'), errorMessage(e), 'error') }))}
-                  />
-                ) : null}
-                {o.customer_phone ? <IconButton icon="phone" label={t('common.call')} onPress={() => callPhone(o.customer_phone)} /> : null}
-              </View>
-            </Card>
+              }
+            />
           ))}
         </Grid>
+        {(d.orders_open ?? 0) > d.orders.length ? (
+          <Button label={t('merchantOrders.seeAll', { n: d.orders_open ?? 0 })} variant="outline" onPress={() => router.push('/commercant/commandes')} />
+        ) : null}
       </Screen>
       <ArrivalSheet
         key={arrivalOpen ? 'open' : 'closed'}
@@ -144,6 +157,8 @@ export default function TodayScreen() {
 const useStyles = makeStyles((c) => ({
   kpiLabel: { fontSize: fontSize.small, fontWeight: '600' },
   kpi: { fontSize: 28, fontWeight: '800' },
+  kpiHint: { fontSize: fontSize.small, marginTop: 2 },
+  sectionRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   connection: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   title: { fontSize: fontSize.body, fontWeight: '700', color: c.text },
   muted: { fontSize: fontSize.small, color: c.textMuted },

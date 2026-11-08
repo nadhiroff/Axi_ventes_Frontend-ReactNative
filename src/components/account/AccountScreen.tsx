@@ -86,7 +86,8 @@ export function AccountScreen({ space }: { space: 'client' | 'merchant' }) {
               }}
             />
           ) : null}
-          <MenuRow icon="package" label={t('account.orders')} onPress={() => router.push('/commandes')} />
+          {/* Espace commerçant : les commandes REÇUES par l'étal ; espace client : mes achats */}
+          <MenuRow icon="package" label={space === 'merchant' ? t('merchantOrders.title') : t('account.orders')} onPress={() => router.push(space === 'merchant' ? '/commercant/commandes' : '/commandes')} />
           <MenuRow icon="bar-chart-2" label={merchant && space === 'merchant' ? t('merchant.sales') : t('account.sales')} onPress={() => router.push('/ventes')} />
           <MenuRow icon="heart" label={t('account.favorites')} onPress={() => router.push('/favoris')} />
           <MenuRow icon="bell" label={t('account.notifications')} value={unread > 0 ? String(unread) : undefined} onPress={() => router.push('/notifications')} />

@@ -334,12 +334,31 @@ export type StallInput = Partial<{
 
 export type ProductPatch = Partial<{ name: string; description: string | null; price: number | null; price_max: number | null; in_stock: boolean; stock_quantity: number | null; is_today: boolean; status: 'active' }>;
 
-export type MerchantOrder = { id: string; customer_name: string; customer_phone: string | null; summary: string; status: 'to_prepare' | 'ready' | 'picked_up'; status_label: string };
+export type MerchantOrder = { id: string; customer_name: string; customer_phone: string | null; summary: string; status: 'to_prepare' | 'ready' | 'picked_up'; status_label: string; amount?: number; created_at?: string | null };
+export type MerchantOrderTab = 'todo' | 'shipping' | 'done';
+export type MerchantOrderStatus = 'to_prepare' | 'ready' | 'picked_up' | 'delivered' | 'cancelled';
+/** Ligne de « Mes commandes » (commandes reçues par l'étal) */
+export type MerchantOrderRow = { id: string; customer_name: string; created_at: string | null; items_count: number; summary: string; amount: number; status: MerchantOrderStatus; status_label: string; reception_label: string };
+export type MerchantOrdersPage = { tab: MerchantOrderTab; counts: Record<MerchantOrderTab, number>; orders: MerchantOrderRow[]; next_cursor: string | null };
+export type MerchantOrderDetail = MerchantOrderRow & {
+  customer: { name: string; phone: string | null; client_id: string | null; can_message: boolean; orders_count: number | null };
+  lines: { product_id: string; name: string; quantity: number; unit_price: number; total: number; image: ApiImage | null }[];
+  amounts: { items_total: number; commission: number; commission_pct: number; net: number; refunded: number };
+  reception: { mode: 'delivery' | 'bus' | 'axi_point'; label: string; detail: string | null };
+  payment: { mode: 'online' | 'on_site'; label: string; paid_at: string | null };
+  money: { state: EscrowState | 'pending'; label: string; tone: 'brand' | 'trust' | 'neutral' | 'danger' };
+  steps: { key: string; label: string; at: string | null; done: boolean }[];
+  can_mark_ready: boolean;
+};
 export type MerchantToday = {
   greeting_name: string;
   stall_open: boolean;
   sales_today: number;
   orders_to_prepare: number;
+  /** À préparer + prêtes (la liste du jour n'en montre que 3) */
+  orders_open?: number;
+  /** Commandes payées aujourd'hui */
+  orders_today?: number;
   connection: { active: boolean; included_until: string | null };
   relocation: { title: string; text: string; already_sent: boolean; client_count: number } | null;
   ads: Ad[];
@@ -386,7 +405,20 @@ export type ClientLookup = {
   kind_detected?: 'individual' | 'reseller';
   existing_client_id?: string | null;
 };
-export type BroadcastResult = { recipients: number; notified: number; emailed: number; message: string; whatsapp_url: string | null; share_text: string };
+export type BroadcastResult = {
+  recipients: number;
+  notified: number;
+  emailed: number;
+  message: string;
+  whatsapp_url: string | null;
+  share_text: string;
+  channel?: BroadcastChannel;
+  /** Clients à joindre sur WhatsApp, chacun avec son lien prêt à envoyer */
+  whatsapp_targets?: { client_id: string; name: string; phone: string; url: string }[];
+  without_phone?: number;
+};
+export type BroadcastChannel = 'axi' | 'whatsapp';
+export type GroupMessageInput = { channel: BroadcastChannel; text: string } & ({ segment: ClientSegment } | { client_ids: string[] });
 export type VoiceMessage = { id: string; client_name: string; client_phone: string | null; audio_url: string; listened: boolean; created_at: string };
 
 export type SubscriptionPeriod = 'month' | 'year';
@@ -406,11 +438,19 @@ export type SubscriptionInfo = {
   /** Limites sans abonnement (product_limit null quand abonné) */
   limits: { product_limit: number | null; active_products: number; paused_products: number; broadcasts: boolean; text: string | null; announcement_days: number; announcement_photos: number };
   benefits: string[];
+  /** Gestion : début de la période en cours, résiliation, paiements avec reçu */
+  starts_on?: string | null;
+  cancelled?: boolean;
+  can_cancel?: boolean;
+  history?: { id: string; period: SubscriptionPeriod; period_label: string; amount: number; starts_on: string; ends_on: string; paid_at: string | null; paid_by: 'merchant' | 'anagem' | 'axi'; receipt: boolean }[];
 };
 export type MerchantMoney = {
   pending_amount: number;
   released_amount: number;
   paid_out_amount: number;
+  /** Versé depuis le 1er du mois */
+  paid_out_month?: number;
+  payouts_count?: number;
   commission_rate_pct: number;
   subscription: SubscriptionInfo;
   supplier_offer: { id: string; label: string; title: string; text: string; url: string | null } | null;
@@ -478,5 +518,5 @@ export type MessageKind = 'text' | 'photo' | 'voice' | 'video' | 'system';
 /** sent : ✓ reçu par Axi ; delivered : ✓✓ arrivé sur le téléphone de l'autre ; read : ✓✓ bleu, lu */
 export type MessageStatus = 'sent' | 'delivered' | 'read';
 export type ReplyPreview = { id: string; mine: boolean; kind: MessageKind; preview: string };
-export type ChatMessage = { id: string; mine: boolean; status: MessageStatus | null; edited: boolean; deleted: boolean; reply: ReplyPreview | null; kind: MessageKind; body: string | null; image: ApiImage | null; audio_url: string | null; video_url?: string | null; created_at: string; expires_at: string | null };
+export type ChatMessage = { id: string; mine: boolean; status: MessageStatus | null; edited: boolean; deleted: boolean; reply: ReplyPreview | null; kind: MessageKind; /** Message groupé du commerçant : badge « Annonce » */ announcement?: boolean; body: string | null; image: ApiImage | null; audio_url: string | null; video_url?: string | null; created_at: string; expires_at: string | null };
 export type ConversationPayload = { conversation: ConversationSummary; messages: ChatMessage[] };

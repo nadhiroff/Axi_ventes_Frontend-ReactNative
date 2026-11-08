@@ -52,14 +52,17 @@ export default function ClientsScreen() {
       .then(({ conversation }) => router.push(`/messages/${conversation.id}`))
       .catch((e) => notify(t('chat.title'), errorMessage(e), 'error'));
 
-  const broadcast = () =>
-    confirmAction(t('merchant.broadcastLoyal'), t('merchant.broadcastConfirm'), () =>
-      actions.broadcast.mutate({ segment: 'loyal' }, { onSuccess: (r) => showBroadcastResult(t('merchant.broadcastLoyal'), r), onError: (e) => notify(t('merchant.broadcastLoyal'), errorMessage(e), 'error') }),
-    );
+  // Message groupé : canal (Axi ou WhatsApp) et destinataires choisis sur l'écran dédié ; le filtre affiché est repris
+  const broadcast = () => router.push(`/commercant/message-groupe?segment=${segment === 'all' ? 'loyal' : segment}`);
 
   return (
     <>
-      <ScreenHeader title={t('nav.clients')} subtitle={data ? t('merchant.followersCount', { n: data.followers_count, count: formatCount(data.followers_count) }) : undefined} showBack={false} right={<Button label={t('common.add')} icon="user-plus" size="sm" onPress={() => router.push('/commercant/client/nouveau')} />} />
+      <ScreenHeader title={t('nav.clients')} subtitle={data ? t('merchant.followersCount', { n: data.followers_count, count: formatCount(data.followers_count) }) : undefined} showBack={false} right={
+          <View style={{ flexDirection: 'row', gap: spacing.xs }}>
+            <IconButton icon="send" label={t('groupMessage.title')} onPress={broadcast} />
+            <Button label={t('common.add')} icon="user-plus" size="sm" onPress={() => router.push('/commercant/client/nouveau')} />
+          </View>
+        } />
       <Screen refreshing={clients.isRefetching} onRefresh={() => clients.refetch()}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
           {SEGMENTS.map((s) => (
@@ -74,7 +77,7 @@ export default function ClientsScreen() {
           <Card tone="brandOutline" style={{ gap: spacing.sm }}>
             <Text style={styles.title}>{data.arrival_prompt.title}</Text>
             <Text style={styles.muted}>{data.arrival_prompt.text}</Text>
-            <Button label={data.arrival_prompt.button_label} icon="send" onPress={broadcast} loading={actions.broadcast.isPending} />
+            <Button label={data.arrival_prompt.button_label} icon="send" onPress={broadcast} />
           </Card>
         ) : null}
         {clients.isPending ? (

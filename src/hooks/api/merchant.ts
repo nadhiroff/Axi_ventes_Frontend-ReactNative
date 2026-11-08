@@ -1,13 +1,36 @@
 import { useEffect } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { LocalFile } from '../../api/client';
 import { api } from '../../api/endpoints';
-import type { ClientInput, ClientSegment, ProductPatch, StallInput } from '../../api/types';
+import type { ClientInput, ClientSegment, GroupMessageInput, MerchantOrderTab, ProductPatch, StallInput } from '../../api/types';
 import { queryKeys } from './queryKeys';
 
 export const useStallOptions = () => useQuery({ queryKey: queryKeys.stallOptions, queryFn: api.stallOptions, staleTime: 3600_000 });
-export const useMerchantToday = () => useQuery({ queryKey: queryKeys.merchantToday, queryFn: api.merchantToday, refetchInterval: 60_000 });
+/**
+ * Ma journée : ventes du jour et commandes à traiter se mettent à jour seules — relue dès que l'onglet revient
+ * à l'écran, puis toutes les 15 s tant qu'il est affiché (304 sans corps si rien n'a changé).
+ */
+export function useMerchantToday(visible = true) {
+  const query = useQuery({ queryKey: queryKeys.merchantToday, queryFn: api.merchantToday, staleTime: 0, refetchInterval: visible ? 15_000 : false });
+  const { refetch } = query;
+  useEffect(() => {
+    if (visible) void refetch();
+  }, [visible, refetch]);
+  return query;
+}
+/** Mes commandes (reçues), par onglet et par pages de 20 ; relues toutes les 20 s quand l'écran est affiché */
+export const useMerchantOrders = (tab: MerchantOrderTab, visible = true) =>
+  useInfiniteQuery({
+    queryKey: queryKeys.merchantOrders(tab),
+    queryFn: ({ pageParam }) => api.merchantOrders(tab, pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.next_cursor ?? undefined,
+    staleTime: 0,
+    refetchInterval: visible ? 20_000 : false,
+  });
+/** Détail d'une commande reçue : suit seul les étapes (prête, coursier, reçue, versée) */
+export const useMerchantOrder = (orderId: string) => useQuery({ queryKey: queryKeys.merchantOrder(orderId), queryFn: () => api.merchantOrder(orderId), staleTime: 0, refetchInterval: 15_000 });
 // Relu à chaque ouverture ; visible : toutes les 30 s sur Mon étal (vérification par un agent, nouvelle adresse)
 export const useMerchantStall = (visible = false) => useQuery({ queryKey: queryKeys.merchantStall, queryFn: api.merchantStall, staleTime: 0, refetchInterval: visible ? 30_000 : false });
 // Relue toutes les 30 s, SEULEMENT quand l'onglet est affiché (réponse 304 sans corps si rien n'a changé)
@@ -80,6 +103,9 @@ export function useMerchantActions() {
     updateClient: useMutation({ mutationFn: (v: { id: string; input: Partial<ClientInput> }) => api.updateClient(v.id, v.input), onSuccess }),
     deleteClient: useMutation({ mutationFn: (clientId: string) => api.deleteClient(clientId), onSuccess }),
     followUp: useMutation({ mutationFn: (clientId: string) => api.followUpClient(clientId), onSuccess }),
+    groupMessage: useMutation({ mutationFn: (input: GroupMessageInput) => api.sendGroupMessage(input), onSuccess }),
+    cancelSubscription: useMutation({ mutationFn: api.cancelSubscription, onSuccess }),
+    resumeSubscription: useMutation({ mutationFn: api.resumeSubscription, onSuccess }),
     broadcast: useMutation({ mutationFn: (v: { segment: ClientSegment; text?: string }) => api.broadcastToSegment(v.segment, v.text), onSuccess }),
     listened: useMutation({ mutationFn: (messageId: string) => api.markListened(messageId), onSuccess }),
     requestCredit: useMutation({ mutationFn: (amount?: number) => api.requestCredit(amount), onSuccess }),

@@ -28,6 +28,8 @@ export default function MoneyScreen() {
   const actions = useMerchantActions();
   const dateFormat = useSettings().data?.date_format;
   const [creditAmount, setCreditAmount] = useState('');
+  // Versements : les 5 derniers, le reste sur demande (la liste ne s'allonge pas sans fin)
+  const [allPayouts, setAllPayouts] = useState(false);
   const m = money.data;
 
   if (money.isPending) return <LoadingView />;
@@ -52,17 +54,19 @@ export default function MoneyScreen() {
           <Card tone="trustSoft" style={{ flex: 1 }}>
             <Text style={[styles.kpiLabel, { color: colors.trustText }]}>{t('merchant.pending')}</Text>
             <Text style={[styles.kpi, { color: colors.trustText }]}>{formatFcfa(m.pending_amount)}</Text>
-            <Text style={[styles.small, { color: colors.trustText }]}>{t('merchant.pendingHint')}</Text>
+            <Text style={[styles.small, { color: colors.trustText }]}>{t('moneyHelp.pendingHint')}</Text>
           </Card>
           <View style={{ flex: 1, flexDirection: 'row', gap: spacing.md }}>
             <Card style={{ flex: 1 }}>
               <Text style={styles.kpiLabel}>{t('merchant.released')}</Text>
               <Text style={styles.kpiSmall}>{formatFcfa(m.released_amount)}</Text>
-              <Text style={styles.small}>{t('merchant.releasedHint')}</Text>
+              <Text style={styles.small}>{t('moneyHelp.releasedHint')}</Text>
             </Card>
             <Card style={{ flex: 1 }}>
-              <Text style={styles.kpiLabel}>{t('merchant.paidOut')}</Text>
-              <Text style={styles.kpiSmall}>{formatFcfa(m.paid_out_amount)}</Text>
+              {/* Repart à zéro chaque mois ; le total depuis le début reste affiché dessous */}
+              <Text style={styles.kpiLabel}>{m.paid_out_month !== undefined ? t('moneyHelp.paidOutMonth') : t('merchant.paidOut')}</Text>
+              <Text style={styles.kpiSmall}>{formatFcfa(m.paid_out_month ?? m.paid_out_amount)}</Text>
+              {m.paid_out_month !== undefined ? <Text style={styles.small}>{t('moneyHelp.paidOutTotal', { amount: formatFcfa(m.paid_out_amount) })}</Text> : null}
             </Card>
           </View>
         </View>
@@ -162,7 +166,7 @@ export default function MoneyScreen() {
 
         <Text style={styles.section}>{t('merchant.payouts')}</Text>
         {!m.payouts.length ? <Text style={styles.small}>—</Text> : null}
-        {m.payouts.map((p) => (
+        {(allPayouts ? m.payouts : m.payouts.slice(0, 5)).map((p) => (
           <Card key={p.id} style={styles.row}>
             <View style={{ flex: 1 }}>
               <Text style={styles.text}>{formatShortDate(p.created_at, dateFormat)}</Text>
@@ -171,6 +175,10 @@ export default function MoneyScreen() {
             <Text style={styles.title}>{formatFcfa(p.amount)}</Text>
           </Card>
         ))}
+        {m.payouts.length > 5 ? (
+          <Button label={allPayouts ? t('moneyHelp.payoutsLess') : t('moneyHelp.payoutsMore', { n: m.payouts.length })} variant="ghost" size="sm" onPress={() => setAllPayouts((v) => !v)} />
+        ) : null}
+        {allPayouts && (m.payouts_count ?? 0) > m.payouts.length ? <Text style={styles.small}>{t('moneyHelp.payoutsNote')}</Text> : null}
       </Screen>
     </>
   );

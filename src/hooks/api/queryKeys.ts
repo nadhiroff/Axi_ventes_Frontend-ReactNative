@@ -1,4 +1,4 @@
-import type { ClientSegment, QuoteRequest, SalesFilters } from '../../api/types';
+import type { ClientSegment, MerchantOrderTab, QuoteRequest, SalesFilters } from '../../api/types';
 
 export const queryKeys = {
   home: ['home'] as const,
@@ -25,6 +25,8 @@ export const queryKeys = {
   merchantClients: (segment: ClientSegment, search: string) => ['merchant', 'clients', segment, search] as const,
   merchantClient: (id: string) => ['merchant', 'client', id] as const,
   merchantMoney: ['merchant', 'money'] as const,
+  merchantOrders: (tab: MerchantOrderTab) => ['merchant', 'orders', tab] as const,
+  merchantOrder: (id: string) => ['merchant', 'order', id] as const,
   voiceMessages: ['merchant', 'voice-messages'] as const,
   badges: ['me', 'badges'] as const,
   clientInvites: ['me', 'client-invites'] as const,
