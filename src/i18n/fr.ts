@@ -790,7 +790,7 @@ export const fr = {
     saveJson: 'Fichier technique (JSON)',
     pdfTitle: 'Mes données Axi',
     pdfIntro: 'Document généré le {date} à la demande de {name}. Il contient tout ce qu\'Axi enregistre sur votre compte.',
-    pdfFooter: 'Axi · Une question sur vos données ? Écrivez à nadhiroff14@gmail.com',
+    pdfFooter: 'Axi · Une question sur vos données ? Écrivez à support@rgz.bj',
     date: 'Date',
     detail: 'Détail',
     shareUnavailable: 'Le partage de fichiers n\'est pas disponible sur cet appareil.',

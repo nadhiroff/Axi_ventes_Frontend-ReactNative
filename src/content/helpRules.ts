@@ -7,7 +7,7 @@ import type { Lang } from '../i18n';
  * fon et yoruba : le français s'affiche en attendant une traduction validée par un locuteur.
  */
 
-export const SUPPORT_EMAIL = 'nadhiroff14@gmail.com';
+export const SUPPORT_EMAIL = 'support@rgz.bj';
 
 export type HelpSection = {
   id: string;

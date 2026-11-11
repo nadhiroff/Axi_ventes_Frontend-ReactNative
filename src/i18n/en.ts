@@ -791,7 +791,7 @@ export const en: Dict = {
     saveJson: 'Technical file (JSON)',
     pdfTitle: 'My Axi data',
     pdfIntro: 'Document generated on {date} at the request of {name}. It contains everything Axi records about your account.',
-    pdfFooter: 'Axi · A question about your data? Write to nadhiroff14@gmail.com',
+    pdfFooter: 'Axi · A question about your data? Write to support@rgz.bj',
     date: 'Date',
     detail: 'Details',
     shareUnavailable: 'File sharing is not available on this device.',
