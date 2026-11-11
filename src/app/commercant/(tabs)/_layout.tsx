@@ -3,7 +3,7 @@ import { Tabs } from 'expo-router/js-tabs';
 import { tabIcon } from '../../../components/ui/Icon';
 import { useBadges } from '../../../hooks/api/chat';
 import { useT } from '../../../i18n';
-import { useLayout, useTheme } from '../../../theme';
+import { fit, useLayout, useTheme } from '../../../theme';
 
 /** Onglets commerçant : Ma journée, Mon étal, Mes clients, Mon argent, Compte. */
 export default function MerchantTabsLayout() {
@@ -18,7 +18,7 @@ export default function MerchantTabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.brand,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarLabelStyle: { fontSize: 12, fontWeight: '500' },
+        tabBarLabelStyle: { fontSize: fit(12), fontWeight: '500' },
         tabBarStyle: { minHeight: tablet ? 70 : 64, paddingTop: 6, backgroundColor: colors.surface, borderTopColor: colors.border },
         tabBarLabelPosition: tablet ? 'beside-icon' : 'below-icon',
         sceneStyle: { backgroundColor: colors.background },

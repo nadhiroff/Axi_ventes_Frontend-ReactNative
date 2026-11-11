@@ -18,7 +18,7 @@ import { useNotifications } from '../../hooks/api/account';
 import { useHome } from '../../hooks/api/client';
 import { useT } from '../../i18n';
 import { useAuthStore } from '../../store/authStore';
-import { fontSize, makeStyles, radius, spacing, useLayout, useTheme } from '../../theme';
+import { fit, fontSize, makeStyles, radius, spacing, useLayout, useTheme } from '../../theme';
 
 /** Accueil client : recherche, bannière marché, promotion, allées, étals suivis et mis en avant. */
 export default function HomeScreen() {
@@ -41,15 +41,15 @@ export default function HomeScreen() {
     <View style={[styles.header, { paddingTop: insets.top + spacing.xs }]}>
       <View style={{ width: '100%', maxWidth: contentWidth, paddingHorizontal: gutter, gap: spacing.md }}>
         <View style={styles.brandRow}>
-          <View>
+          <View style={{ flex: 1, minWidth: 0 }}>
             <AxiLogo />
-            <Text style={styles.tagline}>{t('home.tagline')}</Text>
+            <Text style={styles.tagline} numberOfLines={2}>{t('home.tagline')}</Text>
           </View>
           <View style={styles.headerActions}>
             {data ? (
               <View style={styles.city}>
                 <Icon name="map-pin" size={16} />
-                <Text style={styles.cityText}>{data.city.name}</Text>
+                <Text style={styles.cityText} numberOfLines={1}>{data.city.name}</Text>
               </View>
             ) : null}
             {signedIn ? (
@@ -134,14 +134,15 @@ export default function HomeScreen() {
 
 const useStyles = makeStyles((c) => ({
   header: { backgroundColor: c.surface, paddingBottom: spacing.md, alignItems: 'center' },
-  brandRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  brandRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm },
+  // Ville et cloche toujours visibles : la ville se raccourcit (…) si la place manque
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexShrink: 1, maxWidth: '58%' },
   tagline: { fontSize: fontSize.body, color: c.textMuted, marginTop: -4 },
-  city: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: c.border, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: 8 },
-  cityText: { fontSize: fontSize.body, fontWeight: '600', color: c.text },
+  city: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1, borderWidth: 1, borderColor: c.border, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: 8 },
+  cityText: { fontSize: fontSize.body, fontWeight: '600', color: c.text, flexShrink: 1 },
   bell: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
   badge: { position: 'absolute', top: 4, right: 4, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: c.brand, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
-  badgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
+  badgeText: { color: '#FFFFFF', fontSize: fit(10), fontWeight: '700' },
   search: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: c.surfaceAlt, borderRadius: radius.lg, paddingHorizontal: spacing.lg, minHeight: 54 },
   searchText: { fontSize: fontSize.title, color: c.textMuted },
   banner: { backgroundColor: c.ink, borderRadius: radius.lg, padding: spacing.xl, gap: spacing.xs },

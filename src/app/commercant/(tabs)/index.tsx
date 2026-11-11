@@ -20,7 +20,7 @@ import { SubscriptionBanner } from '../../../components/merchant/SubscriptionBan
 import { confirmAction, notify } from '../../../lib/confirm';
 import { formatDate, formatFcfa } from '../../../lib/format';
 import { useLangStore, useT } from '../../../i18n';
-import { fontSize, makeStyles, spacing, useLayout, useTheme } from '../../../theme';
+import { fit, fontSize, makeStyles, spacing, useLayout, useTheme } from '../../../theme';
 import { callPhone } from '../../../lib/contact';
 
 /** « Ma journée » : ventes, commandes à préparer, connexion, nouvelle adresse, ajouts rapides. */
@@ -156,7 +156,7 @@ export default function TodayScreen() {
 
 const useStyles = makeStyles((c) => ({
   kpiLabel: { fontSize: fontSize.small, fontWeight: '600' },
-  kpi: { fontSize: 28, fontWeight: '800' },
+  kpi: { fontSize: fit(28), fontWeight: '800' },
   kpiHint: { fontSize: fontSize.small, marginTop: 2 },
   sectionRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   connection: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
@@ -187,7 +187,7 @@ function HeaderIcon({ icon, label, count, onPress }: { icon: 'bell' | 'message-c
       <Icon name={icon} size={20} color={colors.text} />
       {count > 0 ? (
         <View style={{ position: 'absolute', top: -2, right: -2, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: colors.brand, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 }}>
-          <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '700' }}>{count > 9 ? '9+' : count}</Text>
+          <Text style={{ color: '#FFFFFF', fontSize: fit(11), fontWeight: '700' }}>{count > 9 ? '9+' : count}</Text>
         </View>
       ) : null}
     </Pressable>

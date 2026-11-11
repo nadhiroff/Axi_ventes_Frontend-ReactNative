@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMemo } from 'react';
-import { StyleSheet, useColorScheme, useWindowDimensions } from 'react-native';
+import { PixelRatio, StyleSheet, useColorScheme, useWindowDimensions } from 'react-native';
 import { create } from 'zustand';
 
 import { darkPalette, lightPalette, type Palette } from './colors';
@@ -11,7 +11,14 @@ export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as cons
 
 export const radius = { sm: 8, md: 12, lg: 16, xl: 20, pill: 999 } as const;
 
-export const fontSize = { caption: 12, small: 13, body: 15, title: 17, heading: 22, display: 26 } as const;
+// Texte agrandi dans les réglages du téléphone : on suit jusqu'à +25 %, pas au-delà (sinon les écrans débordent).
+// Android multiplie chaque taille par l'échelle du téléphone : on compense ce qui dépasse le plafond.
+const MAX_FONT_SCALE = 1.25;
+const fontScale = PixelRatio.getFontScale();
+/** Taille de texte écrite en dur : même plafond que les tailles du thème */
+export const fit = (size: number) => (fontScale > MAX_FONT_SCALE ? Math.round(((size * MAX_FONT_SCALE) / fontScale) * 10) / 10 : size);
+
+export const fontSize = { caption: fit(12), small: fit(13), body: fit(15), title: fit(17), heading: fit(22), display: fit(26) } as const;
 
 export type ThemePreference = 'system' | 'light' | 'dark';
 

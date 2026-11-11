@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native';
 
 import { useT } from '../../i18n';
-import { useTheme } from '../../theme';
+import { fit, useTheme } from '../../theme';
 import { Icon } from './Icon';
 
 /** Pastille verte cochée à côté du nom d'un étal vérifié par un agent Axi. */
@@ -43,7 +43,7 @@ export function SubscriberTag({ onDark = false, label }: { onDark?: boolean; lab
       style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'center', gap: 4, minHeight: 24, paddingHorizontal: 8, borderRadius: 6, backgroundColor: onDark ? '#FFFFFF' : colors.brand }}
     >
       <Icon name="star" size={12} color={fg} />
-      <Text style={{ color: fg, fontSize: 12, fontWeight: '700' }}>{label ?? t('stall.subscriberShort')}</Text>
+      <Text style={{ color: fg, fontSize: fit(12), fontWeight: '700' }}>{label ?? t('stall.subscriberShort')}</Text>
     </View>
   );
 }

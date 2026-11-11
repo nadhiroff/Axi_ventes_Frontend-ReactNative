@@ -19,7 +19,7 @@ import { useLangStore, useT } from '../../i18n';
 import { confirmAction, notify, toast } from '../../lib/confirm';
 import { openLink } from '../../lib/contact';
 import { formatDate, formatFcfa, formatPayment, formatShortDate } from '../../lib/format';
-import { fontSize, makeStyles, radius, spacing, useTheme } from '../../theme';
+import { fit, fontSize, makeStyles, radius, spacing, useTheme } from '../../theme';
 
 /**
  * Abonnement du commerçant.
@@ -236,7 +236,7 @@ const useStyles = makeStyles((c) => ({
   strong: { fontSize: fontSize.body, fontWeight: '700', color: c.text },
   text: { fontSize: fontSize.body, color: c.text },
   muted: { fontSize: fontSize.small, color: c.textMuted },
-  big: { fontSize: 26, fontWeight: '800', color: c.text },
+  big: { fontSize: fit(26), fontWeight: '800', color: c.text },
   bar: { height: 8, borderRadius: 4, backgroundColor: c.surfaceAlt, overflow: 'hidden' },
   barFill: { height: 8, borderRadius: 4 },
   notice: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start', backgroundColor: c.brandSoft, borderRadius: radius.md, padding: spacing.md },

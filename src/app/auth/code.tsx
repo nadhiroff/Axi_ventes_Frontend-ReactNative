@@ -10,6 +10,7 @@ import { Screen } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { useT } from '../../i18n';
 import { finishAuth } from '../../lib/authFlow';
+import { toast } from '../../lib/confirm';
 import { deviceName } from '../../store/authStore';
 import { useFormStyles as useStyles } from '../../components/auth/formStyles';
 
@@ -34,7 +35,10 @@ export default function CodeScreen() {
     setLoading(true);
     setMessage(null);
     try {
-      await finishAuth(await api.verifyEmail(email, code.trim(), deviceName()));
+      const session = await api.verifyEmail(email, code.trim(), deviceName());
+      await finishAuth(session);
+      // Le compte est créé et ouvert : on le dit clairement
+      toast(t('auth.accountCreated', { name: session.user.first_name }), 'success');
     } catch (e) {
       setMessage(errorMessage(e));
     } finally {

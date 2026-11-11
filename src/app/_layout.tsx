@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { PushNotifications } from '../components/PushNotifications';
 import { SessionWatcher } from '../components/SessionWatcher';
+import { AutoLogout } from '../components/AutoLogout';
 import { DialogHost } from '../components/ui/DialogHost';
 import { useT } from '../i18n';
 
@@ -61,6 +62,7 @@ export default function RootLayout() {
         {/* Au-dessus du clavier : champ précédent / suivant et « OK » pour le fermer */}
         {toolbar ? <KeyboardToolbar doneText={t('common.done')} theme={{ light: { primary: colors.brand, disabled: colors.textMuted, background: colors.surfaceAlt, ripple: colors.border }, dark: { primary: colors.brand, disabled: colors.textMuted, background: colors.surfaceAlt, ripple: colors.border } }} /> : null}
         <SessionWatcher />
+        <AutoLogout />
         <PushNotifications />
         <DialogHost />
       </PersistQueryClientProvider>

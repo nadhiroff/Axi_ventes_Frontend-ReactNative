@@ -27,7 +27,7 @@
         "android.permission.RECORD_AUDIO"
       ],
       "package": "com.nadhir_off.axi",
-      "versionCode": 2
+      "versionCode": 3
     },
     "web": {
       "favicon": "./assets/favicon.png"

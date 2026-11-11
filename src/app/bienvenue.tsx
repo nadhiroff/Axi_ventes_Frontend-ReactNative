@@ -7,7 +7,7 @@ import { Button } from '../components/ui/Button';
 import { Icon } from '../components/ui/Icon';
 import { useT } from '../i18n';
 import { useAuthStore } from '../store/authStore';
-import { fontSize, makeStyles, spacing, useLayout } from '../theme';
+import { fit, fontSize, makeStyles, spacing, useLayout } from '../theme';
 
 /**
  * Premier lancement : Se connecter / Créer un compte / Continuer en visiteur. Défile si tout ne tient pas
@@ -70,8 +70,8 @@ const useStyles = makeStyles((c) => ({
   content: { flexGrow: 1, alignItems: 'center' },
   inner: { flexGrow: 1, width: '100%', justifyContent: 'space-between' },
   hero: { gap: spacing.md },
-  title: { fontSize: 32, lineHeight: 38, fontWeight: '800', color: '#FFFFFF' },
-  titleCompact: { fontSize: 26, lineHeight: 31 },
+  title: { fontSize: fit(32), lineHeight: 38, fontWeight: '800', color: '#FFFFFF' },
+  titleCompact: { fontSize: fit(26), lineHeight: 31 },
   text: { fontSize: fontSize.title, color: '#D6D3D1' },
   points: { gap: spacing.md },
   point: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },

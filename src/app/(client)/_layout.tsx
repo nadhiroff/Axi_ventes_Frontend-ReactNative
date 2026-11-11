@@ -7,7 +7,7 @@ import { useT } from '../../i18n';
 import { useAuthStore } from '../../store/authStore';
 import { cartCount, useCartStore } from '../../store/cartStore';
 import { useBadges } from '../../hooks/api/chat';
-import { useLayout, useTheme } from '../../theme';
+import { fit, useLayout, useTheme } from '../../theme';
 
 /** Onglets client : Accueil, Allées, Messages, Panier, Compte. */
 export default function ClientTabsLayout() {
@@ -31,7 +31,7 @@ export default function ClientTabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.brand,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarLabelStyle: { fontSize: 13, fontWeight: '500' },
+        tabBarLabelStyle: { fontSize: fit(13), fontWeight: '500' },
         tabBarStyle: { minHeight: tablet ? 70 : 64, paddingTop: 6, backgroundColor: colors.surface, borderTopColor: colors.border },
         tabBarLabelPosition: tablet ? 'beside-icon' : 'below-icon',
         sceneStyle: { backgroundColor: colors.background },

@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { ApiImage } from '../../api/types';
 import { useT } from '../../i18n';
-import { useTheme } from '../../theme';
+import { fit, useTheme } from '../../theme';
 import { Icon } from './Icon';
 
 type Props = { images: ApiImage[]; initialIndex?: number; visible: boolean; onClose: () => void; title?: string };
@@ -47,12 +47,12 @@ function Gallery({ images, initialIndex, onClose, title }: { images: ApiImage[];
         <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={t('common.close')} hitSlop={10} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' }}>
           <Icon name="x" size={24} color="#FFFFFF" />
         </Pressable>
-        <Text style={{ flex: 1, color: '#FFFFFF', fontSize: 16, fontWeight: '600' }} numberOfLines={1}>
+        <Text style={{ flex: 1, color: '#FFFFFF', fontSize: fit(16), fontWeight: '600' }} numberOfLines={1}>
           {title ?? ''}
         </Text>
-        {images.length > 1 ? <Text style={{ color: '#FFFFFF', fontSize: 15 }}>{`${index + 1} / ${images.length}`}</Text> : null}
+        {images.length > 1 ? <Text style={{ color: '#FFFFFF', fontSize: fit(15) }}>{`${index + 1} / ${images.length}`}</Text> : null}
       </View>
-      <Text style={{ position: 'absolute', bottom: insets.bottom + 16, alignSelf: 'center', color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>{t('viewer.hint')}</Text>
+      <Text style={{ position: 'absolute', bottom: insets.bottom + 16, alignSelf: 'center', color: 'rgba(255,255,255,0.7)', fontSize: fit(13) }}>{t('viewer.hint')}</Text>
     </>
   );
 }

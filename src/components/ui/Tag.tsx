@@ -1,6 +1,6 @@
 import { Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { makeStyles, radius, spacing, useTheme, type Palette } from '../../theme';
+import { fit, makeStyles, radius, spacing, type Palette, useTheme } from '../../theme';
 import { Icon, type IconName } from './Icon';
 
 type Tone = 'trust' | 'trustSolid' | 'brand' | 'neutral' | 'outline' | 'danger';
@@ -31,6 +31,6 @@ export function Tag({ label, tone = 'neutral', icon, size = 'sm', style }: Props
 const useStyles = makeStyles(() => ({
   tag: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', borderRadius: radius.sm, borderWidth: 1, paddingHorizontal: spacing.sm, paddingVertical: 3 },
   md: { borderRadius: radius.md, paddingHorizontal: spacing.md - 2, paddingVertical: 6 },
-  text: { fontSize: 12, fontWeight: '600' },
-  textMd: { fontSize: 13 },
+  text: { fontSize: fit(12), fontWeight: '600' },
+  textMd: { fontSize: fit(13) },
 }));

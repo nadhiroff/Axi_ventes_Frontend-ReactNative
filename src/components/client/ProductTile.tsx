@@ -5,7 +5,7 @@ import { Pressable, Text, View } from 'react-native';
 import type { Product } from '../../api/types';
 import { useT } from '../../i18n';
 import { formatPrice } from '../../lib/format';
-import { fontSize, makeStyles, pickColor, productTilePalette, radius, spacing, useTheme } from '../../theme';
+import { fit, fontSize, makeStyles, pickColor, productTilePalette, radius, spacing, useTheme } from '../../theme';
 import { useReduceMotion, useSlideIndex } from '../../hooks/useSlideshow';
 import { CachedImage } from '../ui/CachedImage';
 import { Icon } from '../ui/Icon';
@@ -92,10 +92,10 @@ const useStyles = makeStyles((c) => ({
   media: { aspectRatio: 1.25, alignItems: 'center', justifyContent: 'center' },
   fill: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   count: { position: 'absolute', bottom: 6, right: 6, flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: radius.pill, paddingHorizontal: 7, paddingVertical: 2 },
-  countText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
+  countText: { color: '#FFFFFF', fontSize: fit(11), fontWeight: '700' },
   favorite: { position: 'absolute', top: 6, right: 6, width: 30, height: 30, borderRadius: 15, backgroundColor: c.brand, alignItems: 'center', justifyContent: 'center' },
   today: { position: 'absolute', top: 6, left: 6, backgroundColor: c.trust, borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 2 },
-  todayText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
+  todayText: { color: '#FFFFFF', fontSize: fit(11), fontWeight: '700' },
   body: { padding: spacing.md, gap: 2, flexGrow: 1 },
   name: { fontSize: fontSize.body, fontWeight: '600', color: c.text },
   price: { fontSize: fontSize.body, fontWeight: '700', color: c.brand },

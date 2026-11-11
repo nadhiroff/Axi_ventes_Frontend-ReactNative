@@ -32,7 +32,7 @@ import { formatShortDate } from '../../lib/format';
 import { useDialogStore } from '../../components/ui/DialogHost';
 import { Ticks } from '../../components/chat/Ticks';
 import { useKeyboardToolbarStore } from '../../store/uiStore';
-import { fontSize, makeStyles, radius, spacing, useLayout, useTheme } from '../../theme';
+import { fit, fontSize, makeStyles, radius, spacing, useLayout, useTheme } from '../../theme';
 
 // Photos et vidéos envoyées d'un coup (chacune devient un message)
 const MAX_ATTACHMENTS = 10;
@@ -557,7 +557,7 @@ function Bubble({ message, onImage, onLongPress, otherName }: { message: ChatMes
 const useStyles = makeStyles((c) => ({
   notice: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: '88%', backgroundColor: c.surfaceAlt, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 6, marginVertical: spacing.xs },
   noticeText: { flexShrink: 1, fontSize: fontSize.caption, color: c.textMuted, textAlign: 'center', lineHeight: 17 },
-  noticeTime: { fontSize: 11, color: c.textMuted },
+  noticeTime: { fontSize: fit(11), color: c.textMuted },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.md, paddingBottom: spacing.sm, backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border },
   headerMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   headerName: { fontSize: fontSize.title, fontWeight: '700', color: c.text },
@@ -578,7 +578,7 @@ const useStyles = makeStyles((c) => ({
   theirs: { alignSelf: 'flex-start', backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderBottomLeftRadius: 4 },
   body: { fontSize: fontSize.body, color: c.text, lineHeight: 21 },
   bodyMine: { color: '#FFFFFF' },
-  time: { fontSize: 11, color: c.textMuted },
+  time: { fontSize: fit(11), color: c.textMuted },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-end' },
   deleted: { fontStyle: 'italic', opacity: 0.85 },
   editBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, backgroundColor: c.surfaceAlt, borderTopWidth: 1, borderTopColor: c.border },
@@ -587,7 +587,7 @@ const useStyles = makeStyles((c) => ({
   timeMine: { color: 'rgba(255,255,255,0.8)' },
   announce: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 2, borderRadius: radius.pill, backgroundColor: c.brandSoft },
   announceMine: { backgroundColor: 'rgba(255,255,255,0.22)' },
-  announceText: { fontSize: 11, fontWeight: '700', color: c.brandDark, letterSpacing: 0.3 },
+  announceText: { fontSize: fit(11), fontWeight: '700', color: c.brandDark, letterSpacing: 0.3 },
   photo: { width: 220, height: 220, borderRadius: radius.md },
   bar: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm, paddingHorizontal: spacing.md, paddingTop: spacing.sm, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border },
   iconButton: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center' },
@@ -595,7 +595,7 @@ const useStyles = makeStyles((c) => ({
   trayItem: { width: 72, height: 72 },
   trayImage: { width: 72, height: 72, borderRadius: radius.md, backgroundColor: c.surfaceAlt },
   trayVideo: { backgroundColor: '#1C1917', alignItems: 'center', justifyContent: 'center', gap: 2 },
-  trayDuration: { color: '#FFFFFF', fontSize: 11, fontWeight: '600' },
+  trayDuration: { color: '#FFFFFF', fontSize: fit(11), fontWeight: '600' },
   trayRemove: { position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
   trayHint: { fontSize: fontSize.caption, color: c.textMuted, paddingHorizontal: spacing.md },
   input: { flex: 1, minHeight: 44, maxHeight: 120, borderRadius: radius.lg, borderWidth: 1, borderColor: c.border, backgroundColor: c.background, paddingHorizontal: spacing.md, paddingTop: 11, paddingBottom: 11, fontSize: fontSize.body, color: c.text },

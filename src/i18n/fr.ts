@@ -87,6 +87,7 @@ export const fr = {
     resend: 'Renvoyer le code',
     resendIn: 'Renvoyer le code dans {s} s',
     codeSent: 'Un nouveau code vient d\'être envoyé.',
+    accountCreated: 'Compte créé ! Bienvenue sur Axi, {name}.',
     resetTitle: 'Nouveau mot de passe',
     resetText: 'Saisissez le code reçu à {email} et choisissez un nouveau mot de passe.',
     newPassword: 'Nouveau mot de passe',
@@ -561,6 +562,7 @@ export const fr = {
     logout: 'Se déconnecter',
     logoutConfirm: 'Se déconnecter ?',
     logoutText: 'Vous devrez saisir à nouveau votre email et votre mot de passe.',
+    autoLogout: 'Par sécurité, vous avez été déconnecté après {min} minutes hors de l\'application.',
     partnerInfo: 'Partenaires (agents Axi, ANaGeM, annonceurs, IMF) : utilisez l\'espace web Axi Pro.',
   },
   settings: {

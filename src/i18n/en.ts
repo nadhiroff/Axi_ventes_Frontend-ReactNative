@@ -88,6 +88,7 @@ export const en: Dict = {
     resend: 'Resend the code',
     resendIn: 'Resend the code in {s} s',
     codeSent: 'A new code has just been sent.',
+    accountCreated: 'Account created! Welcome to Axi, {name}.',
     resetTitle: 'New password',
     resetText: 'Enter the code sent to {email} and choose a new password.',
     newPassword: 'New password',
@@ -562,6 +563,7 @@ export const en: Dict = {
     logout: 'Sign out',
     logoutConfirm: 'Sign out?',
     logoutText: 'You will have to enter your email and password again.',
+    autoLogout: 'For your security, you were signed out after {min} minutes away from the app.',
     partnerInfo: 'Partners (Axi agents, ANaGeM, advertisers, MFIs): use the Axi Pro web space.',
   },
   settings: {

@@ -18,7 +18,7 @@ import { useT } from '../../../i18n';
 import { confirmAction, notify } from '../../../lib/confirm';
 import { callPhone } from '../../../lib/contact';
 import { formatFcfa, formatShortDate, orderNumber } from '../../../lib/format';
-import { fontSize, makeStyles, radius, spacing, useLayout, useTheme } from '../../../theme';
+import { fit, fontSize, makeStyles, radius, spacing, useLayout, useTheme } from '../../../theme';
 
 /**
  * Détail d'une commande reçue : quoi préparer, pour qui, comment elle part, combien le commerçant touche
@@ -168,7 +168,7 @@ const useStyles = makeStyles((c) => ({
   title: { fontSize: fontSize.body, fontWeight: '700', color: c.text },
   text: { fontSize: fontSize.body, color: c.text },
   muted: { fontSize: fontSize.small, color: c.textMuted },
-  big: { fontSize: 30, fontWeight: '800', color: c.text },
+  big: { fontSize: fit(30), fontWeight: '800', color: c.text },
   total: { fontSize: fontSize.title, fontWeight: '800', color: c.trustText },
   line: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   actions: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },

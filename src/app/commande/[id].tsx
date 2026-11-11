@@ -17,7 +17,7 @@ import { useT } from '../../i18n';
 import { confirmAction, notify } from '../../lib/confirm';
 import { formatFcfa, formatShortDate, orderNumber } from '../../lib/format';
 import { useCartStore } from '../../store/cartStore';
-import { fontSize, makeStyles, radius, spacing, useTheme } from '../../theme';
+import { fit, fontSize, makeStyles, radius, spacing, useTheme } from '../../theme';
 import { callPhone, openWhatsapp } from '../../lib/contact';
 
 /** Suivi d'une commande : paiement, préparation par étal, réception, litige. */
@@ -160,7 +160,7 @@ function Line({ label, value, strong }: { label: string; value: string; strong?:
 }
 
 const useStyles = makeStyles((c) => ({
-  total: { fontSize: 30, fontWeight: '800', color: c.text },
+  total: { fontSize: fit(30), fontWeight: '800', color: c.text },
   muted: { fontSize: fontSize.body, color: c.textMuted },
   section: { fontSize: fontSize.heading - 2, fontWeight: '700', color: c.text, marginTop: spacing.md },
   stallHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

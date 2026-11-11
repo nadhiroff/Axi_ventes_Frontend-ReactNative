@@ -15,7 +15,7 @@ import { useMerchantActions, useMerchantMoney } from '../../../hooks/api/merchan
 import { useLangStore, useT } from '../../../i18n';
 import { confirmAction, notify } from '../../../lib/confirm';
 import { formatDate, formatFcfa, formatShortDate } from '../../../lib/format';
-import { fontSize, makeStyles, radius, spacing, useLayout, useTheme } from '../../../theme';
+import { fit, fontSize, makeStyles, radius, spacing, useLayout, useTheme } from '../../../theme';
 
 /** « Mon argent » : séquestre, versements, abonnement, offre fournisseur, crédit, partage avec l'IMF. */
 export default function MoneyScreen() {
@@ -186,7 +186,7 @@ export default function MoneyScreen() {
 
 const useStyles = makeStyles((c) => ({
   kpiLabel: { fontSize: fontSize.small, fontWeight: '600', color: c.textMuted },
-  kpi: { fontSize: 30, fontWeight: '800' },
+  kpi: { fontSize: fit(30), fontWeight: '800' },
   kpiSmall: { fontSize: fontSize.heading, fontWeight: '800', color: c.text },
   small: { fontSize: fontSize.small, color: c.textMuted },
   text: { fontSize: fontSize.body, color: c.text },
