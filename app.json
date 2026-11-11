@@ -27,7 +27,7 @@
         "android.permission.RECORD_AUDIO"
       ],
       "package": "com.nadhir_off.axi",
-      "versionCode": 3
+      "versionCode": 4
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -58,7 +58,20 @@
       "expo-video",
       "expo-sharing",
       "expo-secure-store",
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 1,
+          "resizeMode": "contain",
+          "backgroundColor": "#F3F1EE",
+          "dark": {
+            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#2D2925"
+          }
+        }
+      ]
     ],
     "extra": {
       "router": {
