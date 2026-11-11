@@ -15,6 +15,9 @@
       },
       "ios": {
         "simulator": false
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://rgz.bj/Axi"
       }
     },
     "production": {
@@ -23,6 +26,9 @@
       },
       "ios": {
         "buildConfiguration": "Release"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://rgz.bj/Axi"
       }
     }
   },

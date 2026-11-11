@@ -26,7 +26,8 @@
         "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
         "android.permission.RECORD_AUDIO"
       ],
-      "package": "com.nadhir_off.axi"
+      "package": "com.nadhir_off.axi",
+      "versionCode": 2
     },
     "web": {
       "favicon": "./assets/favicon.png"
