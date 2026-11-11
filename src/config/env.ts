@@ -1,8 +1,9 @@
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
 /**
  * Adresse de l'API.
- * - En développement (Expo Go) : déduite AUTOMATIQUEMENT de l'adresse du PC qui sert l'application
+ * - En développement (Expo Go, ou navigateur web) : déduite AUTOMATIQUEMENT de l'adresse du PC qui sert l'application
  *   (celle qu'Expo Go utilise déjà), port EXPO_PUBLIC_API_PORT (8000 par défaut). Rien à changer
  *   quand le PC change de Wi-Fi : il suffit de relancer « npx expo start ».
  * - En production, ou pour forcer un serveur en ligne : EXPO_PUBLIC_API_URL=https://… dans .env.local.
@@ -13,7 +14,8 @@ const port = process.env.EXPO_PUBLIC_API_PORT || '8000';
 /** IP du PC de développement, lue dans l'adresse du serveur Expo (ex. « 192.168.1.6:8081 ») */
 function devMachineIp(): string | null {
   if (!__DEV__) return null;
-  const hostUri = Constants.expoConfig?.hostUri ?? Constants.expoGoConfig?.debuggerHost ?? '';
+  // Navigateur (« w » dans Expo) : pas d'hostUri, l'adresse de la page sert (localhost:8081 → localhost:8000)
+  const hostUri = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.host : (Constants.expoConfig?.hostUri ?? Constants.expoGoConfig?.debuggerHost ?? '');
   const host = hostUri.split(':')[0];
   return /^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host === 'localhost' ? host : null;
 }
