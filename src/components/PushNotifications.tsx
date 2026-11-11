@@ -2,7 +2,7 @@ import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { AndroidImportance } from 'expo-notifications';
 import { router } from 'expo-router';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 
 import { api } from '../api/endpoints';
@@ -85,7 +85,7 @@ export function PushNotifications() {
   }, [badges, signedIn]);
 
   // Alerte touchée (application ouverte, en arrière-plan ou fermée) : écran concerné
-  const response = Notifications.useLastNotificationResponse();
+  const response = useTappedNotification();
   useEffect(() => {
     if (!response || response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER || !signedIn) return;
     const url = response.notification.request.content.data?.url;
@@ -94,4 +94,32 @@ export function PushNotifications() {
   }, [response, signedIn]);
 
   return null;
+}
+
+/**
+ * Dernière alerte touchée. Remplace useLastNotificationResponse, qui plante quand le module ne sait pas la donner
+ * (navigateur web, application installée avant l'ajout des notifications) : ici on ignore simplement.
+ */
+function useTappedNotification() {
+  // Alerte touchée pour ouvrir l'application (lue une fois au démarrage)
+  const [response, setResponse] = useState<Notifications.NotificationResponse | null>(() => {
+    if (Platform.OS === 'web') return null;
+    try {
+      return Notifications.getLastNotificationResponse();
+    } catch {
+      // Pas disponible ici : seules les alertes touchées à partir de maintenant seront suivies
+      return null;
+    }
+  });
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    let subscription: { remove: () => void } | undefined;
+    try {
+      subscription = Notifications.addNotificationResponseReceivedListener(setResponse);
+    } catch {
+      subscription = undefined;
+    }
+    return () => subscription?.remove();
+  }, []);
+  return response;
 }
